@@ -27,3 +27,12 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+# No subir binarios ni artefactos de sistema
+.DS_Store
+public/.DS_Store
+*.zip
+vendor/
+node_modules/
+storage/
+bootstrap/cache/
