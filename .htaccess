@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /inmo/
+
+# (Opcional) excepción para tu script admin temporal
+RewriteRule ^admin-artisan\.php$ - [L]
+
+# Si el recurso existe físicamente (archivo o carpeta), sírvelo tal cual.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Todo lo demás -> /inmo/public/...
+RewriteRule ^(.*)$ public/$1 [L]

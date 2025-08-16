@@ -8,9 +8,17 @@ use App\Http\Controllers\PropiedadController;
 use App\Http\Controllers\InquilinoController;
 use App\Http\Controllers\ContratoController;
 use App\Http\Controllers\OperacionController;
+use App\Models\Cliente;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/api/clientes', function () {
+    $token = request('token');
+    abort_unless($token && hash_equals($token, env('FORMS_TOKEN')), 401);
 
+    return response()->json(
+        Cliente::orderBy('nombre')->get(['pk_cliente', 'nombre'])
+    );
+})->name('api.clientes');
 
 Route::get('/', function () {
     return view('auth.login');
