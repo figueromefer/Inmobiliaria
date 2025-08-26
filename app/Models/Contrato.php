@@ -3,12 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Contrato extends Model
 {
     protected $table = 'contratos';
 
+    // Incluye todas tus columnas originales más las FKs nuevas
     protected $fillable = [
+        'fk_cliente',
+        'fk_propiedad',
+
         'tipo_solicitante',
         'tipo_complementaria',
         'tipo_tercero',
@@ -19,7 +24,7 @@ class Contrato extends Model
         'fecha_inicio',
         'fecha_fin',
         'comision_renta',
-        'comision_mensual'.
+        'comision_mensual',
         'dias_pago',
         'monto_total',
         'monto_mensual',
@@ -27,15 +32,31 @@ class Contrato extends Model
         'edit_url',
     ];
 
+    // Casts (opcional) para fechas y números
     protected $casts = [
         'fecha'        => 'datetime',
         'fecha_inicio' => 'date',
         'fecha_fin'    => 'date',
     ];
 
-    public function inquilino()
+    // Relaciones Eloquent
+    public function cliente()   { return $this->belongsTo(Cliente::class, 'fk_cliente', 'pk_cliente'); }
+    public function propiedad() { return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad'); }
+    public function inquilino() { return $this->belongsTo(Inquilino::class, 'inquilino_id'); }
+
+    // Scope para encontrar contratos activos en un mes (útil para reportes)
+    public function scopeActivosEnMes($query, Carbon $mes)
     {
-        return $this->belongsTo(Inquilino::class, 'inquilino_id');
+        $inicio = $mes->copy()->startOfMonth();
+        $fin    = $mes->copy()->endOfMonth();
+        return $query
+            ->where(function ($q) use ($fin) {
+                $q->whereNull('fecha_inicio')
+                  ->orWhere('fecha_inicio', '<=', $fin);
+            })
+            ->where(function ($q) use ($inicio) {
+                $q->whereNull('fecha_fin')
+                  ->orWhere('fecha_fin', '>=', $inicio);
+            });
     }
-    
 }

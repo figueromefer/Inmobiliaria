@@ -7,6 +7,8 @@ use App\Models\Inquilino;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\Cliente; 
+use App\Http\Requests\ContratoRequest;
+
 
 class ContratoController extends Controller
 {

@@ -16,10 +16,11 @@ use App\Http\Controllers\OperacionController;
 use App\Http\Controllers\ContratoCalendarController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\ReporteMensualController;
+use App\Http\Controllers\BackfillContratosController;
+
+Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
 
 
-
-/*
 Route::get('/__clear_caches__', function () {
     Artisan::call('config:clear');
     Artisan::call('route:clear');
@@ -37,7 +38,12 @@ Route::get('/__migrate_dry_run__', function () {
     Artisan::call('migrate', ['--pretend' => true]);
     return nl2br(e(Artisan::output()));
 });
-*/
+
+Route::get('/__run_migrate__', function () {
+    Artisan::call('migrate', ['--force' => true]);
+    return nl2br(Artisan::output());
+});
+
 
 
 
