@@ -1,0 +1,165 @@
+<x-app-layout>
+  <x-slot name="header">
+    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+      {{ __('Nuevo movimiento') }}
+    </h2>
+  </x-slot>
+
+  <div class="max-w-3xl mx-auto p-4">
+    @if ($errors->any())
+      <div class="mb-4 p-2 bg-red-100 border text-red-800 rounded">
+        <ul class="list-disc ml-6">
+          @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+        </ul>
+      </div>
+    @endif
+
+    <form method="POST" action="{{ route('movimientos.store') }}" class="grid gap-4">
+      @csrf
+
+      {{-- Cliente --}}
+      <div>
+        <label class="block text-sm font-medium">Cliente (con contrato activo)</label>
+        <select id="cliente_id" name="cliente_id" class="mt-1 w-full border rounded px-3 py-2" required>
+          <option value="">— Selecciona —</option>
+          @foreach ($clientesActivos as $c)
+            <option value="{{ $c->id }}" @selected(old('cliente_id', $clienteId ?? '') == $c->id)>{{ $c->nombre }}</option>
+          @endforeach
+        </select>
+      </div>
+
+      {{-- Propiedad (depende de cliente) --}}
+      <div>
+        <label class="block text-sm font-medium">Propiedad</label>
+        <select id="propiedad_id" name="propiedad_id" class="mt-1 w-full border rounded px-3 py-2" required>
+          <option value="">— Selecciona un cliente primero —</option>
+          @foreach ($propiedades as $p)
+            <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>{{ $p->alias }}</option>
+          @endforeach
+        </select>
+      </div>
+
+      {{-- Concepto --}}
+      <div>
+        <label class="block text-sm font-medium">Concepto</label>
+        <select name="concepto" class="mt-1 w-full border rounded px-3 py-2" required>
+          @php
+            $conceptoOld = old('concepto');
+          @endphp
+          <option value="">— Selecciona —</option>
+          <option value="deposito" @selected($conceptoOld==='deposito')>Depósito en garantía</option>
+          <option value="renta"    @selected($conceptoOld==='renta')>Pago de renta</option>
+          <option value="gasto"    @selected($conceptoOld==='gasto')>Gasto de la propiedad</option>
+          <option value="gasto_cliente" @selected(old('concepto')==='gasto_cliente')>Gastos del cliente</option>
+        </select>
+      </div>
+
+      {{-- Fecha --}}
+      <div>
+        <label class="block text-sm font-medium">Fecha</label>
+        <input type="date" name="fecha" value="{{ old('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
+      </div>
+
+      {{-- Importe --}}
+      <div>
+        <label class="block text-sm font-medium">Importe</label>
+        <input type="number" step="0.01" min="0" name="importe" value="{{ old('importe') }}" class="mt-1 w-full border rounded px-3 py-2" required>
+      </div>
+
+      {{-- Forma de pago --}}
+      <div>
+        <label class="block text-sm font-medium">Forma de pago</label>
+        <select name="forma_pago" class="mt-1 w-full border rounded px-3 py-2" required>
+          @php $fpOld = old('forma_pago'); @endphp
+          <option value="">— Selecciona —</option>
+          <option value="efectivo"     @selected($fpOld==='efectivo')>Efectivo</option>
+          <option value="transferencia"@selected($fpOld==='transferencia')>Transferencia</option>
+        </select>
+      </div>
+
+      {{-- Notas --}}
+      <div>
+        <label class="block text-sm font-medium">Notas</label>
+        <textarea name="notas" rows="3" class="mt-1 w-full border rounded px-3 py-2">{{ old('notas') }}</textarea>
+      </div>
+
+      <div class="flex gap-2">
+        <button class="border rounded px-4 py-2">Guardar</button>
+        <a href="{{ route('movimientos.index') }}" class="border rounded px-4 py-2">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const selCliente   = document.getElementById('cliente_id');
+  const selProp      = document.getElementById('propiedad_id');
+  const selConcepto  = document.querySelector('select[name="concepto"]');
+  const selFormaPago = document.querySelector('select[name="forma_pago"]');
+
+  async function loadProps(clienteId) {
+    selProp.innerHTML = '<option value="">Cargando...</option>';
+    if (!clienteId) {
+      selProp.innerHTML = '<option value="">— Selecciona un cliente primero —</option>';
+      return;
+    }
+    try {
+      const url = "{{ route('movimientos.propiedadesPorCliente', ['cliente' => 'ID_PLACEHOLDER']) }}".replace('ID_PLACEHOLDER', clienteId);
+      const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        selProp.innerHTML = '<option value="">— Sin propiedades para este cliente —</option>';
+        return;
+      }
+      selProp.innerHTML = data.map(p => `<option value="${p.id}">${p.alias ?? ('Propiedad #'+p.id)}</option>`).join('');
+    } catch (e) {
+      selProp.innerHTML = '<option value="">Error cargando propiedades</option>';
+      console.error('propiedades-por-cliente:', e);
+    }
+  }
+
+  function toggleFieldsByConcept(value) {
+    const esGastoCliente = (value === 'gasto_cliente');
+    const esGastoProp    = (value === 'gasto');
+
+    // Propiedad: solo se deshabilita en gasto_cliente
+    if (esGastoCliente) {
+      selProp.value = '';
+      selProp.setAttribute('disabled', 'disabled');
+    } else {
+      selProp.removeAttribute('disabled');
+    }
+
+    // Forma de pago: forzar EFECTIVO y deshabilitar en gasto y gasto_cliente
+    if (esGastoProp || esGastoCliente) {
+      if (selFormaPago) {
+        selFormaPago.value = 'efectivo';
+        selFormaPago.setAttribute('disabled', 'disabled');
+      }
+    } else {
+      if (selFormaPago) selFormaPago.removeAttribute('disabled');
+    }
+  }
+
+  selCliente.addEventListener('change', e => {
+    if (selConcepto.value !== 'gasto_cliente') {
+      loadProps(e.target.value);
+    }
+  });
+
+  selConcepto.addEventListener('change', e => {
+    toggleFieldsByConcept(e.target.value);
+    if (e.target.value !== 'gasto_cliente' && selCliente.value) {
+      loadProps(selCliente.value);
+    }
+  });
+
+  // Estado inicial
+  toggleFieldsByConcept(selConcepto.value);
+  const pre = "{{ $clienteId ?? '' }}";
+  if (pre && selConcepto.value !== 'gasto_cliente') loadProps(pre);
+});
+</script>
+
+</x-app-layout>

@@ -13,7 +13,7 @@
                 <div class="flex justify-center h-16 items-center space-x-4">
                 
 
-                    <x-nav-link :href="route('calendario')" :active="request()->routeIs('calendario')">
+                    <x-nav-link :href="route('calendario.index')" :active="request()->routeIs('calendario')">
                         {{ __('Calendario') }}
                     </x-nav-link>
 
@@ -38,18 +38,21 @@
                         </div>
                     </div>
 
-                    <x-nav-link :href="route('inquilinos')" :active="request()->routeIs('inquilinos')">
+                    <x-nav-link :href="route('inquilinos.index')" :active="request()->routeIs('inquilinos')">
                         {{ __('Inquilinos') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('contratos')" :active="request()->routeIs('contratos')">
+                    <x-nav-link :href="route('contratos.index')" :active="request()->routeIs('contratos')">
                         {{ __('Contratos') }}
                     </x-nav-link>
 
+                    <x-nav-link :href="route('movimientos.index')" :active="request()->routeIs('movimientos')">
+                        {{ __('Movimientos') }}
+                    </x-nav-link>
 
-                    <div class="relative group inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out" @mouseenter="open = true" @mouseleave="open = false">
+                    <div class="relative group inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
                         <span class="cursor-pointer flex items-center">
-                            Operaciones
+                            Reportes
                             <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -57,11 +60,12 @@
 
                         <!-- Submenú -->
                         <div x-show="open" x-transition class="absolute left-0 top-full hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg w-56 z-50">
-                            <a href="{{ route('operaciones.pago-renta') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pago de renta</a>
-                            <a href="{{ route('operaciones.deposito-garantia') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Depósito en garantía</a>
-                            <a href="{{ route('operaciones.gastos-propiedad') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Gastos de la propiedad</a>
+                            <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mensual</a>
+                           <!-- <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rentas pendientes</a>
+                            <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rendimiento por cliente</a>-->
                         </div>
                     </div>
+                    
                 </div>
                 
 

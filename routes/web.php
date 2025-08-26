@@ -1,8 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Models\Cliente; // <— IMPORTANTE para el endpoint JSON
-
+use App\Models\Cliente; 
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MapaController;
 use App\Http\Controllers\CalendarioController;
@@ -11,6 +13,34 @@ use App\Http\Controllers\PropiedadController;
 use App\Http\Controllers\InquilinoController;
 use App\Http\Controllers\ContratoController;
 use App\Http\Controllers\OperacionController;
+use App\Http\Controllers\ContratoCalendarController;
+use App\Http\Controllers\MovimientoController;
+use App\Http\Controllers\ReporteMensualController;
+
+
+
+/*
+Route::get('/__clear_caches__', function () {
+    Artisan::call('config:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    return 'Caches cleared';
+});
+
+Route::get('/__migrate_status__', function () {
+    Artisan::call('migrate:status');
+    return nl2br(e(Artisan::output()));
+});
+
+Route::get('/__migrate_dry_run__', function () {
+    // Muestra el SQL que se intentaría ejecutar (no aplica cambios)
+    Artisan::call('migrate', ['--pretend' => true]);
+    return nl2br(e(Artisan::output()));
+});
+*/
+
+
+
 
 // Home: si hay sesión -> dashboard; si no -> login
 Route::match(['GET','HEAD'], '/', function () {
@@ -18,6 +48,7 @@ Route::match(['GET','HEAD'], '/', function () {
         ? redirect()->route('dashboard')
         : view('auth.login');
 })->name('home');
+
 
 // Login y Forgot Password (como vistas; usa tus blades reales)
 Route::view('/login', 'auth.login')->name('login')->middleware('guest');
@@ -28,37 +59,30 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth'])->name('dashboard');
 
-// Endpoint para Google Forms
-Route::get('/api/clientes', function () {
-    $token = request('token');
-    abort_unless($token && hash_equals($token, env('FORMS_TOKEN')), 401);
-
-    return response()->json(
-        Cliente::orderBy('nombre')->get(['pk_cliente','nombre'])
-    );
-})->name('api.clientes');
 
 // Rutas internas autenticadas
 Route::middleware('auth')->group(function () {
     Route::resource('clientes', ClienteCtl::class);
 
     Route::get('/propiedades/mapa', [PropiedadController::class, 'mapa'])->name('propiedades.mapa');
-    Route::resource('propiedades', PropiedadController::class)->parameters([
-        'propiedades' => 'propiedad',
-    ]);
+    Route::resource('propiedades', PropiedadController::class)->parameters(['propiedades' => 'propiedad',]);
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario');
-    Route::get('/inquilinos', [InquilinoController::class, 'index'])->name('inquilinos');
-    Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos');
+    Route::get('/calendario', [ContratoCalendarController::class, 'index'])->name('calendario.index');
+    Route::get('/inquilinos', [InquilinoController::class, 'index'])->name('inquilinos.index');
+    Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
 
-    // Submenú Operaciones
-    Route::get('/operaciones/pago-renta', [OperacionController::class, 'pagoRenta'])->name('operaciones.pago-renta');
-    Route::get('/operaciones/deposito-garantia', [OperacionController::class, 'depositoGarantia'])->name('operaciones.deposito-garantia');
-    Route::get('/operaciones/gastos-propiedad', [OperacionController::class, 'gastosPropiedad'])->name('operaciones.gastos-propiedad');
+    Route::get('/movimientos',            [MovimientoController::class, 'index'])->name('movimientos.index');
+    Route::get('/movimientos/crear',      [MovimientoController::class, 'create'])->name('movimientos.create');
+    Route::post('/movimientos',           [MovimientoController::class, 'store'])->name('movimientos.store');
+
+    // Endpoint para llenar el select de propiedades según cliente elegido
+    Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
+
+    Route::get('/reportes/mensual', [ReporteMensualController::class, 'index'])->name('reportes.mensual');
 });
 
 require __DIR__ . '/auth.php';

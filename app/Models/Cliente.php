@@ -29,6 +29,11 @@ class Cliente extends Model
         'notas',
     ];
 
+    public function getRouteKeyName()
+    {
+        return 'pk_cliente';
+    }
+
     // Relación con propiedades
     public function propiedades()
     {
