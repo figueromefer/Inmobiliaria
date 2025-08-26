@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Inquilino;
@@ -15,13 +16,64 @@ class FormsIntakeController extends Controller
 {
     public function storeContrato(Request $request)
     {
+        $payload = $request->all();
+        // --- Helpers de normalización ---
+        $toNumber = function($v) {
+            if ($v === null || $v === '') return null;
+            // quita todo excepto dígitos, coma, punto y signo -
+            $v = preg_replace('/[^\d,.\-]/', '', trim((string)$v));
+
+            $commas = substr_count($v, ',');
+            $dots   = substr_count($v, '.');
+
+            if ($commas && $dots) {
+                // decide separador decimal por la última aparición
+                $lastComma = strrpos($v, ',');
+                $lastDot   = strrpos($v, '.');
+                if ($lastComma > $lastDot) {
+                    // formato: 1.234,56
+                    $v = str_replace('.', '', $v);
+                    $v = str_replace(',', '.', $v);
+                } else {
+                    // formato: 1,234.56
+                    $v = str_replace(',', '', $v);
+                }
+            } elseif ($commas && !$dots) {
+                // formato: 1234,56
+                $v = str_replace(',', '.', $v);
+            } else {
+                // 1234.56 o 1234 -> ya está ok
+            }
+            return is_numeric($v) ? (float)$v : null;
+        };
+
+        $toInt = function($v) {
+            if ($v === null || $v === '') return null;
+            // extrae solo dígitos (por si ponen "15 días")
+            $v = preg_replace('/\D+/', '', (string)$v);
+            return $v === '' ? null : (int)$v;
+        };
+
+        // --- Normaliza campos numéricos ---
+        $payload['comision_renta']   = $toNumber($payload['comision_renta']   ?? null);
+        $payload['comision_mensual'] = $toNumber($payload['comision_mensual'] ?? null);
+        $payload['monto_total']      = $toNumber($payload['monto_total']      ?? null);
+        $payload['monto_mensual']    = $toNumber($payload['monto_mensual']    ?? null);
+        $payload['monto_deposito']   = $toNumber($payload['monto_deposito']   ?? null);
+        $payload['dias_pago']        = $toInt(   $payload['dias_pago']        ?? null);
+
+        // Si comision_mensual viene en porcentaje (10, 15, etc.), convierte a fracción
+        if ($payload['comision_mensual'] !== null && $payload['comision_mensual'] > 1) {
+            $payload['comision_mensual'] = $payload['comision_mensual'] / 100;
+        }   
+
+        
         $v = Validator::make($payload, [
             'fk_cliente'   => ['nullable','integer','exists:clientes,pk_cliente'],
             'fk_propiedad' => ['nullable','integer','exists:propiedades,pk_propiedad'],
             'tipo_solicitante'     => ['nullable','string'],
             'tipo_complementaria'  => ['nullable','string'],
             'tipo_tercero'         => ['nullable','string'],
-            'solicitante'          => ['nullable','string'],
             'fecha_inicio'         => ['nullable','date'],
             'fecha_fin'            => ['nullable','date','after_or_equal:fecha_inicio'],
             'comision_renta'       => ['nullable','numeric','min:0'],
