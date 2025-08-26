@@ -54,24 +54,27 @@ class ReporteMensualController extends Controller
             return back()->with('error', 'Cliente no encontrado.');
         }
 
-        // === 2) Rentas recabadas (rentas del mes para el cliente) ===
+        // 2) Rentas recabadas (rentas del mes para el cliente)
         $rentasRecabadas = Movimiento::with('propiedad')
-            ->where('cliente_id', $clienteId)
-            ->where('concepto', 'renta')
+            ->where('concepto','renta')
             ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
+            ->whereHas('propiedad', function($q) use ($clienteId) {
+                $q->where('fk_cliente', $clienteId);
+            })
             ->orderBy('fecha')
             ->get();
 
-        // === 3) Rentas adelantadas ===
-        // "registradas en el mes" = created_at dentro del mes
-        // y "fecha asignada al movimiento" (campo fecha) > fin de mes
+        // 3) Rentas adelantadas
         $rentasAdelantadas = Movimiento::with('propiedad')
-            ->where('cliente_id', $clienteId)
-            ->where('concepto', 'renta')
+            ->where('concepto','renta')
             ->whereBetween('created_at', [$start, $end])
-            ->whereDate('fecha', '>', $end->toDateString())
+            ->whereDate('fecha','>', $end->toDateString())
+            ->whereHas('propiedad', function($q) use ($clienteId) {
+                $q->where('fk_cliente', $clienteId);
+            })
             ->orderBy('created_at')
             ->get();
+
 
         // === 4) Pagos extras ===
         // Definición: movimientos del mes que NO caen dentro de un contrato activo (por nombre cliente),
@@ -83,18 +86,24 @@ class ReporteMensualController extends Controller
             ->get();
 
         // Contratos del cliente (match por nombre)
-        $contratosCliente = Contrato::where('solicitante', $cliente->nombre)->get();
+        $contratosCliente = Contrato::where('fk_cliente', $cliente->pk_cliente)->get();
 
        $pagosExtras = $movMes->filter(function ($m) use ($contratosCliente) {
-            $f = $m->fecha; // ya es Carbon por el cast en Movimiento
-
-            if (empty($m->propiedad_id)) return true;
-
+            // Incluir depósitos siempre como pagos extra
+            if ($m->concepto === 'deposito') {
+                return true;
+            }
+            // Movimientos sin propiedad asignada
+            if (empty($m->propiedad_id)) {
+                return true;
+            }
+            // Movimientos fuera de contratos activos
             foreach ($contratosCliente as $c) {
-                $ini = $c->fecha_inicio; // ya Carbon (o null)
-                $fin = $c->fecha_fin;    // ya Carbon (o null)
-
-                if ($ini && $f->greaterThanOrEqualTo($ini) && (!$fin || $f->lessThanOrEqualTo($fin))) {
+                $ini = $c->fecha_inicio;
+                $fin = $c->fecha_fin;
+                // Si el movimiento cae dentro de algún contrato activo, NO es pago extra
+                if ($ini && $m->fecha->greaterThanOrEqualTo($ini) &&
+                    (!$fin || $m->fecha->lessThanOrEqualTo($fin))) {
                     return false;
                 }
             }
@@ -109,7 +118,7 @@ class ReporteMensualController extends Controller
         $propiedadesCliente = Propiedad::where('fk_cliente', $clienteId)
             ->orderBy('alias')->get(['pk_propiedad','alias']);
 
-        $hayContratoActivoMes = Contrato::where('solicitante', $cliente->nombre)
+        $hayContratoActivoMes = Contrato::where('fk_cliente', $cliente->pk_cliente)
             ->whereDate('fecha_inicio', '<=', $end->toDateString())
             ->where(function($w) use ($start) {
                 $w->whereNull('fecha_fin')
@@ -172,7 +181,7 @@ class ReporteMensualController extends Controller
         $iguala = 0.0;
         foreach ($rentasRecabadas as $r) {
             // Buscar contrato activo en la fecha del movimiento (por nombre del cliente)
-            $contrato = Contrato::where('solicitante', $cliente->nombre)
+            $contrato = Contrato::where('fk_cliente', $cliente->pk_cliente)
                 ->whereDate('fecha_inicio', '<=', $r->fecha)
                 ->where(function($w) use ($r) {
                     $w->whereNull('fecha_fin')
