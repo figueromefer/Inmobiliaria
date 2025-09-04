@@ -69,46 +69,82 @@
     @endphp
 
     {{-- Tabla --}}
-    <div class="overflow-x-auto bg-white border rounded">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50 border-b">
-          <tr>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('id',$sort,$dir) }}">ID</a></th>
-            <th class="text-left px-4 py-2">Tipo Solicitante</th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('solicitante',$sort,$dir) }}">Solicitante</a></th>
-            <th class="text-left px-4 py-2">Inquilino</th>
-            <th class="text-left px-4 py-2">Domicilio inmueble</th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('fecha',$sort,$dir) }}">Alta</a></th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('fecha_inicio',$sort,$dir) }}">Inicio</a></th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('fecha_fin',$sort,$dir) }}">Fin</a></th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('comision_renta',$sort,$dir) }}">Comisión de renta</a></th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('comision_mensual',$sort,$dir) }}">% Comisión mensual</a></th>
-            <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('monto_mensual',$sort,$dir) }}">Monto mensual</a></th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse ($contratos as $c)
-            <tr class="border-b hover:bg-gray-50">
-              <td class="px-4 py-2">{{ $c->id }}</td>
-              <td class="px-4 py-2">{{ $c->tipo_solicitante ?? '—' }}</td>
-              <td class="px-4 py-2">{{ $c->solicitante ?? '—' }}</td>
-              <td class="px-4 py-2">{{ optional($c->inquilino)->nombre ?? '—' }}</td>
-              <td class="px-4 py-2">{{ $c->domicilio_inmueble ?? '—' }}</td>
-              <td class="px-4 py-2">{{ optional($c->fecha)->format('Y-m-d H:i') ?? '—' }}</td>
-              <td class="px-4 py-2">{{ optional($c->fecha_inicio)->format('Y-m-d') ?? '—' }}</td>
-              <td class="px-4 py-2">{{ optional($c->fecha_fin)->format('Y-m-d') ?? '—' }}</td>
-              <td class="px-4 py-2">{{ $c->comision_renta !== null ? number_format($c->comision_renta,2) : '—' }}</td>
-              <td class="px-4 py-2">{{ $c->comision_mensual !== null ? number_format($c->comision_mensual,2) : '—' }}</td>
-              <td class="px-4 py-2">{{ $c->monto_mensual !== null ? number_format($c->monto_mensual,2) : '—' }}</td>
-            </tr>
-          @empty
+        <div class="overflow-x-auto bg-white border rounded">
+        <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 border-b">
             <tr>
-              <td colspan="9" class="px-4 py-8 text-center text-gray-500">No hay contratos que coincidan con la búsqueda.</td>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('id',$sort,$dir) }}">ID</a></th>
+                <th class="text-left px-4 py-2">Tipo Solicitante</th>
+                {{-- antes era solicitante (texto); ahora ordenamos por nombre del cliente --}}
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('cliente',$sort,$dir) }}">Cliente</a></th>
+                <th class="text-left px-4 py-2">Inquilino</th>
+                <th class="text-left px-4 py-2">Domicilio inmueble</th>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('fecha',$sort,$dir) }}">Alta</a></th>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('fecha_inicio',$sort,$dir) }}">Inicio</a></th>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('fecha_fin',$sort,$dir) }}">Fin</a></th>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('comision_renta',$sort,$dir) }}">Comisión de renta</a></th>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('comision_mensual',$sort,$dir) }}">% Comisión mensual</a></th>
+                <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('monto_mensual',$sort,$dir) }}">Monto mensual</a></th>
+                <th class="text-left px-4 py-2">Documento</th>
             </tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
+            </thead>
+            <tbody>
+            @forelse ($contratos as $c)
+                <tr class="border-b hover:bg-gray-50">
+                <td class="px-4 py-2">{{ $c->id }}</td>
+                <td class="px-4 py-2">{{ $c->tipo_solicitante ?? '—' }}</td>
+
+                {{-- Cliente por relación (fk_cliente) --}}
+                <td class="px-4 py-2">{{ optional($c->cliente)->nombre ?? '—' }}</td>
+
+                <td class="px-4 py-2">{{ optional($c->inquilino)->nombre ?? '—' }}</td>
+                <td class="px-4 py-2">{{ $c->domicilio_inmueble ?? '—' }}</td>
+
+                <td class="px-4 py-2">
+                    {{ $c->fecha ? \Illuminate\Support\Carbon::parse($c->fecha)->format('Y-m-d H:i') : '—' }}
+                </td>
+                <td class="px-4 py-2">
+                    {{ $c->fecha_inicio ? \Illuminate\Support\Carbon::parse($c->fecha_inicio)->format('Y-m-d') : '—' }}
+                </td>
+                <td class="px-4 py-2">
+                    {{ $c->fecha_fin ? \Illuminate\Support\Carbon::parse($c->fecha_fin)->format('Y-m-d') : '—' }}
+                </td>
+
+                <td class="px-4 py-2">
+                    {{ $c->comision_renta !== null ? number_format($c->comision_renta, 2) : '—' }}
+                </td>
+
+                {{-- Si comision_mensual está guardada como fracción (0.10), muéstrala como 10.00 % --}}
+                <td class="px-4 py-2">
+                    @if(!is_null($c->comision_mensual))
+                    {{ number_format($c->comision_mensual * 100, 2) }} %
+                    @else
+                    —
+                    @endif
+                </td>
+
+                <td class="px-4 py-2">
+                    {{ $c->monto_mensual !== null ? number_format($c->monto_mensual, 2) : '—' }}
+                </td>
+
+                {{-- Documento: la columna ahora es edit_url (antes urldoc) --}}
+                <td class="px-4 py-2">
+                    @if(!empty($c->urldoc))
+                    <a href="{{ $c->urldoc }}" target="_blank" class="text-blue-600 underline">Abrir</a>
+                    @else
+                    —
+                    @endif
+                </td>
+                </tr>
+            @empty
+                <tr>
+                <td colspan="12" class="px-4 py-8 text-center text-gray-500">No hay contratos que coincidan con la búsqueda.</td>
+                </tr>
+            @endforelse
+            </tbody>
+        </table>
+        </div>
+
 
     {{-- Paginación --}}
     <div class="mt-4">

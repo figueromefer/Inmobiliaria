@@ -3,6 +3,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ClientesApiController;
 use App\Http\Controllers\Api\FormsIntakeController;
 use App\Http\Controllers\ContratoCalendarController;
+use App\Models\Propiedad;
+use App\Models\Cliente;
 
 Route::get('/clientes', [ClientesApiController::class, 'index']); // pública
 Route::post('/forms/contratos', [FormsIntakeController::class, 'storeContrato']);
@@ -13,3 +15,17 @@ Route::get('/clientes/{cliente}/propiedades', function ($cliente) {
         ->select('pk_propiedad','alias','domicilio')
         ->orderBy('alias')->get();
 });
+
+Route::get('/clientes-with-propiedades', function () {
+    return Cliente::with([
+        'propiedades' => function ($q) {
+            // Incluye fk_cliente para que Eloquent pueda empatar
+            $q->orderBy('alias')
+              ->select('pk_propiedad', 'fk_cliente', 'alias', 'domicilio');
+        }
+    ])
+    ->orderBy('nombre')
+    // NO alias aquí; deja pk_cliente tal cual para que Eloquent lo use como PK
+    ->get(['pk_cliente', 'nombre']);
+});
+

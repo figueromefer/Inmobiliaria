@@ -191,7 +191,7 @@ class ReporteMensualController extends Controller
                 ->first();
 
             if ($contrato) {
-                $pct = (float) ($contrato->comision_mensual ?? 0); // e.g. 0.10
+               $pct = $contrato->comision_mensual_fraction;
                 $iguala += $r->importe * $pct;
 
                 // ¿primer mes del contrato?

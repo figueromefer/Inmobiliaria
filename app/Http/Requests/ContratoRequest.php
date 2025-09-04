@@ -33,6 +33,7 @@ class ContratoRequest extends FormRequest
             'monto_mensual'        => ['nullable','numeric','min:0'],
             'monto_deposito'       => ['nullable','numeric','min:0'],
             'edit_url'             => ['nullable','url'],
+            'urldoc'               => ['nullable','url'],
             'inquilino_id'         => ['nullable','integer','exists:inquilinos,id'],
         ];
     }

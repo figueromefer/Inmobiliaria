@@ -17,44 +17,34 @@ class FormsIntakeController extends Controller
     public function storeContrato(Request $request)
     {
         $payload = $request->all();
-        // --- Helpers de normalización ---
+
+        // 0) Convertir "" a null (muy importante para 'nullable')
+        foreach ($payload as $k => $v) {
+            if ($v === '') $payload[$k] = null;
+        }
+
+        // Helpers
         $toNumber = function($v) {
             if ($v === null || $v === '') return null;
-            // quita todo excepto dígitos, coma, punto y signo -
             $v = preg_replace('/[^\d,.\-]/', '', trim((string)$v));
-
             $commas = substr_count($v, ',');
             $dots   = substr_count($v, '.');
-
             if ($commas && $dots) {
-                // decide separador decimal por la última aparición
-                $lastComma = strrpos($v, ',');
-                $lastDot   = strrpos($v, '.');
-                if ($lastComma > $lastDot) {
-                    // formato: 1.234,56
-                    $v = str_replace('.', '', $v);
-                    $v = str_replace(',', '.', $v);
-                } else {
-                    // formato: 1,234.56
-                    $v = str_replace(',', '', $v);
-                }
+                $lastComma = strrpos($v, ','); $lastDot = strrpos($v, '.');
+                if ($lastComma > $lastDot) { $v = str_replace('.', '', $v); $v = str_replace(',', '.', $v); }
+                else { $v = str_replace(',', '', $v); }
             } elseif ($commas && !$dots) {
-                // formato: 1234,56
                 $v = str_replace(',', '.', $v);
-            } else {
-                // 1234.56 o 1234 -> ya está ok
             }
             return is_numeric($v) ? (float)$v : null;
         };
-
         $toInt = function($v) {
             if ($v === null || $v === '') return null;
-            // extrae solo dígitos (por si ponen "15 días")
             $v = preg_replace('/\D+/', '', (string)$v);
             return $v === '' ? null : (int)$v;
         };
 
-        // --- Normaliza campos numéricos ---
+        // 1) Normaliza numéricos
         $payload['comision_renta']   = $toNumber($payload['comision_renta']   ?? null);
         $payload['comision_mensual'] = $toNumber($payload['comision_mensual'] ?? null);
         $payload['monto_total']      = $toNumber($payload['monto_total']      ?? null);
@@ -62,28 +52,42 @@ class FormsIntakeController extends Controller
         $payload['monto_deposito']   = $toNumber($payload['monto_deposito']   ?? null);
         $payload['dias_pago']        = $toInt(   $payload['dias_pago']        ?? null);
 
-        // Si comision_mensual viene en porcentaje (10, 15, etc.), convierte a fracción
-        if ($payload['comision_mensual'] !== null && $payload['comision_mensual'] > 1) {
-            $payload['comision_mensual'] = $payload['comision_mensual'] / 100;
-        }   
+        // 1.1) % a fracción
+        if ($payload['comision_mensual'] !== null && str_contains((string)$request->input('comision_mensual'), '%')) {
+            // Si viene con %, simplemente quitamos el símbolo pero no dividimos entre 100
+            $payload['comision_mensual'] = $payload['comision_mensual'] * 1;
+        }
 
-        
-        $v = Validator::make($payload, [
+        // 2) Validación con nombres REALES del payload
+        $v = \Validator::make($payload, [
             'fk_cliente'   => ['nullable','integer','exists:clientes,pk_cliente'],
             'fk_propiedad' => ['nullable','integer','exists:propiedades,pk_propiedad'],
+
             'tipo_solicitante'     => ['nullable','string'],
             'tipo_complementaria'  => ['nullable','string'],
             'tipo_tercero'         => ['nullable','string'],
-            'fecha_inicio'         => ['nullable','date'],
-            'fecha_fin'            => ['nullable','date','after_or_equal:fecha_inicio'],
-            'comision_renta'       => ['nullable','numeric','min:0'],
-            'comision_mensual'     => ['nullable','numeric','min:0'],
-            'dias_pago'            => ['nullable','integer','min:0'],
-            'monto_total'          => ['nullable','numeric','min:0'],
-            'monto_mensual'        => ['nullable','numeric','min:0'],
-            'monto_deposito'       => ['nullable','numeric','min:0'],
-            'edit_url'             => ['nullable','url'],
-            'inquilino_id'         => ['nullable','integer','exists:inquilinos,id'],
+
+            'fecha_inicio_contrato'      => ['nullable','date'],
+            'fecha_terminacion_contrato' => ['nullable','date','after_or_equal:fecha_inicio_contrato'],
+
+            'comision_renta'   => ['nullable','numeric','min:0'],
+            'comision_mensual' => ['nullable','numeric','min:0'],
+            'dias_pago'        => ['nullable','integer','min:0'],
+            'monto_total'      => ['nullable','numeric','min:0'],
+            'monto_mensual'    => ['nullable','numeric','min:0'],
+            'monto_deposito'   => ['nullable','numeric','min:0'],
+
+            'editUrl'          => ['nullable','url'],
+            'urldoc'          => ['nullable','url'],
+
+            'nombre_solicitante'               => ['nullable','string'],
+            'domicilio_inmueble_arrendamiento' => ['nullable','string'],
+
+            'nombre_complementaria'       => ['nullable','string'],
+            'nacionalidad_complementaria' => ['nullable','string'],
+            'domicilio_complementaria'    => ['nullable','string'],
+            'telefono_complementaria'     => ['nullable','string'],
+            'correo_complementaria'       => ['nullable','email'],
         ]);
 
         if ($v->fails()) {
@@ -92,65 +96,66 @@ class FormsIntakeController extends Controller
 
         $data = $v->validated();
 
-        // 2) Resolver FKs si no se proporcionan
-        if (empty($data['fk_cliente']) && !empty($payload['nombre_solicitante'])) {
-            $cliente = Cliente::where('nombre', $payload['nombre_solicitante'])->first();
-            if ($cliente) {
-                $data['fk_cliente'] = $cliente->pk_cliente;
-            }
+        // 3) Fallbacks FKs
+        if (empty($data['fk_cliente']) && !empty($data['nombre_solicitante'])) {
+            $cliente = \App\Models\Cliente::where('nombre', $data['nombre_solicitante'])->first();
+            if ($cliente) $data['fk_cliente'] = $cliente->pk_cliente;
         }
 
         if (empty($data['fk_propiedad']) && !empty($data['fk_cliente'])) {
-            $propQuery = Propiedad::where('fk_cliente', $data['fk_cliente']);
-
-            // Opción 1: buscar por domicilio del inmueble si lo tienes en el payload
-            if (!empty($payload['domicilio_inmueble_arrendamiento'])) {
-                $prop = $propQuery
-                    ->where('domicilio', 'like', '%' . $payload['domicilio_inmueble_arrendamiento'] . '%')
-                    ->first();
+            $propQuery = \App\Models\Propiedad::where('fk_cliente', $data['fk_cliente']);
+            $prop = null;
+            if (!empty($data['domicilio_inmueble_arrendamiento'])) {
+                $prop = $propQuery->where('domicilio','like','%'.$data['domicilio_inmueble_arrendamiento'].'%')->first();
             }
-            // Opción 2: tomar la primera propiedad del cliente
-            if (empty($prop)) {
-                $prop = $propQuery->first();
-            }
-
-            if ($prop) {
-                $data['fk_propiedad'] = $prop->pk_propiedad;
-            }
+            if (!$prop) $prop = $propQuery->first();
+            if ($prop) $data['fk_propiedad'] = $prop->pk_propiedad;
         }
 
-        // 3) Crear o asignar Inquilino (igual que ahora)
-        $inquilinoId = null;
-        if (!empty($payload['nombre_complementaria'])) {
-            $inquilino = Inquilino::create([
-                'nombre'       => $payload['nombre_complementaria'],
-                'nacionalidad' => $payload['nacionalidad_complementaria'],
-                'domicilio'    => $payload['domicilio_complementaria'],
-                'telefono'     => $payload['telefono_complementaria'],
-                'correo'       => $payload['correo_complementaria'],
+        // Si BD exige NOT NULL en fk_cliente/fk_propiedad, corta bonito:
+        if (empty($data['fk_cliente'])) {
+            return response()->json(['ok'=>false,'errors'=>['fk_cliente'=>['No se pudo resolver el cliente.']]], 422);
+        }
+        // if (empty($data['fk_propiedad'])) { return response()->json([...], 422); }
+
+        // 4) Inquilino
+        $inquilinoId = $data['inquilino_id'] ?? null;
+        if (!$inquilinoId && !empty($data['nombre_complementaria'])) {
+            $inq = \App\Models\Inquilino::create([
+                'nombre'       => $data['nombre_complementaria'],
+                'nacionalidad' => $data['nacionalidad_complementaria'] ?? null,
+                'domicilio'    => $data['domicilio_complementaria']    ?? null,
+                'telefono'     => $data['telefono_complementaria']     ?? null,
+                'correo'       => $data['correo_complementaria']       ?? null,
             ]);
-            $inquilinoId = $inquilino->id;
+            $inquilinoId = $inq->id;
         }
 
-        // 4) Crear el contrato con las FKs nuevas
-        $contrato = Contrato::create([
-            'fk_cliente'   => $data['fk_cliente'],
-            'fk_propiedad' => $data['fk_propiedad'],
-            'tipo_solicitante'    => $payload['tipo_solicitante']    ?? null,
-            'tipo_complementaria' => $payload['tipo_complementaria'] ?? null,
-            'tipo_tercero'        => $payload['tipo_tercero']        ?? null,
-            'solicitante'         => $payload['nombre_solicitante']  ?? null,
-            'fecha'               => now(),
-            'inquilino_id'        => $inquilinoId,
-            'domicilio_inmueble'  => $payload['domicilio_inmueble_arrendamiento'] ?? null,
-            'fecha_inicio'        => $payload['fecha_inicio_contrato']            ?? null,
-            'fecha_fin'           => $payload['fecha_terminacion_contrato']       ?? null,
-            'dias_pago'           => $payload['dias_pago']                        ?? null,
-            'monto_total'         => $payload['monto_total']                      ?? null,
-            'monto_mensual'       => $payload['monto_mensual']                    ?? null,
-            'monto_deposito'      => $payload['monto_deposito']                   ?? null,
-            'edit_url'            => $payload['editUrl']                          ?? ($payload['edicion'] ?? null),
-        ]);
+        try {
+            $contrato = \App\Models\Contrato::create([
+                'fk_cliente'        => $data['fk_cliente'] ?? null,          // <- usa ?? null
+                'fk_propiedad'      => $data['fk_propiedad'] ?? null,
+                'tipo_solicitante'  => $data['tipo_solicitante']     ?? null,
+                'tipo_complementaria'=> $data['tipo_complementaria'] ?? null,
+                'tipo_tercero'      => $data['tipo_tercero']         ?? null,
+                'fecha'             => now(),
+                'inquilino_id'      => $inquilinoId,
+                'domicilio_inmueble'=> $data['domicilio_inmueble_arrendamiento'] ?? null,
+                'fecha_inicio'      => $data['fecha_inicio_contrato']            ?? null,
+                'fecha_fin'         => $data['fecha_terminacion_contrato']       ?? null,
+                'dias_pago'         => $data['dias_pago']                        ?? null,
+                'monto_total'       => $data['monto_total']                      ?? null,
+                'monto_mensual'     => $data['monto_mensual']                    ?? null,
+                'monto_deposito'    => $data['monto_deposito']                   ?? null,
+                'comision_renta'    => $data['comision_renta']                   ?? null,
+                'comision_mensual'  => $data['comision_mensual']                 ?? null,
+                'edit_url'          => $data['editUrl']                          ?? null,
+                'urldoc'            => $data['urldoc']                          ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            // TEMPORAL: te devuelve el mensaje para ubicar el 500 exacto
+            return response()->json(['ok'=>false,'error'=>$e->getMessage()], 500);
+        }
 
         return response()->json([
             'ok'           => true,
@@ -158,4 +163,5 @@ class FormsIntakeController extends Controller
             'inquilino_id' => $inquilinoId,
         ], 201);
     }
+
 }

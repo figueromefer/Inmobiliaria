@@ -30,6 +30,7 @@ class Contrato extends Model
         'monto_mensual',
         'monto_deposito',
         'edit_url',
+        'urldoc'
     ];
 
     // Casts (opcional) para fechas y números
@@ -58,5 +59,11 @@ class Contrato extends Model
                 $q->whereNull('fecha_fin')
                   ->orWhere('fecha_fin', '>=', $inicio);
             });
+    }
+
+    public function getComisionMensualFractionAttribute(): float
+    {
+        $v = (float) ($this->comision_mensual ?? 0);
+        return $v > 1 ? $v / 100 : $v;
     }
 }
