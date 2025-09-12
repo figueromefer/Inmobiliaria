@@ -193,6 +193,57 @@ class ReporteMensualController extends Controller
             ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
             ->sum('importe');
 
+        // === Pagos al cliente del MES ===
+        $pagosClienteMes = Movimiento::where('cliente_id', $clienteId)
+            ->where('concepto', 'pago_cliente')
+            ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
+            ->sum('importe');   
+            
+        // === SALDO ANTERIOR (hasta el último día del mes previo) ===
+        $prevEnd = $start->copy()->subDay();
+
+        // 1) Ingresos efectivos históricos (renta/depósito EN EFECTIVO)
+        $ingresosEfectivoPrev = Movimiento::where('cliente_id', $clienteId)
+            ->whereIn('concepto', ['renta','deposito'])
+            ->where('forma_pago','efectivo')
+            ->whereDate('fecha', '<=', $prevEnd->toDateString())
+            ->sum('importe');
+
+        // 2) IGUALA histórica: aplicar comisión sobre TODAS las rentas en efectivo previas
+        $rentasPrev = Movimiento::where('cliente_id', $clienteId)
+            ->where('concepto','renta')
+            ->where('forma_pago','efectivo')
+            ->whereDate('fecha', '<=', $prevEnd->toDateString())
+            ->orderBy('fecha')->get();
+
+        $igualaPrev = 0.0;
+        foreach ($rentasPrev as $r) {
+            $contrato = Contrato::where('fk_cliente', $clienteId)
+                ->whereDate('fecha_inicio','<=',$r->fecha)
+                ->where(function($w) use ($r){
+                    $w->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin','>=',$r->fecha);
+                })
+                ->orderBy('fecha_inicio','desc')
+                ->first();
+
+            if ($contrato) {
+                $igualaPrev += $r->importe * (float)$contrato->comision_mensual_fraction;
+                $ini = \Illuminate\Support\Carbon::parse($contrato->fecha_inicio);
+                $rm  = \Illuminate\Support\Carbon::parse($r->fecha);
+                if ($ini->isSameMonth($rm) && $ini->isSameYear($rm)) {
+                    $igualaPrev += (float)($contrato->comision_renta ?? 0);
+                }
+            }
+        }
+
+        // 3) Pagos al cliente históricos (cualquier forma de pago)
+        $pagosClientePrev = Movimiento::where('cliente_id', $clienteId)
+            ->where('concepto','pago_cliente')
+            ->whereDate('fecha', '<=', $prevEnd->toDateString())
+            ->sum('importe');
+
+      
 
         // IGUALA: suma de comisiones por cada RENTA del mes
         // - comision_mensual: porcentaje (0.10 = 10%) x importe del movimiento
@@ -222,13 +273,30 @@ class ReporteMensualController extends Controller
             }
         }
 
+          // === SALDO ANTERIOR acumulado ===
+        $saldoAnterior = max(0, (float)$ingresosEfectivoPrev - (float)$igualaPrev - (float)$pagosClientePrev);
+
+        // === TOTAL DEL MES (neto de caja del mes) ===
+        // Nota: aquí NO restamos 'gastos_efectivo' porque tu neteo de pagos al cliente parte de ingresos en efectivo
+        // menos IGUALA y menos pagos al cliente del mes, tal cual tu regla de negocio.
+        $totalMes = (float)$ingresosEfectivo - (float)$iguala - (float)$pagosClienteMes;
+
+        // === TOTAL A PAGAR (incluye saldos) ===
+        $totalIncluyeSaldos = $saldoAnterior + $totalMes;
+
+
         $resumen = [
-            'ingresos_efectivo'    => (float)$ingresosEfectivo,
-            'total_depositos'      => (float)$totalDepositos,
-            'gastos_efectivo'      => (float)$gastosEfectivo + (float)$pagosClienteEfectivo,
-            'total_despues_gastos' => (float)$ingresosEfectivo - (float)$gastosEfectivo - (float)$pagosClienteEfectivo,
-            'iguala'               => (float)$iguala,
-            'pagos_cliente_transfer' => (float)$pagosClienteTransfer // para referencia en el reporte
+            'ingresos_efectivo'       => (float) $ingresosEfectivo,
+            'total_depositos'         => (float) $totalDepositos,
+            'gastos_efectivo'         => (float) $gastosEfectivo,   // sigue siendo gasto + gasto_cliente
+            'total_despues_gastos'    => (float) $ingresosEfectivo - (float) $gastosEfectivo,
+            'iguala'                  => (float) $iguala,
+
+            // NUEVOS
+            'pagos_cliente_mes'       => (float) $pagosClienteMes,
+            'saldo_anterior'          => (float) $saldoAnterior,
+            'total_mes'               => (float) $totalMes,
+            'total_incluye_saldos'    => (float) $totalIncluyeSaldos,
         ];
 
         return view('reportes.mensual', [

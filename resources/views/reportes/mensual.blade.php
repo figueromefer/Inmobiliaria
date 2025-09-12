@@ -223,6 +223,19 @@
             <tr><td class="px-3 py-2">GASTOS EFECTIVO</td><td class="px-3 py-2 text-right">{{ number_format($resumen['gastos_efectivo'],2) }}</td></tr>
             <tr class="border-t"><td class="px-3 py-2 font-semibold">TOTAL DESPUÉS DE GASTOS</td><td class="px-3 py-2 text-right font-semibold">{{ number_format($resumen['total_despues_gastos'],2) }}</td></tr>
             <tr class="border-t"><td class="px-3 py-2 font-semibold">IGUALA</td><td class="px-3 py-2 text-right font-semibold">{{ number_format($resumen['iguala'],2) }}</td></tr>
+            <tr><td class="px-3 py-2">PAGOS AL CLIENTE (MES)</td>
+                <td class="px-3 py-2 text-right">{{ number_format($resumen['pagos_cliente_mes'] ?? 0, 2) }}</td></tr>
+
+            @if(($resumen['saldo_anterior'] ?? 0) > 0)
+            <tr class="border-t"><td class="px-3 py-2 font-semibold">SALDO DE MESES ANTERIORES</td>
+                <td class="px-3 py-2 text-right font-semibold">{{ number_format($resumen['saldo_anterior'], 2) }}</td></tr>
+            @endif
+
+            <tr class="border-t"><td class="px-3 py-2 font-semibold">TOTAL A PAGAR DEL MES</td>
+                <td class="px-3 py-2 text-right font-semibold">{{ number_format($resumen['total_mes'] ?? 0, 2) }}</td></tr>
+
+            <tr class="border-t"><td class="px-3 py-2 text-lg font-bold">TOTAL A PAGAR (INCLUYE SALDOS)</td>
+                <td class="px-3 py-2 text-right text-lg font-bold">{{ number_format($resumen['total_incluye_saldos'] ?? 0, 2) }}</td></tr>
           </tbody>
         </table>
       </div>
