@@ -14,8 +14,17 @@
         <span class="inline-block w-3 h-3 rounded" style="background:#dc2626"></span> Fin
       </span>
       <span class="inline-flex items-center gap-1">
-        <span class="inline-block w-3 h-3 rounded" style="background:#f59e0b"></span> Recordatorio (−30 días)
+        <span class="inline-block w-3 h-3 rounded" style="background:#f59e0b"></span> Recordatorio (-30 días)
       </span>
+      <span class="inline-flex items-center gap-1">
+        <span class="inline-block w-3 h-3 rounded" style="background:#f59e0b"></span> Adeudo mes en curso
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <span class="inline-block w-3 h-3 rounded" style="background:#ef4444"></span> Adeudo con saldo anterior
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <span class="inline-block w-3 h-3 rounded" style="background:#8b5cf6"></span> Adeudo mes con cobranza completa
+        </span>
     </div>
 
     <div id="calendar" class="bg-white border rounded p-2"></div>
@@ -39,21 +48,37 @@
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,listWeek'
         },
-        events: {
-          url: '{{ route('api.contratos.events') }}',
-          failure: function() {
-            alert('No se pudieron cargar los eventos.');
-          }
-        },
+        // Agrega múltiples fuentes de eventos
+        eventSources: [
+          {
+            url: '{{ route('api.contratos.events') }}',
+            failure: function() {
+              alert('No se pudieron cargar los contratos.');
+            }
+          },
+          {
+            url: '{{ route('api.pagos.events') }}',
+            failure: function() {
+              alert('No se pudieron cargar los adeudos.');
+            }
+          },
+        ],
         eventClick: function(info) {
-          const p = info.event.extendedProps || {};
-          const msg = [
-            info.event.title,
-            p.domicilio ? ('Domicilio: ' + p.domicilio) : null,
-            p.inquilino ? ('Inquilino: ' + p.inquilino) : null,
-            p.tipo === 'recordatorio' && p.fecha_fin ? ('Fin: ' + p.fecha_fin) : null,
-          ].filter(Boolean).join('\n');
-          alert(msg || info.event.title);
+          const props = info.event.extendedProps || {};
+          let msg = info.event.title;
+          if (props.total_a_pagar !== undefined) {
+            msg += '\\nTotal a pagar: $' + Number(props.total_a_pagar).toFixed(2);
+            if (props.saldo_anterior > 0) {
+              msg += '\\nIncluye saldo anterior: $' + Number(props.saldo_anterior).toFixed(2);
+            }
+          } else {
+            msg += '\\n' + (props.domicilio ? ('Domicilio: ' + props.domicilio) : '');
+            msg += '\\n' + (props.inquilino ? ('Inquilino: ' + props.inquilino) : '');
+            if (props.tipo === 'recordatorio' && props.fecha_fin) {
+              msg += '\\nFin: ' + props.fecha_fin;
+            }
+          }
+          alert(msg);
         }
       });
       calendar.render();
