@@ -76,6 +76,7 @@ class PropiedadController extends Controller
 
     public function destroy(Propiedad $propiedad)
     {
+        $this->authorize('delete-anything');
         $propiedad->delete();
         return redirect()->route('propiedades.index')->with('success', 'Propiedad eliminada correctamente.');
     }

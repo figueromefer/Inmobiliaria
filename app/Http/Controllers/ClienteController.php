@@ -80,6 +80,7 @@ class ClienteController extends Controller
     // Eliminar cliente
     public function destroy($id)
     {
+        $this->authorize('delete-anything');
         $cliente = Cliente::findOrFail($id);
         $cliente->delete();
 

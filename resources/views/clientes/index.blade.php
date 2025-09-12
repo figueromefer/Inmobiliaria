@@ -36,7 +36,9 @@
                                     <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="inline-block" onsubmit="return confirm('¿Estás seguro de eliminar este cliente?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+                                        @can('delete-anything')
+                                            <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+                                        @endcand
                                     </form>
                                 </td>
                             </tr>

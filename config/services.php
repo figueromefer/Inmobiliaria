@@ -34,5 +34,8 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
+    
+     'clients_api' => [
+        'token' => env('CLIENTS_API_TOKEN', ''), // fallback vacío
+    ],
 ];

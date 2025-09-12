@@ -19,17 +19,14 @@ use App\Http\Controllers\ReporteMensualController;
 use App\Http\Controllers\BackfillContratosController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\Web\TicketWebController;
+use App\Http\Controllers\PagoCalendarController;
+use App\Http\Controllers\UserController;
 
+Auth::routes(['register' => false]);
 
 Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
 
 
-Route::get('/__clear_caches__', function () {
-    Artisan::call('config:clear');
-    Artisan::call('route:clear');
-    Artisan::call('view:clear');
-    return 'Caches cleared';
-});
 
 Route::get('/__migrate_status__', function () {
     Artisan::call('migrate:status');
@@ -47,6 +44,15 @@ Route::get('/__run_migrate__', function () {
     return nl2br(Artisan::output());
 });
 
+Route::get('/__clear_caches__', function () {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+
+    return nl2br(Artisan::output() . "\nCaches limpiados ✔️");
+});
+
 
 
 
@@ -57,6 +63,18 @@ Route::match(['GET','HEAD'], '/', function () {
         ? redirect()->route('calendario.index')
         : view('auth.login');
 })->name('home');
+
+Route::middleware(['auth', 'can:manage-users'])->group(function () {
+    Route::resource('users', UserController::class)->except(['show']);
+});
+
+// (extra) En tus otros recursos, protege delete:
+Route::middleware(['auth'])->group(function () {
+    // ejemplo: propiedades
+    Route::delete('propiedades/{propiedad}', [PropiedadController::class, 'destroy'])
+        ->middleware('can:delete-anything'); // solo admin
+    // Repite para los demás deletes (contratos, clientes, etc.)
+});
 
 
 // Login y Forgot Password (como vistas; usa tus blades reales)
@@ -113,6 +131,10 @@ Route::middleware('auth')->group(function () {
     // Cambio rápido de estatus
     Route::patch('/tickets/{ticket}/status', [TicketWebController::class, 'updateStatus'])->name('tickets.status.update');
 
+    Route::get('/calendario/eventos-adeudos', [\App\Http\Controllers\CalendarioController::class, 'eventosDeAdeudos'])
+    ->name('calendario.eventos-adeudos');
+    Route::get('/pagos-pendientes/events', [PagoCalendarController::class, 'events'])
+    ->name('api.pagos.events');
 });
 
 require __DIR__ . '/auth.php';

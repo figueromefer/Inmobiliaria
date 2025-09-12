@@ -29,7 +29,9 @@
                                 <form action="{{ route('propiedades.destroy', $propiedad) }}" method="POST" class="inline-block" onsubmit="return confirm('¿Estás seguro de eliminar esta propiedad?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+                                    @can('delete-anything')
+                                        <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+                                    @endcan
                                 </form>
                             </td>
                         </tr>
