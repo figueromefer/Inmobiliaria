@@ -1,0 +1,10 @@
+
+.hover\:bg-gold-700:hover{
+    background-color: #955827;
+    background-color: rgb(149 88 39 / var(--tw-bg-opacity));
+  }
+
+  .vertical-middle{
+    vertical-align: middle !important;
+  }
+  

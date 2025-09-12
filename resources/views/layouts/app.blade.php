@@ -13,6 +13,7 @@
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}"> 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+       <link rel="stylesheet" href="{{asset('custom.css')}}"/>
         
     </head>
     <body class="font-sans antialiased">

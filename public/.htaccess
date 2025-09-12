@@ -1,10 +1,12 @@
-# /inmo/public/.htaccess
+# /inmo/public/.htaccess  (Laravel en subcarpeta /inmo/public)
 <IfModule mod_rewrite.c>
     Options -Multiviews
     RewriteEngine On
+
+    # MUY IMPORTANTE: base del rewrite para el subdirectorio
     RewriteBase /inmo/public/
 
-    # Si es un archivo o directorio existente, entrégalo tal cual
+    # Entregar archivos y directorios reales tal cual
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
@@ -12,3 +14,14 @@
     # Todo lo demás pasa por index.php
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Opcional: seguridad mínima
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+</IfModule>
+
+# Opcional: forzar HTTPS aquí si tu proxy no lo hace (descomenta si lo necesitas)
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTPS} !=on
+#     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>

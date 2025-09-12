@@ -6,10 +6,10 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6">
             <div class="mb-4">
                 <a href="{{ route('clientes.create') }}"
-                   class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                   class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
                     + Nuevo Cliente
                 </a>
             </div>

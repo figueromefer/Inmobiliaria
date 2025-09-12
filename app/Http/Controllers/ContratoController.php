@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\Cliente; 
 use App\Http\Requests\ContratoRequest;
+use Carbon\Carbon;
 
 class ContratoController extends Controller
 {
@@ -93,6 +94,14 @@ class ContratoController extends Controller
             'sort' => $sort,
             'dir' => $dir,
         ]);
+
+        // === Calcular proximidad a vencimiento ===
+        $contratos->getCollection()->transform(function ($contrato) {
+            $fechaFin = Carbon::parse($contrato->fecha_fin);
+            // true si la fecha fin es dentro de 2 meses desde hoy (o antes)
+            $contrato->por_expirar = Carbon::now()->diffInMonths($fechaFin, false) <= 2;
+            return $contrato;
+        });
 
         // === Datos para selects en la vista ===
         // LEGADO (tu vista actual quizá espera esto):

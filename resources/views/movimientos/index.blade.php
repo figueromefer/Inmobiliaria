@@ -5,12 +5,16 @@
     </h2>
   </x-slot>
 
-  <div class="max-w-7xl mx-auto p-4">
+  <div class="max-w-7xl mx-auto mt-6 bg-white lg:px-8 py-6">
     @if (session('ok'))
       <div class="mb-3 p-2 bg-green-100 border text-green-800 rounded">{{ session('ok') }}</div>
     @endif
+    <div class="flex justify-end">
+        <a href="{{ route('movimientos.create') }}" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">+ Nuevo movimiento</a>
+    </div>
+     
 
-    <div class="mb-4 flex flex-wrap items-end gap-3">
+    <div class="min-w-full divide-y divide-gray-200 mt-6 mb-6">
       <form method="GET" action="{{ route('movimientos.index') }}" class="flex gap-2">
         <div>
           <label class="block text-sm font-medium">Buscar</label>
@@ -24,13 +28,13 @@
             @endforeach
           </select>
         </div>
-        <div class="self-end">
-          <button class="border rounded px-4 py-2">Aplicar</button>
-          <a href="{{ route('movimientos.index') }}" class="border rounded px-4 py-2 ml-2">Limpiar</a>
+        <div class="self-end vertical-middle">
+          <button class="inline-flex items-center bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">Aplicar</button>
+          <a href="{{ route('movimientos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Limpiar</a>
         </div>
       </form>
 
-      <a href="{{ route('movimientos.create') }}" class="ml-auto border rounded px-4 py-2">Nuevo movimiento</a>
+     
     </div>
 
     <div class="overflow-x-auto bg-white border rounded">
@@ -43,6 +47,7 @@
             <th class="text-left px-4 py-2">Concepto</th>
             <th class="text-left px-4 py-2">Forma de pago</th>
             <th class="text-right px-4 py-2">Importe</th>
+            <th class="text-right px-4 py-2">Comprobante</th>
           </tr>
         </thead>
         <tbody>
@@ -59,6 +64,17 @@
               </td>
               <td class="px-4 py-2">{{ ucfirst($m->forma_pago) }}</td>
               <td class="px-4 py-2 text-right">{{ number_format($m->importe, 2) }}</td>
+              <td class="px-4 py-2">
+                    @if($m->comprobante)
+                        <a href="{{ asset('storage/' . $m->comprobante) }}"
+                        target="_blank"
+                        class="text-blue-600 hover:text-blue-800 underline">
+                            Ver
+                        </a>
+                    @else
+                        —
+                    @endif
+                </td>
             </tr>
           @empty
             <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>

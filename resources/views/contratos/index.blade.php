@@ -5,7 +5,7 @@
     </h2>
   </x-slot>
 
-  <div class="max-w-7xl mx-auto p-4">
+  <div class="max-w-7xl mx-auto mt-6 bg-white lg:px-8 py-6">
     {{-- Filtros --}}
     <form method="GET" action="{{ route('contratos.index') }}" class="mb-4 grid gap-3 sm:grid-cols-6">
       <div class="sm:col-span-2">
@@ -48,10 +48,10 @@
       </div>
 
       <div class="sm:col-span-6 flex gap-2">
-        <button type="submit" class="inline-flex items-center border rounded px-4 py-2">
+        <button type="submit" class="inline-flex items-center bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
           Aplicar
         </button>
-        <a href="{{ route('contratos.index') }}" class="inline-flex items-center border rounded px-4 py-2">
+        <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
           Limpiar
         </a>
 
@@ -90,6 +90,10 @@
             </thead>
             <tbody>
             @forelse ($contratos as $c)
+                @php
+                    // variable booleana creada en el controlador
+                    $alerta = $c->por_expirar;
+                @endphp
                 <tr class="border-b hover:bg-gray-50">
                 <td class="px-4 py-2">{{ $c->id }}</td>
                 <td class="px-4 py-2">{{ $c->tipo_solicitante ?? '—' }}</td>
@@ -107,7 +111,12 @@
                     {{ $c->fecha_inicio ? \Illuminate\Support\Carbon::parse($c->fecha_inicio)->format('Y-m-d') : '—' }}
                 </td>
                 <td class="px-4 py-2">
-                    {{ $c->fecha_fin ? \Illuminate\Support\Carbon::parse($c->fecha_fin)->format('Y-m-d') : '—' }}
+                    {{ $c->fecha_fin ? \Carbon\Carbon::parse($c->fecha_fin)->format('Y-m-d') : '—' }}
+                    @if($alerta)
+                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white">
+                            ¡Por vencer en menos de 2 meses!
+                        </span>
+                    @endif
                 </td>
 
                 <td class="px-4 py-2">

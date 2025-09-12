@@ -10,7 +10,7 @@ class PropiedadController extends Controller
 {
     public function index()
     {
-        $propiedades = Propiedad::with('cliente')->paginate(15);
+        $propiedades = Propiedad::with('cliente')->get();
         return view('propiedades.index', compact('propiedades'));
     }
 

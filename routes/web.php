@@ -17,6 +17,9 @@ use App\Http\Controllers\ContratoCalendarController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\ReporteMensualController;
 use App\Http\Controllers\BackfillContratosController;
+use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\Web\TicketWebController;
+
 
 Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
 
@@ -51,7 +54,7 @@ Route::get('/__run_migrate__', function () {
 // Home: si hay sesión -> dashboard; si no -> login
 Route::match(['GET','HEAD'], '/', function () {
     return auth()->check()
-        ? redirect()->route('dashboard')
+        ? redirect()->route('calendario.index')
         : view('auth.login');
 })->name('home');
 
@@ -89,6 +92,27 @@ Route::middleware('auth')->group(function () {
     Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
 
     Route::get('/reportes/mensual', [ReporteMensualController::class, 'index'])->name('reportes.mensual');
+
+    // Rutas de documentos
+    Route::resource('documentos', DocumentoController::class);
+    Route::get('documentos/{documento}/download', [DocumentoController::class, 'download'])
+        ->name('documentos.download');
+    Route::get('documentos/{documento}/ver', [DocumentoController::class, 'view'])->name('documentos.view');
+    
+    Route::get('/tickets',               [TicketWebController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/create',        [TicketWebController::class, 'create'])->name('tickets.create');
+    Route::post('/tickets',              [TicketWebController::class, 'store'])->name('tickets.store');
+    Route::get('/tickets/{ticket}',      [TicketWebController::class, 'show'])->name('tickets.show');
+    Route::get('/tickets/{ticket}/edit', [TicketWebController::class, 'edit'])->name('tickets.edit');
+    Route::put('/tickets/{ticket}',      [TicketWebController::class, 'update'])->name('tickets.update');
+    Route::delete('/tickets/{ticket}',   [TicketWebController::class, 'destroy'])->name('tickets.destroy');
+
+    // Comentarios
+    Route::post('/tickets/{ticket}/comments', [TicketWebController::class, 'storeComment'])->name('tickets.comments.store');
+
+    // Cambio rápido de estatus
+    Route::patch('/tickets/{ticket}/status', [TicketWebController::class, 'updateStatus'])->name('tickets.status.update');
+
 });
 
 require __DIR__ . '/auth.php';

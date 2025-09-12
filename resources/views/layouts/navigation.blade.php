@@ -4,7 +4,7 @@
         <div class="flex items-center justify-between h-16">
             <!-- Logo -->
                 <div class="shrink-0 flex items-center ">
-                    <a href="{{ route('dashboard') }}">
+                    <a href="{{ route('calendario.index') }}">
                         <x-application-logo class="block h-9 w-auto fill-current text-gray-800 " />
                     </a>
                 </div>
@@ -17,14 +17,10 @@
                         {{ __('Calendario') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes')">
-                        {{ __('Clientes') }}
-                    </x-nav-link>
-
                   
                     <div class="relative group inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
                         <span class="cursor-pointer flex items-center">
-                            Propiedades
+                            Catálogos
                             <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -32,20 +28,14 @@
 
                         <!-- Submenú -->
                         <div x-show="open" x-transition class="absolute left-0 top-full hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg w-56 z-50">
-                            <a href="{{ route('propiedades.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver propiedades</a>
-                            <a href="{{ route('propiedades.create') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Nueva propiedad</a>
-                            <a href="{{ route('propiedades.mapa') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mapa de propiedades</a>
+                            <a href="{{ route('clientes.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Clientes</a>    
+                            <a href="{{ route('propiedades.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Propiedades</a>
+                            <a href="{{ route('inquilinos.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Inquilinos</a>
+                            <a href="{{ route('contratos.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Contratos</a>
+                            <a href="{{ route('documentos.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Documentos</a>
                         </div>
                     </div>
-
-                    <x-nav-link :href="route('inquilinos.index')" :active="request()->routeIs('inquilinos')">
-                        {{ __('Inquilinos') }}
-                    </x-nav-link>
-
-                    <x-nav-link :href="route('contratos.index')" :active="request()->routeIs('contratos')">
-                        {{ __('Contratos') }}
-                    </x-nav-link>
-
+                   
                     <x-nav-link :href="route('movimientos.index')" :active="request()->routeIs('movimientos')">
                         {{ __('Movimientos') }}
                     </x-nav-link>
@@ -63,6 +53,24 @@
                             <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mensual</a>
                            <!-- <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rentas pendientes</a>
                             <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rendimiento por cliente</a>-->
+                        </div>
+                    </div>
+
+               
+
+                    <div class="relative group inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                        <span class="cursor-pointer flex items-center">
+                            Tickets
+                            <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+
+                        <!-- Submenú -->
+                        <div x-show="open" x-transition class="absolute left-0 top-full hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg w-56 z-50">
+                            <a href="{{ route('tickets.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver tickets</a>
+                            <a href="{{ route('tickets.create') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Nuevo ticket</a>
+                            
                         </div>
                     </div>
                     

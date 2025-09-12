@@ -5,7 +5,7 @@
     </h2>
   </x-slot>
 
-  <div class="max-w-7xl mx-auto p-4">
+  <div class="max-w-7xl mx-auto p-4 bg-white mt-6">
     {{-- Filtro --}}
     <form method="GET" action="{{ route('reportes.mensual') }}" class="mb-6 grid gap-4 sm:grid-cols-4">
       <div class="sm:col-span-2">

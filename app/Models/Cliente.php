@@ -37,5 +37,8 @@ class Cliente extends Model
     // Relación con propiedades
 
     public function contratos() { return $this->hasMany(Contrato::class, 'fk_cliente', 'pk_cliente'); }
-public function propiedades() { return $this->hasMany(Propiedad::class, 'fk_cliente', 'pk_cliente'); }
+    public function propiedades() { return $this->hasMany(Propiedad::class, 'fk_cliente', 'pk_cliente'); }
+    public function documentos() { return $this->hasMany(Documento::class, 'fk_cliente', 'pk_cliente');
+}
+
 }

@@ -27,6 +27,7 @@ return new class extends Migration
             $table->decimal('monto_mensual', 12, 2)->nullable();
             $table->decimal('monto_deposito', 12, 2)->nullable();
             $table->string('edit_url', 512)->nullable(); // opcional
+            $table->string('urldoc', 512)->nullable(); // opcional
             $table->timestamps();
 
             $table->index('inquilino_id');

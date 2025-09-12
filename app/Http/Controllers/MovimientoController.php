@@ -76,8 +76,9 @@ class MovimientoController extends Controller
             'concepto'     => ['required','in:deposito,renta,gasto,gasto_cliente'],
             'fecha'        => ['required','date'],
             'importe'      => ['required','numeric','min:0'],
-            'forma_pago'   => ['nullable','in:efectivo,transferencia'], // se fuerza efectivo para gastos
+            'forma_pago'   => ['nullable','in:efectivo,transferencia'], // se forza efectivo para gastos
             'notas'        => ['nullable','string'],
+            'comprobante' => ['nullable','file','mimes:jpg,jpeg,png,pdf','max:2048'],
         ];
 
         $concepto = $request->input('concepto');
@@ -119,6 +120,13 @@ class MovimientoController extends Controller
             // (Re)afirmar la relación cliente-propiedad para evitar inconsistencias
             // CAMBIO: Si quieres blindar, sobreescribe el cliente con el de la propiedad
             // $data['cliente_id'] = (int)$propiedad->fk_cliente;
+        }
+
+         // Cargar el archivo si se proporcionó
+        if ($request->hasFile('comprobante')) {
+            $path = $request->file('comprobante')
+                            ->store('comprobantes', 'public'); // se guarda en storage/app/public/comprobantes
+            $data['comprobante'] = $path;
         }
 
         Movimiento::create($data);

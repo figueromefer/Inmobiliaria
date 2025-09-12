@@ -14,7 +14,7 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ route('movimientos.store') }}" class="grid gap-4">
+    <form method="POST" action="{{ route('movimientos.store') }}" enctype="multipart/form-data" class="grid gap-4">
       @csrf
 
       {{-- Cliente --}}
@@ -82,6 +82,19 @@
         <label class="block text-sm font-medium">Notas</label>
         <textarea name="notas" rows="3" class="mt-1 w-full border rounded px-3 py-2">{{ old('notas') }}</textarea>
       </div>
+
+      {{-- Comprobante --}}
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700" for="comprobante">
+            Comprobante (opcional)
+        </label>
+        <input type="file" name="comprobante" id="comprobante"
+            class="form-input mt-1 block w-full rounded-md shadow-sm border-gray-300"
+            accept="image/*,application/pdf">
+        @error('comprobante')
+            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+        @enderror
+    </div>
 
       <div class="flex gap-2">
         <button class="border rounded px-4 py-2">Guardar</button>

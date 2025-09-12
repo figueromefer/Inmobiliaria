@@ -4,7 +4,7 @@
             {{ __('Inquilinos') }}
         </h2>
     </x-slot>
-    <div class="max-w-6xl mx-auto mt-3">
+    <div class="max-w-6xl mx-auto mt-6 bg-white lg:px-8 py-6">
 
     {{-- Filtros / acciones --}}
     <form method="GET" action="{{ route('inquilinos.index') }}" class="mb-4 grid gap-3 sm:grid-cols-3">
@@ -30,10 +30,10 @@
         </div>
 
         <div class="sm:col-span-3 flex gap-2">
-            <button type="submit" class="inline-flex items-center border rounded px-4 py-2">
+            <button type="submit" class="inline-flex items-center bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
                 Aplicar
             </button>
-            <a href="{{ route('inquilinos.index') }}" class="inline-flex items-center border rounded px-4 py-2">
+            <a href="{{ route('inquilinos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                 Limpiar
             </a>
         </div>

@@ -9,7 +9,7 @@ class Movimiento extends Model
     protected $table = 'movimientos';
 
     protected $fillable = [
-        'cliente_id', 'propiedad_id', 'concepto', 'fecha', 'importe', 'forma_pago', 'notas',
+        'cliente_id', 'propiedad_id', 'concepto', 'fecha', 'importe', 'forma_pago', 'notas','comprobante', 
     ];
 
     protected $casts = [

@@ -32,6 +32,9 @@ class Propiedad extends Model
 
     // Relación inversa con Cliente
     public function cliente() { return $this->belongsTo(Cliente::class, 'fk_cliente', 'pk_cliente'); }
-public function contratos() { return $this->hasMany(Contrato::class, 'fk_propiedad', 'pk_propiedad'); }
+    public function contratos() { return $this->hasMany(Contrato::class, 'fk_propiedad', 'pk_propiedad'); }
+    public function documentos() { return $this->hasMany(Documento::class, 'fk_propiedad', 'pk_propiedad');
+}
+
 
 }
