@@ -73,7 +73,7 @@ class MovimientoController extends Controller
     {
         $rules = [
             'cliente_id'   => ['required','exists:clientes,pk_cliente'],
-            'concepto'     => ['required','in:deposito,renta,gasto,gasto_cliente'],
+            'concepto'     => ['required','in:deposito,renta,gasto,gasto_cliente,pago_cliente'],
             'fecha'        => ['required','date'],
             'importe'      => ['required','numeric','min:0'],
             'forma_pago'   => ['nullable','in:efectivo,transferencia'], // se forza efectivo para gastos
@@ -83,7 +83,7 @@ class MovimientoController extends Controller
 
         $concepto = $request->input('concepto');
 
-        if ($concepto === 'gasto_cliente') {
+        if (in_array($concepto, ['gasto_cliente','pago_cliente'])) {
             $rules['propiedad_id'] = ['nullable'];
         } else {
             // deposito, renta, gasto (de la propiedad) requieren propiedad

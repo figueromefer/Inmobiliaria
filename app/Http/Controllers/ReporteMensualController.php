@@ -149,6 +149,12 @@ class ReporteMensualController extends Controller
             ->orderBy('fecha')
             ->get();
 
+        $pagosCliente = Movimiento::where('cliente_id', $clienteId)
+            ->where('concepto', 'pago_cliente')
+            ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('fecha')
+            ->get();
+
         // === 7) Gastos de la propiedad (mes) ===
         $gastosPropiedad = Movimiento::with('propiedad')
             ->where('cliente_id', $clienteId)
@@ -158,15 +164,14 @@ class ReporteMensualController extends Controller
             ->get();
 
         // === 8) Resumen ===
-        $ingresosEfectivo = Movimiento::where('cliente_id', $clienteId)
+        $ingresosEfectivo = Movimiento::where('cliente_id',$clienteId)
             ->whereIn('concepto', ['renta','deposito'])
             ->where('forma_pago','efectivo')
             ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
             ->sum('importe');
 
-        $totalDepositos = Movimiento::where('cliente_id', $clienteId)
-            ->whereIn('concepto', ['renta','deposito'])
-            ->where('forma_pago','transferencia')
+        $totalDepositos = Movimiento::where('cliente_id',$clienteId)
+            ->where('concepto','deposito')
             ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
             ->sum('importe');
 
@@ -174,6 +179,20 @@ class ReporteMensualController extends Controller
             ->whereIn('concepto', ['gasto','gasto_cliente'])
             ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
             ->sum('importe');
+
+        $pagosClienteEfectivo = Movimiento::where('cliente_id', $clienteId)
+            ->where('concepto', 'pago_cliente')
+            ->where('forma_pago', 'efectivo')
+            ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
+            ->sum('importe');
+
+        // pagos al cliente mediante transferencia (opcional, para referencia)
+        $pagosClienteTransfer = Movimiento::where('cliente_id', $clienteId)
+            ->where('concepto', 'pago_cliente')
+            ->where('forma_pago', 'transferencia')
+            ->whereBetween('fecha', [$start->toDateString(), $end->toDateString()])
+            ->sum('importe');
+
 
         // IGUALA: suma de comisiones por cada RENTA del mes
         // - comision_mensual: porcentaje (0.10 = 10%) x importe del movimiento
@@ -204,11 +223,12 @@ class ReporteMensualController extends Controller
         }
 
         $resumen = [
-            'ingresos_efectivo'     => (float) $ingresosEfectivo,
-            'total_depositos'       => (float) $totalDepositos,
-            'gastos_efectivo'       => (float) $gastosEfectivo,
-            'total_despues_gastos'  => (float) $ingresosEfectivo - (float) $gastosEfectivo,
-            'iguala'                => (float) $iguala,
+            'ingresos_efectivo'    => (float)$ingresosEfectivo,
+            'total_depositos'      => (float)$totalDepositos,
+            'gastos_efectivo'      => (float)$gastosEfectivo + (float)$pagosClienteEfectivo,
+            'total_despues_gastos' => (float)$ingresosEfectivo - (float)$gastosEfectivo - (float)$pagosClienteEfectivo,
+            'iguala'               => (float)$iguala,
+            'pagos_cliente_transfer' => (float)$pagosClienteTransfer // para referencia en el reporte
         ];
 
         return view('reportes.mensual', [
@@ -221,6 +241,7 @@ class ReporteMensualController extends Controller
             'desocupadas'      => $desocupadas,
             'gastosCliente'    => $gastosCliente,
             'gastosPropiedad'  => $gastosPropiedad,
+            'pagosCliente'     => $pagosCliente,
             'resumen'          => $resumen,
         ]);
     }

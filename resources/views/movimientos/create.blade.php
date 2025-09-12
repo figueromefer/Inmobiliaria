@@ -28,17 +28,6 @@
         </select>
       </div>
 
-      {{-- Propiedad (depende de cliente) --}}
-      <div>
-        <label class="block text-sm font-medium">Propiedad</label>
-        <select id="propiedad_id" name="propiedad_id" class="mt-1 w-full border rounded px-3 py-2" required>
-          <option value="">— Selecciona un cliente primero —</option>
-          @foreach ($propiedades as $p)
-            <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>{{ $p->alias }}</option>
-          @endforeach
-        </select>
-      </div>
-
       {{-- Concepto --}}
       <div>
         <label class="block text-sm font-medium">Concepto</label>
@@ -51,8 +40,23 @@
           <option value="renta"    @selected($conceptoOld==='renta')>Pago de renta</option>
           <option value="gasto"    @selected($conceptoOld==='gasto')>Gasto de la propiedad</option>
           <option value="gasto_cliente" @selected(old('concepto')==='gasto_cliente')>Gastos del cliente</option>
+          <option value="pago_cliente" @selected(old('concepto')==='pago_cliente')>Pago al cliente</option>
+
         </select>
       </div>
+
+      {{-- Propiedad (depende de cliente) --}}
+      <div>
+        <label class="block text-sm font-medium">Propiedad</label>
+        <select id="propiedad_id" name="propiedad_id" class="mt-1 w-full border rounded px-3 py-2" required>
+          <option value="">— Selecciona un cliente primero —</option>
+          @foreach ($propiedades as $p)
+            <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>{{ $p->alias }}</option>
+          @endforeach
+        </select>
+      </div>
+
+      
 
       {{-- Fecha --}}
       <div>
@@ -134,26 +138,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function toggleFieldsByConcept(value) {
     const esGastoCliente = (value === 'gasto_cliente');
+    const esPagoCliente  = (value === 'pago_cliente');
     const esGastoProp    = (value === 'gasto');
 
-    // Propiedad: solo se deshabilita en gasto_cliente
-    if (esGastoCliente) {
-      selProp.value = '';
-      selProp.setAttribute('disabled', 'disabled');
+    // Propiedad: deshabilitar en gasto_cliente y pago_cliente
+    if (esGastoCliente || esPagoCliente) {
+        selProp.value = '';
+        selProp.setAttribute('disabled', 'disabled');
     } else {
-      selProp.removeAttribute('disabled');
+        selProp.removeAttribute('disabled');
     }
 
-    // Forma de pago: forzar EFECTIVO y deshabilitar en gasto y gasto_cliente
+    // Forma de pago: forzar EFECTIVO solo en gasto / gasto_cliente
     if (esGastoProp || esGastoCliente) {
-      if (selFormaPago) {
+        if (selFormaPago) {
         selFormaPago.value = 'efectivo';
         selFormaPago.setAttribute('disabled', 'disabled');
-      }
+        }
     } else {
-      if (selFormaPago) selFormaPago.removeAttribute('disabled');
+        if (selFormaPago) selFormaPago.removeAttribute('disabled');
     }
-  }
+    }
+
 
   selCliente.addEventListener('change', e => {
     if (selConcepto.value !== 'gasto_cliente') {

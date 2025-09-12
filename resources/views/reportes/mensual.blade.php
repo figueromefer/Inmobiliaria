@@ -185,6 +185,34 @@
         </table>
       </div>
 
+      {{-- 4) Pagos al cliente --}}
+        <h3 class="text-lg font-semibold mb-2">Pagos al cliente</h3>
+        <div class="overflow-x-auto bg-white border rounded mb-6">
+        <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="text-left px-3 py-2">Fecha</th>
+                <th class="text-right px-3 py-2">Importe</th>
+                <th class="text-left px-3 py-2">Forma</th>
+                <th class="text-left px-3 py-2">Notas</th>
+            </tr>
+            </thead>
+            <tbody>
+            @forelse ($pagosCliente as $m)
+            <tr class="border-b">
+                <td class="px-3 py-2">{{ optional($m->fecha)->format('Y-m-d') }}</td>
+                <td class="px-3 py-2 text-right">{{ number_format($m->importe, 2) }}</td>
+                <td class="px-3 py-2">{{ ucfirst($m->forma_pago) }}</td>
+                <td class="px-3 py-2">{{ $m->notas ?? '—' }}</td>
+            </tr>
+            @empty
+            <tr><td colspan="4" class="px-3 py-4 text-center text-gray-500">Sin datos</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+        </div>
+
+
       {{-- 7) Resumen --}}
       <h3 class="text-lg font-semibold mb-2">Resumen</h3>
       <div class="overflow-x-auto bg-white border rounded">

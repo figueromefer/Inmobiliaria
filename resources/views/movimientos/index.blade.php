@@ -58,7 +58,7 @@
               <td class="px-4 py-2">{{ $m->propiedad->alias ?? '—' }}</td>
               <td class="px-4 py-2">
                 @php
-                  $map = ['deposito'=>'Depósito en garantía', 'renta'=>'Pago de renta', 'gasto'=>'Gasto de la propiedad', 'gasto_cliente'  => 'Gastos del cliente',];
+                  $map = ['deposito'=>'Depósito en garantía', 'renta'=>'Pago de renta', 'gasto'=>'Gasto de la propiedad', 'gasto_cliente'  => 'Gastos del cliente','pago_cliente'  => 'Pago al cliente',];
                 @endphp
                 {{ $map[$m->concepto] ?? $m->concepto }}
               </td>
