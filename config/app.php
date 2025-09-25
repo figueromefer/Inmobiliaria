@@ -125,9 +125,5 @@ return [
 
     'backfill_token' => env('BACKFILL_TOKEN', null),
 
-    'providers' => [
-        App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class, 
-    ],
 
 ];

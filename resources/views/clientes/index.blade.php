@@ -6,13 +6,14 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6">
-            <div class="mb-4">
-                <a href="{{ route('clientes.create') }}"
-                   class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
-                    + Nuevo Cliente
-                </a>
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
+            <div class="mb-4 relative">
+                <a href="{{ route('clientes.create') }}" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded mb-4">+ Nuevo Cliente</a>
+                <a href="https://forms.gle/jzHofrGekRVLvNNe9" class="bg-gray-500 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded right-0 absolute mr-4 mb-4" target="_blank">+ Nuevo CPS</a>
             </div>
+          
+
+      
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -38,7 +39,7 @@
                                         @method('DELETE')
                                         @can('delete-anything')
                                             <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
-                                        @endcand
+                                        @endcan
                                     </form>
                                 </td>
                             </tr>

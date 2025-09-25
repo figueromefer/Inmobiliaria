@@ -120,13 +120,38 @@ class FormsIntakeController extends Controller
 
         // 4) Inquilino
         $inquilinoId = $data['inquilino_id'] ?? null;
+        $nombreInquilino = $data['nombre_complementaria'] ?? null;
+        $solicitudId  = null;
+        $solicitudUrl = null;
+
+        if (!empty($nombreInquilino)) {
+            // Construir la URL de consulta codificando el nombre
+            $url = 'http://dainvestigaciones.com/Sistema/getsol.php?nombre=' . urlencode($nombreInquilino);
+
+            // Realizar la solicitud GET y decodificar la respuesta (JSON)
+            // file_get_contents() puede leer documentos remotos y json_decode() lo convierte en un array u objeto:contentReference[oaicite:2]{index=2}
+            $response = @file_get_contents($url);
+            if ($response !== false) {
+                $jsonData = json_decode($response, true);
+                // Comprobamos si la respuesta indica éxito y tiene 'id'
+                if (!empty($jsonData['success']) && !empty($jsonData['id'])) {
+                    $solicitudId  = $jsonData['id'];
+                    // Armamos la URL al reporte de resultados
+                    $solicitudUrl = 'https://dainvestigaciones.com/Sistema/view/reporte_resultados.php?id=' . $solicitudId;
+                }
+            }
+        }
+
+
         if (!$inquilinoId && !empty($data['nombre_complementaria'])) {
             $inq = \App\Models\Inquilino::create([
-                'nombre'       => $data['nombre_complementaria'],
-                'nacionalidad' => $data['nacionalidad_complementaria'] ?? null,
-                'domicilio'    => $data['domicilio_complementaria']    ?? null,
-                'telefono'     => $data['telefono_complementaria']     ?? null,
-                'correo'       => $data['correo_complementaria']       ?? null,
+                'nombre'        => $data['nombre_complementaria'],
+                'nacionalidad'  => $data['nacionalidad_complementaria'] ?? null,
+                'domicilio'     => $data['domicilio_complementaria']    ?? null,
+                'telefono'      => $data['telefono_complementaria']     ?? null,
+                'correo'        => $data['correo_complementaria']       ?? null,
+                'solicitud_id'  => $solicitudId                         ?? null,
+                'solicitud_url' => $solicitudUrl                        ?? null,
             ]);
             $inquilinoId = $inq->id;
         }

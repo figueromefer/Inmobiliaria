@@ -5,7 +5,18 @@
     </h2>
   </x-slot>
 
+ <div class="py-6">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
+            @can('manage-users')
+                <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
+                    + Nuevo contrato
+                </a>
+            @endcan
+        </div>
+    </div>
+
   <div class="max-w-7xl mx-auto mt-6 bg-white lg:px-8 py-6">
+      
     {{-- Filtros --}}
     <form method="GET" action="{{ route('contratos.index') }}" class="mb-4 grid gap-3 sm:grid-cols-6">
       <div class="sm:col-span-2">

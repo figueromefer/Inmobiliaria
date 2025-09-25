@@ -40,9 +40,11 @@
                         {{ __('Movimientos') }}
                     </x-nav-link>
 
+                   
+
                     <div class="relative group inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
                         <span class="cursor-pointer flex items-center">
-                            Reportes
+                            Reporte
                             <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -51,28 +53,20 @@
                         <!-- Submenú -->
                         <div x-show="open" x-transition class="absolute left-0 top-full hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg w-56 z-50">
                             <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mensual</a>
+                            <a href="{{ route('reportes.ganancias-clientes') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rendimiento por cliente</a>
                            <!-- <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rentas pendientes</a>
-                            <a href="{{ route('reportes.mensual') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rendimiento por cliente</a>-->
+                            -->
                         </div>
                     </div>
 
-               
 
-                    <div class="relative group inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
-                        <span class="cursor-pointer flex items-center">
-                            Tickets
-                            <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
+                    <x-nav-link :href="route('tickets.index')" :active="request()->routeIs('tickets')">
+                        {{ __('Tickets') }}
+                    </x-nav-link>
 
-                        <!-- Submenú -->
-                        <div x-show="open" x-transition class="absolute left-0 top-full hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg w-56 z-50">
-                            <a href="{{ route('tickets.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver tickets</a>
-                            <a href="{{ route('tickets.create') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Nuevo ticket</a>
-                            
-                        </div>
-                    </div>
+                    <x-nav-link :href="route('users.index')" :active="request()->routeIs('usuarios')">
+                        {{ __('Usuarios') }}
+                    </x-nav-link>
                     
                 </div>
                 

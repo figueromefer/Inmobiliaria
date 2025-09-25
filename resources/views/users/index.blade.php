@@ -1,52 +1,68 @@
 {{-- resources/views/users/index.blade.php --}}
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Usuarios
+        </h2>
+    </x-slot>
 
-@section('content')
-<div class="max-w-5xl mx-auto p-6">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Usuarios</h1>
-        @can('manage-users')
-        <a href="{{ route('users.create') }}" class="bg-gold-700 text-white px-4 py-2 rounded">+ Nuevo usuario</a>
-        @endcan
-    </div>
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
+            @can('manage-users')
+                <a href="{{ route('users.create') }}" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
+                    + Nuevo usuario
+                </a>
+            @endcan
 
-    @if (session('status'))
-        <div class="mb-4 p-3 rounded bg-green-100 text-green-800">{{ session('status') }}</div>
-    @endif
+            @if (session('status'))
+                <div class="mb-4 p-3 rounded bg-green-100 text-green-800">
+                    {{ session('status') }}
+                </div>
+            @endif
 
-    <div class="bg-white rounded shadow overflow-hidden">
-        <table class="min-w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="text-left p-3">Nombre</th>
-                    <th class="text-left p-3">Email</th>
-                    <th class="text-left p-3">Rol</th>
-                    <th class="text-right p-3">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($users as $u)
-                <tr class="border-t">
-                    <td class="p-3">{{ $u->name }}</td>
-                    <td class="p-3">{{ $u->email }}</td>
-                    <td class="p-3">{{ $u->role === 'admin' ? 'Administrador' : 'Agente' }}</td>
-                    <td class="p-3 text-right space-x-2">
-                        <a href="{{ route('users.edit',$u) }}" class="underline">Editar</a>
-                        @can('delete-anything')
-                        <form action="{{ route('users.destroy',$u) }}" method="POST" class="inline"
-                              onsubmit="return confirm('¿Eliminar usuario?');">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="text-red-600 underline">Eliminar</button>
-                        </form>
+            <table class="min-w-full divide-y divide-gray-200 mt-6">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                         @can('delete-anything')    
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         @endcan
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-        <div class="p-3">
-            {{ $users->links() }}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($users as $u)
+                        <tr>
+                            <td class="px-4 py-2">{{ $u->name }}</td>
+                            <td class="px-4 py-2">{{ $u->email }}</td>
+                            <td class="px-4 py-2">{{ $u->role === 'admin' ? 'Administrador' : 'Agente' }}</td>
+                            <td class="px-4 py-2 text-right space-x-2">
+                                @can('delete-anything')    
+                                    <a href="{{ route('users.edit', $u) }}" class="text-green-600 hover:underline">Editar</a>
+                                
+                                    <form action="{{ route('users.destroy', $u) }}" method="POST" class="inline"
+                                          onsubmit="return confirm('¿Eliminar usuario?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        
+                                        <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+                                   
+                                    </form>
+                                @endcan
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-4 py-4 text-center text-gray-500">No hay usuarios registrados.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            <div class="p-3">
+                {{ $users->links() }}
+            </div>
         </div>
     </div>
-</div>
-@endsection
+</x-app-layout>

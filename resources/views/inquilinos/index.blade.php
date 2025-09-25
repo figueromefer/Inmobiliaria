@@ -63,6 +63,7 @@
                 <th class="text-left px-4 py-2">Teléfono</th>
                 <th class="text-left px-4 py-2">Domicilio</th>
                 <th class="text-left px-4 py-2">Nacionalidad</th>
+                <th class="text-left px-4 py-2">Investigación</th>
                 <th class="text-left px-4 py-2">
                 <a href="{{ sortUrl('created_at', $sort ?? 'nombre', $dir ?? 'asc') }}" class="underline">Creado</a>
                 </th>
@@ -78,6 +79,13 @@
                         <td class="px-4 py-2">{{ $inq->telefono ?? '—' }}</td>
                         <td class="px-4 py-2">{{ $inq->domicilio ?? '—' }}</td>
                         <td class="px-4 py-2">{{ $inq->nacionalidad ?? '—' }}</td>
+                        <td class="px-4 py-2">
+                            @if (!empty($inq->solicitud_url))
+                                <a target="_blank" href="{{ $inq->solicitud_url }}" class="inline-flex items-center bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded" title="Solicitud disponible">
+                                    ⚠️ Ver investigación
+                                </a>
+                            @endif
+                        </td>
                         <td class="px-4 py-2">
                             {{ optional($inq->created_at)->format('Y-m-d H:i') ?? '—' }}
                         </td>

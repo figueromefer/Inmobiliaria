@@ -21,8 +21,9 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\Web\TicketWebController;
 use App\Http\Controllers\PagoCalendarController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ReporteGananciasClientesController;
 
-Auth::routes(['register' => false]);
+//Auth::routes(['register' => false]);
 
 Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
 
@@ -83,7 +84,7 @@ Route::view('/forgot-password', 'auth.forgot-password')->name('password.request'
 
 // Dashboard autenticado (quita 'verified' si no usas verificación por correo)
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return view('calendario.index');
 })->middleware(['auth'])->name('dashboard');
 
 
@@ -101,6 +102,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/calendario', [ContratoCalendarController::class, 'index'])->name('calendario.index');
     Route::get('/inquilinos', [InquilinoController::class, 'index'])->name('inquilinos.index');
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
+
+    Route::get('/usuarios',            [UserController::class, 'index'])->name('users.index');
 
     Route::get('/movimientos',            [MovimientoController::class, 'index'])->name('movimientos.index');
     Route::get('/movimientos/crear',      [MovimientoController::class, 'create'])->name('movimientos.create');
@@ -135,6 +138,8 @@ Route::middleware('auth')->group(function () {
     ->name('calendario.eventos-adeudos');
     Route::get('/pagos-pendientes/events', [PagoCalendarController::class, 'events'])
     ->name('api.pagos.events');
+    Route::get('/reportes/ganancias-clientes', [ReporteGananciasClientesController::class, 'index'])
+     ->name('reportes.ganancias-clientes');
 });
 
 require __DIR__ . '/auth.php';

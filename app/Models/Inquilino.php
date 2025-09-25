@@ -9,7 +9,7 @@ class Inquilino extends Model
     protected $table = 'inquilinos';
 
     protected $fillable = [
-        'nombre', 'nacionalidad', 'domicilio', 'telefono', 'correo',
+        'nombre', 'nacionalidad', 'domicilio', 'telefono', 'correo', 'solicitud_id', 'solicitud_url'
     ];
 
     public function contratos()
