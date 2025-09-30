@@ -161,6 +161,7 @@ class MovimientoController extends Controller
         ]);
 
         $fileName = 'recibo_' . $movimiento->id . '.pdf';
-        return $pdf->download($fileName);
+        //return $pdf->download($fileName);
+        return $pdf->stream('recibo.pdf', ['Attachment' => false]);
     }
 }

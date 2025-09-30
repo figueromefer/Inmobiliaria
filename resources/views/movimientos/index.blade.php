@@ -79,7 +79,7 @@
                 <td class="px-4 py-2">
                     @if(in_array($m->concepto, ['deposito','renta']))
                         <a href="{{ route('movimientos.recibo', $m->id) }}" class="text-blue-600 hover:text-blue-800 underline">
-                            Descargar
+                            Ver Recibo
                         </a>
                     @else
                         —

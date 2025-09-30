@@ -115,6 +115,8 @@ Route::middleware('auth')->group(function () {
         ->name('movimientos.recibo');
 
     Route::get('/reportes/mensual', [ReporteMensualController::class, 'index'])->name('reportes.mensual');
+    Route::get('/reportes/mensual/pdf', [ReporteMensualController::class, 'pdf'])
+    ->name('reportes.mensual.pdf');
 
     // Rutas de documentos
     Route::resource('documentos', DocumentoController::class);

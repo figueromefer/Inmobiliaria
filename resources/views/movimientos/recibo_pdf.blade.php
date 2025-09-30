@@ -3,27 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body    { font-family: DejaVu Sans, sans-serif; font-size: 14px; }
+        body    { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
         .title  { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px; }
         .info   { margin-bottom: 10px; }
         .label  { font-weight: bold; }
         .amount { font-size: 18px; font-weight: bold; }
+        .firma  { margin-top: 40px; text-align: center; }
+        .firma .fecha { font-weight: bold; margin-bottom: 20px; }
+        .firma .atentamente { margin-bottom: 60px; font-weight:bold }
+        .centrar {text-align:center;}
+        .mb-50 { margin-bottom:50px; }
     </style>
 </head>
 <body>
     @php
         $conceptMap = ['deposito' => 'Depósito en garantía', 'renta' => 'Pago de renta'];
+        // Formatear la fecha actual en español: Martes 30 de Septiembre del 2025
+        \Carbon\Carbon::setLocale('es');
+        $fechaActual = \Carbon\Carbon::now()->isoFormat('dddd D [de] MMMM [del] YYYY');
     @endphp
-    <div class="title">Recibo de {{ $conceptMap[$movimiento->concepto] ?? $movimiento->concepto }}</div>
-    <div class="info"><span class="label">Fecha:</span> {{ optional($movimiento->fecha)->format('d/m/Y') }}</div>
-    <div class="info"><span class="label">Cliente:</span> {{ $movimiento->cliente->nombre ?? '—' }}</div>
-    @if($movimiento->propiedad)
-      <div class="info"><span class="label">Propiedad:</span> {{ $movimiento->propiedad->alias }}</div>
-    @endif
-    <div class="info"><span class="label">Forma de pago:</span> {{ ucfirst($movimiento->forma_pago) }}</div>
-    <div class="info amount"><span class="label">Importe:</span> ${{ number_format($movimiento->importe, 2) }}</div>
+     
+    <div class="header">
+        <div class="mb-50" style="text-align:center;">
+            <img src="{{ public_path('images/logo.png') }}" alt="Logo de la inmobiliaria" style="width:250px;">
+        </div>
+
+        @php
+    $cliente    = $movimiento->cliente->nombre ?? '';
+    $importe    = number_format($movimiento->importe, 2);
+    $fecha      = optional($movimiento->fecha);
+    $mes        = $fecha ? $fecha->translatedFormat('F') : '';
+    $anio       = $fecha ? $fecha->year : '';
+    $propiedad  = $movimiento->propiedad;
+    $predioId   = $propiedad->id ?? '';
+    $direccion  = trim(($propiedad->calle ?? '').' '.($propiedad->numero ?? '').', '.($propiedad->colonia ?? '').', '.($propiedad->ciudad ?? '').', '.($propiedad->estado ?? ''), ', ');
+@endphp
+
+<p style="margin-bottom:15px;">
+    RECIBÍ EN REPRESENTACIÓN DE {{ $cliente }},
+    LA CANTIDAD DE ${{ $importe }}
+    POR CONCEPTO DE RENTA DEL MES DE {{strtoupper($mes) }} Y AÑO {{ $anio }},
+    RESPECTO AL PREDIO #{{ $propiedad->alias }},
+    {{ $direccion }}.
+</p>
+
+       
+    </div>
+
+   
+    <div class="notes centrar">
+        <strong>Forma de pago:</strong> {{ $movimiento->forma_pago }}
+    </div>
     @if(!empty($movimiento->notas))
-      <div class="info"><span class="label">Notas:</span> {{ $movimiento->notas }}</div>
+    <div class="notes  centrar">
+        <strong>Notas:</strong> {{ $movimiento->notas }}
+    </div>
     @endif
+
+    <!-- Espacio para la firma -->
+    <div class="firma">
+        <div class="fecha">
+            GUADALAJARA, JALISCO AL {{ strtoupper($fechaActual) }}
+        </div>
+        <div class="atentamente">
+            A&nbsp;T&nbsp;E&nbsp;N&nbsp;T&nbsp;A&nbsp;M&nbsp;E&nbsp;N&nbsp;T&nbsp;E
+        </div>
+        <div style="border-top:1px solid #000; width:40%; margin:0 auto 5px auto;"></div>
+        <div>
+            Dorantes Aranda &amp; Asociados<br>
+            Abogados e Inmobiliarios
+        </div>
+    </div>
+
+<br>
+    <div class="footer centrar">
+        Este recibo es un comprobante de pago. Conserve para cualquier aclaración.
+    </div>
 </body>
 </html>
