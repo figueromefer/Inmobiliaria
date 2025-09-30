@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Models\Cliente; 
+use App\Models\Cliente;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -59,7 +59,7 @@ Route::get('/__clear_caches__', function () {
 
 
 // Home: si hay sesión -> dashboard; si no -> login
-Route::match(['GET','HEAD'], '/', function () {
+Route::match(['GET', 'HEAD'], '/', function () {
     return auth()->check()
         ? redirect()->route('calendario.index')
         : view('auth.login');
@@ -103,14 +103,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/inquilinos', [InquilinoController::class, 'index'])->name('inquilinos.index');
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
 
-    Route::get('/usuarios',            [UserController::class, 'index'])->name('users.index');
+    Route::get('/usuarios', [UserController::class, 'index'])->name('users.index');
 
-    Route::get('/movimientos',            [MovimientoController::class, 'index'])->name('movimientos.index');
-    Route::get('/movimientos/crear',      [MovimientoController::class, 'create'])->name('movimientos.create');
-    Route::post('/movimientos',           [MovimientoController::class, 'store'])->name('movimientos.store');
+    Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
+    Route::get('/movimientos/crear', [MovimientoController::class, 'create'])->name('movimientos.create');
+    Route::post('/movimientos', [MovimientoController::class, 'store'])->name('movimientos.store');
 
     // Endpoint para llenar el select de propiedades según cliente elegido
     Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
+    Route::get('/movimientos/{movimiento}/recibo', [MovimientoController::class, 'recibo'])
+        ->name('movimientos.recibo');
 
     Route::get('/reportes/mensual', [ReporteMensualController::class, 'index'])->name('reportes.mensual');
 
@@ -119,14 +121,14 @@ Route::middleware('auth')->group(function () {
     Route::get('documentos/{documento}/download', [DocumentoController::class, 'download'])
         ->name('documentos.download');
     Route::get('documentos/{documento}/ver', [DocumentoController::class, 'view'])->name('documentos.view');
-    
-    Route::get('/tickets',               [TicketWebController::class, 'index'])->name('tickets.index');
-    Route::get('/tickets/create',        [TicketWebController::class, 'create'])->name('tickets.create');
-    Route::post('/tickets',              [TicketWebController::class, 'store'])->name('tickets.store');
-    Route::get('/tickets/{ticket}',      [TicketWebController::class, 'show'])->name('tickets.show');
+
+    Route::get('/tickets', [TicketWebController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/create', [TicketWebController::class, 'create'])->name('tickets.create');
+    Route::post('/tickets', [TicketWebController::class, 'store'])->name('tickets.store');
+    Route::get('/tickets/{ticket}', [TicketWebController::class, 'show'])->name('tickets.show');
     Route::get('/tickets/{ticket}/edit', [TicketWebController::class, 'edit'])->name('tickets.edit');
-    Route::put('/tickets/{ticket}',      [TicketWebController::class, 'update'])->name('tickets.update');
-    Route::delete('/tickets/{ticket}',   [TicketWebController::class, 'destroy'])->name('tickets.destroy');
+    Route::put('/tickets/{ticket}', [TicketWebController::class, 'update'])->name('tickets.update');
+    Route::delete('/tickets/{ticket}', [TicketWebController::class, 'destroy'])->name('tickets.destroy');
 
     // Comentarios
     Route::post('/tickets/{ticket}/comments', [TicketWebController::class, 'storeComment'])->name('tickets.comments.store');
@@ -135,11 +137,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/tickets/{ticket}/status', [TicketWebController::class, 'updateStatus'])->name('tickets.status.update');
 
     Route::get('/calendario/eventos-adeudos', [\App\Http\Controllers\CalendarioController::class, 'eventosDeAdeudos'])
-    ->name('calendario.eventos-adeudos');
+        ->name('calendario.eventos-adeudos');
     Route::get('/pagos-pendientes/events', [PagoCalendarController::class, 'events'])
-    ->name('api.pagos.events');
+        ->name('api.pagos.events');
     Route::get('/reportes/ganancias-clientes', [ReporteGananciasClientesController::class, 'index'])
-     ->name('reportes.ganancias-clientes');
+        ->name('reportes.ganancias-clientes');
+
+
 });
 
 require __DIR__ . '/auth.php';

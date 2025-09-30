@@ -48,6 +48,7 @@
             <th class="text-left px-4 py-2">Forma de pago</th>
             <th class="text-right px-4 py-2">Importe</th>
             <th class="text-right px-4 py-2">Comprobante</th>
+            <th class="text-right px-4 py-2">Recibo</th>
           </tr>
         </thead>
         <tbody>
@@ -75,10 +76,21 @@
                         —
                     @endif
                 </td>
+                <td class="px-4 py-2">
+                    @if(in_array($m->concepto, ['deposito','renta']))
+                        <a href="{{ route('movimientos.recibo', $m->id) }}" class="text-blue-600 hover:text-blue-800 underline">
+                            Descargar
+                        </a>
+                    @else
+                        —
+                    @endif
+                </td>
+
             </tr>
           @empty
-            <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>
+            <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>
           @endforelse
+
         </tbody>
       </table>
     </div>

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Movimiento;
 use App\Models\Cliente;
 use App\Models\Propiedad;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MovimientoController extends Controller
 {
@@ -142,5 +143,24 @@ class MovimientoController extends Controller
             ->get(['pk_propiedad as id', 'alias']); // ya correcto
 
         return response()->json($props);
+    }
+
+    /**
+     * Genera un recibo en PDF para un movimiento.
+     * Sólo se permiten movimientos con concepto 'deposito' o 'renta'.
+     */
+    public function recibo(Movimiento $movimiento)
+    {
+        if (!in_array($movimiento->concepto, ['deposito', 'renta'], true)) {
+            return redirect()->back()
+                ->with('error', 'El recibo sólo está disponible para depósitos o rentas.');
+        }
+
+        $pdf = Pdf::loadView('movimientos.recibo_pdf', [
+            'movimiento' => $movimiento,
+        ]);
+
+        $fileName = 'recibo_' . $movimiento->id . '.pdf';
+        return $pdf->download($fileName);
     }
 }
