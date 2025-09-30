@@ -16,22 +16,28 @@
       
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
+                <style>
+  .tabla-clientes th:nth-child(1), .tabla-clientes td:nth-child(1) { width: 30%; }
+  .tabla-clientes th:nth-child(2), .tabla-clientes td:nth-child(2) { width: 30%; }
+  .tabla-clientes th:nth-child(3), .tabla-clientes td:nth-child(3) { width: 20%; }
+  .tabla-clientes th:nth-child(4), .tabla-clientes td:nth-child(4) { width: 20%; }
+</style>
+                <table class="min-w-full divide-y divide-gray-200 table-fixed tabla-clientes">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RFC</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correo</th>
-                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            <th class="w-1/4 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase ">Nombre</th>
+                            <th class="w-1/4 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase ">Notas</th>
+                            <th class="w-1/4 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase ">Correo</th>
+                            <th class="w-1/4 px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase ">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($clientes as $cliente)
                             <tr>
-                                <td class="px-4 py-2">{{ $cliente->nombre }}</td>
-                                <td class="px-4 py-2">{{ $cliente->rfc }}</td>
-                                <td class="px-4 py-2">{{ $cliente->correo }}</td>
-                                <td class="px-4 py-2 text-right space-x-2">
+                                <td class="w-1/4 px-4 py-1">{{ $cliente->nombre }}</td>
+                                <td class="w-1/4 px-4 py-1">{{ $cliente->notas }}</td>
+                                <td class="w-1/4 px-4 py-1">{{ $cliente->correo }}</td>
+                                <td class="w-1/4 px-4 py-1 text-right space-x-2">
                                     <a href="{{ route('clientes.show', $cliente) }}" class="text-indigo-600 hover:underline">Ver</a>
                                     <a href="{{ route('clientes.edit', $cliente) }}" class="text-green-600 hover:underline">Editar</a>
                                     <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="inline-block" onsubmit="return confirm('¿Estás seguro de eliminar este cliente?');">
