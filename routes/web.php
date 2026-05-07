@@ -62,6 +62,11 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/tareas', [\App\Http\Controllers\TaskController::class, 'index'])->name('tasks.index');
+    Route::post('/tareas', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
+    Route::patch('/tareas/{task}', [\App\Http\Controllers\TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+
     Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('bitacora.index');
 
     Route::resource('clientes', ClienteCtl::class);
