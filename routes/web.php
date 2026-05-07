@@ -46,7 +46,7 @@ Route::get('/__clear_caches__', function () {
 
 Route::match(['GET', 'HEAD'], '/', function () {
     return auth()->check()
-        ? redirect()->route('tasks.index');
+        ? redirect()->route('tasks.index')
         : view('auth.login');
 })->name('home');
 
