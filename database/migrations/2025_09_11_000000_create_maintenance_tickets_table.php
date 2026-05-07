@@ -8,7 +8,11 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('maintenance_tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('property_id')->constrained('propiedades'); // ajusta nombre de tabla
+            $table->unsignedBigInteger('property_id');
+            $table->foreign('property_id')
+                ->references('pk_propiedad')
+                ->on('propiedades')
+                ->onDelete('cascade');// ajusta nombre de tabla
             $table->foreignId('created_by')->constrained('users');        // o 'clientes' si aplica
             $table->foreignId('assigned_to')->nullable()->constrained('users');
             $table->string('title', 180);
