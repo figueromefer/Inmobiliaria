@@ -8,11 +8,11 @@ use App\Http\Requests\TicketUpdateRequest;
 use App\Http\Requests\CommentStoreRequest;
 use App\Models\MaintenanceTicket;
 use App\Models\MaintenanceComment;
-use App\Models\Propiedad; // Ajusta al nombre real
+use App\Models\Propiedad;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 class TicketWebController extends Controller
 {
@@ -29,13 +29,13 @@ class TicketWebController extends Controller
             ->orderByDesc('created_at');
 
         $tickets = $query->paginate(15)->withQueryString();
-        $properties = Propiedad::orderBy('alias')->get(['pk_propiedad as id','alias']); // ajusta columnas
+        $properties = Propiedad::orderBy('alias')->get(['pk_propiedad as id','alias']);
         return view('tickets.index', compact('tickets','properties'));
     }
 
     public function create()
     {
-        $properties = Propiedad::orderBy('alias')->get(['pk_propiedad as id','alias']); // ajusta
+        $properties = Propiedad::orderBy('alias')->get(['pk_propiedad as id','alias']);
         $users = User::orderBy('name')->get(['id','name']);
         return view('tickets.create', compact('properties','users'));
     }
@@ -45,7 +45,20 @@ class TicketWebController extends Controller
         $data = $request->validated();
         $data['created_by'] = $request->user()->id;
         $ticket = MaintenanceTicket::create($data);
-        return redirect()->route('tickets.show', $ticket)->with('ok','Ticket creado.');
+
+        Task::create([
+            'title' => 'Ticket: ' . $ticket->title,
+            'description' => $ticket->description,
+            'due_date' => $ticket->due_date,
+            'status' => 'pending',
+            'priority' => $ticket->priority,
+            'source_type' => MaintenanceTicket::class,
+            'source_id' => $ticket->id,
+            'assigned_to' => $ticket->assigned_to,
+            'created_by' => $request->user()->id,
+        ]);
+
+        return redirect()->route('tickets.show', $ticket)->with('ok','Ticket creado y tarea generada.');
     }
 
     public function show(MaintenanceTicket $ticket)
@@ -65,7 +78,6 @@ class TicketWebController extends Controller
 
     public function update(TicketUpdateRequest $request, MaintenanceTicket $ticket)
     {
-        $old = $ticket->status;
         $ticket->fill($request->validated());
 
         if ($ticket->status === MaintenanceTicket::STATUS_COMPLETED && !$ticket->closed_at) {
