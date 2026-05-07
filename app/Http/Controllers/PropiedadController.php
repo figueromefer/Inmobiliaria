@@ -74,6 +74,13 @@ class PropiedadController extends Controller
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
+            'calle' => 'nullable|string',
+'numero_exterior' => 'nullable|string',
+'numero_interior' => 'nullable|string',
+'colonia' => 'nullable|string',
+'codigo_postal' => 'nullable|string',
+'municipio' => 'nullable|string',
+'estado' => 'nullable|string',
         ]);
 
         $propiedad->update($request->all());
