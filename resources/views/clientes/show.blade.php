@@ -61,6 +61,69 @@
 
                 </div>
 
+                <div class="mt-8">
+                    <h3 class="text-lg font-bold mb-2">Propiedades</h3>
+
+                    @forelse($cliente->propiedades as $propiedad)
+                        <div class="border p-3 mb-3 rounded bg-gray-50">
+                            <div class="font-semibold">
+                                {{ $propiedad->alias ?? 'Sin alias' }}
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                {{ $propiedad->domicilio }}
+                            </div>
+
+                            <div class="mt-2 text-sm">
+                                <strong>Contratos:</strong>
+                                {{ $propiedad->contratos->count() }}
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-gray-500">Sin propiedades registradas</p>
+                    @endforelse
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-bold mb-2">Contratos</h3>
+
+                    @forelse($cliente->contratos as $contrato)
+                        <div class="border p-3 mb-3 rounded">
+                            <div>
+                                <strong>Propiedad:</strong>
+                                {{ $contrato->propiedad?->alias }}
+                            </div>
+
+                            <div>
+                                <strong>Inquilino:</strong>
+                                {{ $contrato->inquilino?->nombre }}
+                            </div>
+
+                            <div>
+                                <strong>Periodo:</strong>
+                                {{ $contrato->fecha_inicio }} - {{ $contrato->fecha_fin }}
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-gray-500">Sin contratos</p>
+                    @endforelse
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-bold mb-2">Documentos</h3>
+
+                    @forelse($cliente->documentos as $doc)
+                        <div class="border p-2 mb-2 rounded flex justify-between">
+                            <span>{{ $doc->nombre ?? 'Documento' }}</span>
+
+                            <a href="{{ route('documentos.view', $doc) }}" class="text-blue-600">
+                                Ver
+                            </a>
+                        </div>
+                    @empty
+                        <p class="text-gray-500">Sin documentos</p>
+                    @endforelse
+                </div>
+
                 <div class="mt-6 flex justify-end space-x-4">
                     <a href="{{ route('clientes.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded">
                         Regresar

@@ -57,10 +57,16 @@ class ClienteController extends Controller
     }
 
     public function show($id)
-    {
-        $cliente = Cliente::findOrFail($id);
-        return view('clientes.show', compact('cliente'));
-    }
+{
+    $cliente = Cliente::with([
+        'propiedades.contratos.inquilino',
+        'propiedades.documentos',
+        'contratos.inquilino',
+        'documentos',
+    ])->findOrFail($id);
+
+    return view('clientes.show', compact('cliente'));
+}
 
     public function edit($id)
     {
