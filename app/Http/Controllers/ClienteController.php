@@ -8,20 +8,34 @@ use Illuminate\Support\Facades\Gate;
 
 class ClienteController extends Controller
 {
-    // Mostrar listado de clientes
-    public function index()
+    public function index(Request $request)
     {
-        $clientes = Cliente::all();
-        return view('clientes.index', compact('clientes'));
+        $search = trim((string) $request->get('search'));
+
+        $clientes = Cliente::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'like', "%{$search}%")
+                        ->orWhere('rfc', 'like', "%{$search}%")
+                        ->orWhere('correo', 'like', "%{$search}%")
+                        ->orWhere('celular', 'like', "%{$search}%")
+                        ->orWhere('fijo', 'like', "%{$search}%")
+                        ->orWhere('domicilio', 'like', "%{$search}%")
+                        ->orWhere('notas', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('nombre')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('clientes.index', compact('clientes', 'search'));
     }
 
-    // Mostrar formulario para crear nuevo cliente
     public function create()
     {
         return view('clientes.create');
     }
 
-    // Guardar nuevo cliente
     public function store(Request $request)
     {
         $request->validate([
@@ -42,21 +56,18 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
 
-    // Mostrar un cliente específico
     public function show($id)
     {
         $cliente = Cliente::findOrFail($id);
         return view('clientes.show', compact('cliente'));
     }
 
-    // Mostrar formulario de edición
     public function edit($id)
     {
         $cliente = Cliente::findOrFail($id);
         return view('clientes.edit', compact('cliente'));
     }
 
-    // Actualizar cliente
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -78,10 +89,10 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente actualizado exitosamente.');
     }
 
-    // Eliminar cliente
     public function destroy($id)
     {
         Gate::authorize('delete-anything');
+
         $cliente = Cliente::findOrFail($id);
         $cliente->delete();
 
