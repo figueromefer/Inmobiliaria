@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ClienteController extends Controller
 {
@@ -33,7 +34,7 @@ class ClienteController extends Controller
             'banco' => 'nullable|string',
             'cuenta' => 'nullable|string',
             'clabe' => 'nullable|string|max:18',
-            'notas' => 'nullable|string|max:255',
+            'notas' => 'nullable|string',
         ]);
 
         Cliente::create($request->all());
@@ -68,7 +69,7 @@ class ClienteController extends Controller
             'banco' => 'nullable|string',
             'cuenta' => 'nullable|string',
             'clabe' => 'nullable|string|max:18',
-            'notas' => 'nullable|string|max:255',
+            'notas' => 'nullable|string',
         ]);
 
         $cliente = Cliente::findOrFail($id);
@@ -80,7 +81,7 @@ class ClienteController extends Controller
     // Eliminar cliente
     public function destroy($id)
     {
-        $this->authorize('delete-anything');
+        Gate::authorize('delete-anything');
         $cliente = Cliente::findOrFail($id);
         $cliente->delete();
 

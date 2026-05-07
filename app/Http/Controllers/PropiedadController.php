@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Propiedad;
 use App\Models\Cliente;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 
 class PropiedadController extends Controller
@@ -76,7 +77,7 @@ class PropiedadController extends Controller
 
     public function destroy(Propiedad $propiedad)
     {
-        $this->authorize('delete-anything');
+       Gate::authorize('delete-anything');
         $propiedad->delete();
         return redirect()->route('propiedades.index')->with('success', 'Propiedad eliminada correctamente.');
     }
