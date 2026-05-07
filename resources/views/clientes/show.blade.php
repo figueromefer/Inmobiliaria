@@ -71,6 +71,11 @@
         <div class="bg-white p-6 rounded shadow">
             <h3 class="font-bold mb-3">Documentos</h3>
 
+             <a href="{{ route('documentos.create', ['cliente' => $cliente->pk_cliente]) }}"
+       class="bg-gray-800 text-white px-3 py-1 rounded">
+        + Subir documento
+    </a>
+
             @foreach($cliente->documentos as $d)
                 <div class="flex justify-between border p-2 mb-2 rounded">
                     <span>{{ $d->nombre ?? 'Documento' }}</span>
