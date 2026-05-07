@@ -15,10 +15,12 @@ class PropiedadController extends Controller
         return view('propiedades.index', compact('propiedades'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $clientes = Cliente::orderBy('nombre')->get();
-        return view('propiedades.create', compact('clientes'));
+        $clientePreseleccionado = $request->get('cliente_id');
+
+        return view('propiedades.create', compact('clientes', 'clientePreseleccionado'));
     }
 
     public function store(Request $request)
@@ -37,9 +39,11 @@ class PropiedadController extends Controller
             'longitud' => 'nullable|string|max:255',
         ]);
 
-        Propiedad::create($request->all());
+        $propiedad = Propiedad::create($request->all());
 
-        return redirect()->route('propiedades.index')->with('success', 'Propiedad creada correctamente.');
+        return redirect()
+            ->route('clientes.show', $propiedad->fk_cliente)
+            ->with('success', 'Propiedad creada correctamente.');
     }
 
     public function show(Propiedad $propiedad)
@@ -77,7 +81,8 @@ class PropiedadController extends Controller
 
     public function destroy(Propiedad $propiedad)
     {
-       Gate::authorize('delete-anything');
+        Gate::authorize('delete-anything');
+
         $propiedad->delete();
         return redirect()->route('propiedades.index')->with('success', 'Propiedad eliminada correctamente.');
     }
