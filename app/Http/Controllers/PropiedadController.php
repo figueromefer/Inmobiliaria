@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Propiedad;
 use App\Models\Cliente;
+use App\Models\Task;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 
@@ -38,9 +39,29 @@ class PropiedadController extends Controller
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
+            'calle' => 'nullable|string',
+            'numero_exterior' => 'nullable|string',
+            'numero_interior' => 'nullable|string',
+            'colonia' => 'nullable|string',
+            'codigo_postal' => 'nullable|string',
+            'municipio' => 'nullable|string',
+            'estado' => 'nullable|string',
         ]);
 
         $propiedad = Propiedad::create($request->all());
+
+        if ($propiedad->estatus_informacion !== 'completo') {
+            Task::create([
+                'title' => 'Completar información de propiedad: ' . $propiedad->alias,
+                'description' => 'Revisar y completar información crítica de la propiedad.',
+                'due_date' => now()->addDays(3)->toDateString(),
+                'status' => 'pending',
+                'priority' => $propiedad->estatus_informacion === 'pendiente_critico' ? 'high' : 'medium',
+                'source_type' => Propiedad::class,
+                'source_id' => $propiedad->pk_propiedad,
+                'created_by' => auth()->id(),
+            ]);
+        }
 
         return redirect()
             ->route('clientes.show', $propiedad->fk_cliente)
@@ -75,12 +96,12 @@ class PropiedadController extends Controller
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
             'calle' => 'nullable|string',
-'numero_exterior' => 'nullable|string',
-'numero_interior' => 'nullable|string',
-'colonia' => 'nullable|string',
-'codigo_postal' => 'nullable|string',
-'municipio' => 'nullable|string',
-'estado' => 'nullable|string',
+            'numero_exterior' => 'nullable|string',
+            'numero_interior' => 'nullable|string',
+            'colonia' => 'nullable|string',
+            'codigo_postal' => 'nullable|string',
+            'municipio' => 'nullable|string',
+            'estado' => 'nullable|string',
         ]);
 
         $propiedad->update($request->all());
