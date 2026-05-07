@@ -3,6 +3,8 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Nueva Propiedad</h2>
     </x-slot>
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <div class="py-6 max-w-3xl mx-auto sm:px-6 lg:px-8">
         <form method="POST" action="{{ route('propiedades.store') }}">
             @csrf
@@ -54,23 +56,32 @@
                     <input type="number" step="0.01" name="mantenimiento_monto" placeholder="Monto" value="{{ old('mantenimiento_monto') }}" class="form-input w-full" />
                 </div>
 
-                <div>
-                    <label>Latitud</label>
-                    <input type="text" name="latitud" value="{{ old('latitud') }}" class="form-input w-full" />
-                </div>
+                <div class="bg-gray-50 p-4 rounded">
+                    <h3 class="font-semibold mb-2">Ubicación</h3>
+                    <p class="text-sm text-gray-500 mb-3">Haz clic en el mapa o arrastra el pin para guardar las coordenadas.</p>
 
-                <div>
-                    <label>Longitud</label>
-                    <input type="text" name="longitud" value="{{ old('longitud') }}" class="form-input w-full" />
+                    <div id="property-map" class="w-full rounded border" style="height: 360px;"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label>Latitud</label>
+                            <input id="latitud" type="text" name="latitud" value="{{ old('latitud') }}" class="form-input w-full" readonly />
+                        </div>
+
+                        <div>
+                            <label>Longitud</label>
+                            <input id="longitud" type="text" name="longitud" value="{{ old('longitud') }}" class="form-input w-full" readonly />
+                        </div>
+                    </div>
                 </div>
 
                 <div>
                     <label class="block font-medium text-sm text-gray-700">Estatus de información</label>
 
                     <select name="estatus_informacion" class="form-select mt-1 w-full">
-                        <option value="pendiente_critico">🔴 Pendiente crítico</option>
-                        <option value="pendiente">🟠 Pendiente</option>
-                        <option value="completo">🟢 Completo</option>
+                        <option value="pendiente_critico" {{ old('estatus_informacion') === 'pendiente_critico' ? 'selected' : '' }}>🔴 Pendiente crítico</option>
+                        <option value="pendiente" {{ old('estatus_informacion') === 'pendiente' ? 'selected' : '' }}>🟠 Pendiente</option>
+                        <option value="completo" {{ old('estatus_informacion') === 'completo' ? 'selected' : '' }}>🟢 Completo</option>
                     </select>
                 </div>
 
@@ -80,4 +91,41 @@
             </div>
         </form>
     </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const latInput = document.getElementById('latitud');
+            const lngInput = document.getElementById('longitud');
+
+            const defaultLat = parseFloat(latInput.value) || 20.6597;
+            const defaultLng = parseFloat(lngInput.value) || -103.3496;
+
+            const map = L.map('property-map').setView([defaultLat, defaultLng], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+            function setCoordinates(lat, lng) {
+                latInput.value = lat.toFixed(6);
+                lngInput.value = lng.toFixed(6);
+                marker.setLatLng([lat, lng]);
+            }
+
+            setCoordinates(defaultLat, defaultLng);
+
+            map.on('click', function (event) {
+                setCoordinates(event.latlng.lat, event.latlng.lng);
+            });
+
+            marker.on('dragend', function () {
+                const position = marker.getLatLng();
+                setCoordinates(position.lat, position.lng);
+            });
+        });
+    </script>
 </x-app-layout>
