@@ -8,6 +8,17 @@
     <div class="py-6">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                @if ($errors->any())
+                    <div class="mb-4 rounded bg-red-100 border border-red-400 text-red-700 px-4 py-3">
+                        <strong>Revisa los siguientes campos:</strong>
+                        <ul class="mt-2 list-disc list-inside">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('clientes.store') }}">
                     @csrf
 
@@ -75,11 +86,11 @@
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                         <!-- Notas -->
-                       <div class="md:col-span-2">
+                        <!-- Notas -->
+                        <div class="md:col-span-2">
                             <label for="notas" class="block font-medium text-sm text-gray-700">Notas</label>
-                            <textarea name="notas" id="notas" rows="4" 
-                                class="form-textarea rounded-md shadow-sm mt-1 block w-full">{{ old('notas', $cliente->notas ?? '') }}</textarea>
+                            <textarea name="notas" id="notas" rows="4"
+                                class="form-textarea rounded-md shadow-sm mt-1 block w-full">{{ old('notas') }}</textarea>
                         </div>
                     </div>
 
