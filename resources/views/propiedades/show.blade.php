@@ -4,66 +4,67 @@
     </x-slot>
 
     <div class="py-6 max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Alias</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->alias }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Cliente</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->cliente->nombre ?? 'N/A' }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Domicilio</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->domicilio }}</p>
-        </div>
-
-        <!-- Repite para los demás campos -->
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">siapa</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->siapa }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">CFE</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->cfe }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Predial</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->predial }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Banco para mantenimiento</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->mantenimiento_banco }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Cuenta para mantenimiento</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->mantenimiento_cuenta }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Monto de mantenimiento</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->mantenimiento_monto }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Latitud</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->latitud }}</p>
-        </div>
-
-        <div>
-            <h3 class="font-semibold text-lg leading-6 text-gray-900">Longitud</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ $propiedad->longitud }}</p>
-        </div>
 
         <div class="flex justify-between">
-            <a href="{{ route('propiedades.index') }}" class="btn btn-secondary">Volver</a>
-            <a href="{{ route('propiedades.edit', ['propiedad' => $propiedad->pk_propiedad]) }}" class="btn btn-primary">Editar</a>
+            <div>
+                <h3 class="text-lg font-bold">{{ $propiedad->alias }}</h3>
+                <p class="text-sm text-gray-500">{{ $propiedad->cliente->nombre ?? 'N/A' }}</p>
+            </div>
+
+            <a href="{{ route('propiedades.edit', $propiedad->pk_propiedad) }}" class="bg-blue-600 text-white px-3 py-1 rounded">Editar</a>
+        </div>
+
+        <div>
+            <strong>Domicilio:</strong>
+            <p>{{ $propiedad->domicilio }}</p>
+        </div>
+
+        <div>
+            <strong>Agua:</strong>
+            <p>{{ $propiedad->siapa }}</p>
+        </div>
+
+        <div>
+            <strong>CFE:</strong>
+            <p>{{ $propiedad->cfe }}</p>
+        </div>
+
+        <div>
+            <strong>Predial:</strong>
+            <p>{{ $propiedad->predial }}</p>
+        </div>
+
+        <div class="bg-white shadow rounded p-4">
+            <div class="flex justify-between mb-3">
+                <h3 class="font-bold">Documentos</h3>
+
+                <a href="{{ route('documentos.create', ['propiedad' => $propiedad->pk_propiedad]) }}"
+                   class="bg-gray-800 text-white px-3 py-1 rounded">
+                    + Subir
+                </a>
+            </div>
+
+            @forelse($propiedad->documentos as $doc)
+                <div class="flex justify-between border p-2 mb-2 rounded">
+                    <span>{{ $doc->titulo }}</span>
+
+                    <div class="space-x-2">
+                        <a href="{{ route('documentos.view', $doc) }}" class="text-blue-600">Ver</a>
+
+                        <form action="{{ route('documentos.destroy', $doc) }}" method="POST" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button class="text-red-600">Eliminar</button>
+                        </form>
+                    </div>
+                </div>
+            @empty
+                <p class="text-gray-500">Sin documentos</p>
+            @endforelse
+        </div>
+
+        <div>
+            <a href="{{ route('propiedades.index') }}" class="text-gray-600">← Volver</a>
         </div>
     </div>
 </x-app-layout>
