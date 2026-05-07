@@ -46,7 +46,7 @@ Route::get('/__clear_caches__', function () {
 
 Route::match(['GET', 'HEAD'], '/', function () {
     return auth()->check()
-        ? redirect()->route('calendario.index')
+        ? redirect()->route('tasks.index');
         : view('auth.login');
 })->name('home');
 
@@ -54,7 +54,7 @@ Route::view('/login', 'auth.login')->name('login')->middleware('guest');
 Route::view('/forgot-password', 'auth.forgot-password')->name('password.request')->middleware('guest');
 
 Route::get('/dashboard', function () {
-    return redirect()->route('calendario.index');
+    return redirect()->route('tasks.index');
 })->middleware(['auth'])->name('dashboard');
 
 Route::middleware(['auth', 'can:manage-users'])->group(function () {
