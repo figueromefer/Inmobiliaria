@@ -28,10 +28,25 @@
                     <input type="text" name="alias" id="alias" value="{{ old('alias') }}" class="form-input mt-1 block w-full" />
                 </div>
 
-                <div>
-                    <label for="domicilio" class="block font-medium text-sm text-gray-700">Domicilio</label>
-                    <input type="text" name="domicilio" id="domicilio" value="{{ old('domicilio') }}" class="form-input mt-1 block w-full" />
-                </div>
+                <div class="bg-gray-50 p-4 rounded">
+    <h3 class="font-semibold mb-3">Domicilio</h3>
+
+    <input type="text" name="calle" placeholder="Calle" class="form-input mb-2 w-full" />
+
+    <div class="grid grid-cols-2 gap-2">
+        <input type="text" name="numero_exterior" placeholder="No. Exterior" class="form-input w-full" />
+        <input type="text" name="numero_interior" placeholder="No. Interior" class="form-input w-full" />
+    </div>
+
+    <input type="text" name="colonia" placeholder="Colonia" class="form-input mt-2 w-full" />
+
+    <div class="grid grid-cols-2 gap-2 mt-2">
+        <input type="text" name="codigo_postal" placeholder="Código Postal" class="form-input w-full" />
+        <input type="text" name="municipio" placeholder="Municipio" class="form-input w-full" />
+    </div>
+
+    <input type="text" name="estado" placeholder="Estado" class="form-input mt-2 w-full" />
+</div>
 
                 <div>
                     <label for="siapa" class="block font-medium text-sm text-gray-700">Agua</label>

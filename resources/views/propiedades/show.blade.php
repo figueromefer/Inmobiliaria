@@ -16,7 +16,13 @@
 
         <div>
             <strong>Domicilio:</strong>
-            <p>{{ $propiedad->domicilio }}</p>
+            <p>{{ $propiedad->calle }}
+{{ $propiedad->numero_exterior }}
+{{ $propiedad->numero_interior ? 'Int. '.$propiedad->numero_interior : '' }},
+{{ $propiedad->colonia }},
+{{ $propiedad->codigo_postal }},
+{{ $propiedad->municipio }},
+{{ $propiedad->estado }}</p>
         </div>
 
         <div>
