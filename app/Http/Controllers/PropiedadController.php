@@ -37,6 +37,7 @@ class PropiedadController extends Controller
             'mantenimiento_monto' => 'nullable|numeric',
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
+            'estatus_informacion' => 'required|string',
         ]);
 
         $propiedad = Propiedad::create($request->all());
@@ -72,6 +73,7 @@ class PropiedadController extends Controller
             'mantenimiento_monto' => 'nullable|numeric',
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
+            'estatus_informacion' => 'required|string',
         ]);
 
         $propiedad->update($request->all());

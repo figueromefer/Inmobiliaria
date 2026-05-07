@@ -64,6 +64,16 @@
                     <input type="text" name="longitud" value="{{ old('longitud') }}" class="form-input w-full" />
                 </div>
 
+                <div>
+                    <label class="block font-medium text-sm text-gray-700">Estatus de información</label>
+
+                    <select name="estatus_informacion" class="form-select mt-1 w-full">
+                        <option value="pendiente_critico">🔴 Pendiente crítico</option>
+                        <option value="pendiente">🟠 Pendiente</option>
+                        <option value="completo">🟢 Completo</option>
+                    </select>
+                </div>
+
                 <div class="flex justify-end">
                     <button class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
                 </div>

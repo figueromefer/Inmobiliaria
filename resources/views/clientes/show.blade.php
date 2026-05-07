@@ -47,7 +47,18 @@
 
             @foreach($cliente->propiedades as $p)
                 <div class="border p-3 mb-2 rounded">
-                    <div class="font-semibold">{{ $p->alias }}</div>
+                    <div class="flex justify-between items-center">
+    <span class="font-semibold">{{ $p->alias }}</span>
+
+    <span class="px-2 py-1 text-xs rounded text-white
+        @if($p->estatus_informacion == 'pendiente_critico') bg-red-500
+        @elseif($p->estatus_informacion == 'pendiente') bg-orange-400
+        @else bg-green-500
+        @endif
+    ">
+        {{ $p->estatus_informacion }}
+    </span>
+</div>
                     <div class="text-sm text-gray-500">{{ $p->domicilio }}</div>
                     <div class="text-sm">Contratos: {{ $p->contratos->count() }}</div>
                 </div>
