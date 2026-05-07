@@ -7,21 +7,19 @@ use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * The model to policy mappings for the application.
-     *
-     * @var array<class-string, class-string>
-     */
     protected $policies = [
         // 'App\Models\Model' => 'App\Policies\ModelPolicy',
     ];
 
-    /**
-     * Register any authentication / authorization services.
-     */
     public function boot(): void
     {
+        // Solo admin puede eliminar
+        Gate::define('delete-anything', fn($user) => $user->canDeleteRecords());
+
+        // Admin y agent pueden crear/editar
+        Gate::define('manage-records', fn($user) => $user->canManageRecords());
+
+        // Solo admin puede gestionar usuarios
         Gate::define('manage-users', fn($user) => $user->isAdmin());
-        Gate::define('delete-anything', fn($user) => $user->isAdmin());
     }
 }
