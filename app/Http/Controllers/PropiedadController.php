@@ -49,7 +49,7 @@ class PropiedadController extends Controller
 
     public function show(Propiedad $propiedad)
     {
-        $propiedad->load('cliente');
+        $propiedad->load(['cliente', 'documentos', 'contratos.inquilino']);
         return view('propiedades.show', compact('propiedad'));
     }
 
