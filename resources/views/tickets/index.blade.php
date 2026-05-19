@@ -23,8 +23,8 @@
     @endphp
 
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6 space-y-6">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 max-w-5xl">
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm min-h-[105px]">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs uppercase font-semibold text-amber-700">Pendientes</div>
@@ -34,7 +34,7 @@
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm min-h-[105px]">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs uppercase font-semibold text-blue-700">En proceso</div>
@@ -44,7 +44,7 @@
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm">
+            <div class="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm min-h-[105px]">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs uppercase font-semibold text-red-700">Urgentes</div>
@@ -54,7 +54,7 @@
                 </div>
             </div>
 
-            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm min-h-[105px]">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs uppercase font-semibold text-rose-700">Vencidos</div>
