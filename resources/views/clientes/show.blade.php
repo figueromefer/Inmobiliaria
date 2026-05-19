@@ -4,8 +4,6 @@
     </x-slot>
 
     <div class="py-6 max-w-7xl mx-auto space-y-6">
-
-        <!-- HEADER -->
         <div class="bg-white p-6 rounded shadow flex justify-between">
             <div>
                 <h1 class="text-2xl font-bold">{{ $cliente->nombre }}</h1>
@@ -14,12 +12,13 @@
 
             <div class="space-x-2">
                 <a href="{{ route('clientes.index') }}" class="bg-gray-200 px-4 py-2 rounded">Regresar</a>
-                <a href="{{ route('clientes.edit', $cliente) }}" class="bg-blue-600 text-white px-4 py-2 rounded">Editar</a>
+                @can('manage-records')
+                    <a href="{{ route('clientes.edit', $cliente) }}" class="bg-blue-600 text-white px-4 py-2 rounded">Editar</a>
+                @endcan
             </div>
         </div>
 
-        <!-- RESUMEN -->
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-white p-4 rounded shadow">
                 <div class="text-sm text-gray-500">Propiedades</div>
                 <div class="text-2xl font-bold">{{ $cliente->propiedades->count() }}</div>
@@ -36,64 +35,102 @@
             </div>
         </div>
 
-        <!-- PROPIEDADES -->
+        <div class="bg-white p-6 rounded shadow">
+            <h3 class="font-bold mb-4">Información del cliente</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <div class="text-gray-500">Domicilio</div>
+                    <div class="font-medium">{{ $cliente->domicilio ?: '—' }}</div>
+                </div>
+
+                <div>
+                    <div class="text-gray-500">Domicilio para notificaciones</div>
+                    <div class="font-medium whitespace-pre-line">{{ $cliente->domicilio_notificaciones ?: '—' }}</div>
+                </div>
+
+                <div>
+                    <div class="text-gray-500">Correo</div>
+                    <div class="font-medium">{{ $cliente->correo ?: '—' }}</div>
+                </div>
+
+                <div>
+                    <div class="text-gray-500">Celular</div>
+                    <div class="font-medium">{{ $cliente->celular ?: '—' }}</div>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white p-6 rounded shadow">
             <div class="flex justify-between mb-4">
                 <h3 class="font-bold">Propiedades</h3>
-                <a href="{{ route('propiedades.create', ['cliente_id' => $cliente->pk_cliente]) }}" class="bg-gray-800 text-white px-3 py-1 rounded">
-                    + Agregar
-                </a>
+                @can('manage-records')
+                    <a href="{{ route('propiedades.create', ['cliente_id' => $cliente->pk_cliente]) }}" class="bg-gray-800 text-white px-3 py-1 rounded">
+                        + Agregar
+                    </a>
+                @endcan
             </div>
 
-            @foreach($cliente->propiedades as $p)
+            @forelse($cliente->propiedades as $p)
                 <div class="border p-3 mb-2 rounded">
                     <div class="flex justify-between items-center">
-    <span class="font-semibold">{{ $p->alias }}</span>
+                        <span class="font-semibold">{{ $p->alias }}</span>
 
-    <span class="px-2 py-1 text-xs rounded text-white
-        @if($p->estatus_informacion == 'pendiente_critico') bg-red-500
-        @elseif($p->estatus_informacion == 'pendiente') bg-orange-400
-        @else bg-green-500
-        @endif
-    ">
-        {{ $p->estatus_informacion }}
-    </span>
-</div>
-                    <div class="text-sm text-gray-500">{{ $p->domicilio }}</div>
+                        <span class="px-2 py-1 text-xs rounded text-white
+                            @if($p->estatus_informacion == 'pendiente_critico') bg-red-500
+                            @elseif($p->estatus_informacion == 'pendiente') bg-orange-400
+                            @else bg-green-500
+                            @endif
+                        ">
+                            @if($p->estatus_informacion == 'pendiente_critico') Pendiente crítico
+                            @elseif($p->estatus_informacion == 'pendiente') Pendiente
+                            @else Completo
+                            @endif
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        {{ trim(($p->calle ?? '') . ' ' . ($p->numero_exterior ?? '') . ' ' . ($p->numero_interior ? 'Int. '.$p->numero_interior : '')) ?: $p->domicilio }}
+                    </div>
                     <div class="text-sm">Contratos: {{ $p->contratos->count() }}</div>
                 </div>
-            @endforeach
+            @empty
+                <p class="text-sm text-gray-500">Sin propiedades registradas.</p>
+            @endforelse
         </div>
 
-        <!-- CONTRATOS -->
         <div class="bg-white p-6 rounded shadow">
             <h3 class="font-bold mb-3">Contratos</h3>
 
-            @foreach($cliente->contratos as $c)
+            @forelse($cliente->contratos as $c)
                 <div class="border p-3 mb-2 rounded">
                     <div><strong>Propiedad:</strong> {{ $c->propiedad?->alias }}</div>
                     <div><strong>Inquilino:</strong> {{ $c->inquilino?->nombre }}</div>
                     <div><strong>Periodo:</strong> {{ $c->fecha_inicio }} - {{ $c->fecha_fin }}</div>
                 </div>
-            @endforeach
+            @empty
+                <p class="text-sm text-gray-500">Sin contratos registrados.</p>
+            @endforelse
         </div>
 
-        <!-- DOCUMENTOS -->
         <div class="bg-white p-6 rounded shadow">
-            <h3 class="font-bold mb-3">Documentos</h3>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold">Documentos</h3>
+                @can('manage-records')
+                    <a href="{{ route('documentos.create', ['cliente' => $cliente->pk_cliente]) }}"
+                        class="bg-gray-800 text-white px-3 py-1 rounded">
+                        + Subir documento
+                    </a>
+                @endcan
+            </div>
 
-             <a href="{{ route('documentos.create', ['cliente' => $cliente->pk_cliente]) }}"
-       class="bg-gray-800 text-white px-3 py-1 rounded">
-        + Subir documento
-    </a>
-
-            @foreach($cliente->documentos as $d)
+            @forelse($cliente->documentos as $d)
                 <div class="flex justify-between border p-2 mb-2 rounded">
                     <span>{{ $d->nombre ?? 'Documento' }}</span>
                     <a href="{{ route('documentos.view', $d) }}" class="text-blue-600">Ver</a>
                 </div>
-            @endforeach
+            @empty
+                <p class="text-sm text-gray-500">Sin documentos registrados.</p>
+            @endforelse
         </div>
-
     </div>
 </x-app-layout>
