@@ -124,5 +124,75 @@
                 <div class="text-gray-500 bg-gray-50 rounded-lg p-4">Sin documentos</div>
             @endforelse
         </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="font-bold text-lg text-gray-900">Tickets</h3>
+                    <p class="text-sm text-gray-500">Incidencias y tareas relacionadas con esta propiedad</p>
+                </div>
+
+                @can('manage-records')
+                    <a href="{{ route('tickets.create', ['propiedad' => $propiedad->pk_propiedad]) }}"
+                    class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                        + Nuevo ticket
+                    </a>
+                @endcan
+            </div>
+
+            @forelse($propiedad->tickets as $ticket)
+                @php
+                    $statusClass = match($ticket->status) {
+                        'completed' => 'bg-green-100 text-green-800',
+                        'in_progress' => 'bg-blue-100 text-blue-800',
+                        'canceled' => 'bg-gray-100 text-gray-700',
+                        default => 'bg-yellow-100 text-yellow-800',
+                    };
+
+                    $statusLabel = match($ticket->status) {
+                        'completed' => 'Completado',
+                        'in_progress' => 'En proceso',
+                        'canceled' => 'Cancelado',
+                        default => 'Abierto',
+                    };
+                @endphp
+
+                <div class="border rounded-lg p-4 mb-3">
+                    <div class="flex justify-between gap-4">
+                        <div>
+                            <a href="{{ route('tickets.show', $ticket) }}"
+                            class="font-semibold text-gray-900 hover:text-blue-600">
+                                {{ $ticket->title }}
+                            </a>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ $ticket->description ?: 'Sin descripción' }}
+                            </p>
+
+                            <div class="text-xs text-gray-500 mt-2">
+                                Creado por: {{ $ticket->creator?->name ?? '—' }}
+                                @if($ticket->assignee)
+                                    · Asignado a: {{ $ticket->assignee->name }}
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <span class="inline-block px-2 py-1 rounded-full text-xs {{ $statusClass }}">
+                                {{ $statusLabel }}
+                            </span>
+
+                            <div class="text-xs text-gray-500 mt-2">
+                                Vence: {{ $ticket->due_date?->format('d/m/Y') ?? '—' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-gray-500 bg-gray-50 rounded-lg p-4">
+                    Sin tickets registrados para esta propiedad.
+                </div>
+            @endforelse
+        </div>
     </div>
 </x-app-layout>

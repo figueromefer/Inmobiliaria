@@ -115,7 +115,13 @@ class PropiedadController extends Controller
 
     public function show(Propiedad $propiedad)
     {
-        $propiedad->load(['cliente', 'documentos', 'contratos.inquilino']);
+        $propiedad->load([
+    'cliente',
+    'documentos',
+    'contratos.inquilino',
+    'tickets.creator',
+    'tickets.assignee',
+]);
         return view('propiedades.show', compact('propiedad'));
     }
 

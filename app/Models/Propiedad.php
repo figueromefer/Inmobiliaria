@@ -56,4 +56,9 @@ class Propiedad extends Model
     {
         return $this->hasMany(Documento::class, 'fk_propiedad', 'pk_propiedad');
     }
+
+    public function tickets()
+    {
+        return $this->hasMany(MaintenanceTicket::class, 'property_id', 'pk_propiedad');
+    }
 }
