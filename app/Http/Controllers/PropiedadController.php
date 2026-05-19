@@ -36,6 +36,7 @@ class PropiedadController extends Controller
             'mantenimiento_banco' => 'nullable|string|max:255',
             'mantenimiento_cuenta' => 'nullable|string|max:255',
             'mantenimiento_monto' => 'nullable|numeric',
+            'mantenimiento_fecha_pago' => 'nullable|date',
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
@@ -57,6 +58,19 @@ class PropiedadController extends Controller
                 'due_date' => now()->addDays(3)->toDateString(),
                 'status' => 'pending',
                 'priority' => $propiedad->estatus_informacion === 'pendiente_critico' ? 'high' : 'medium',
+                'source_type' => Propiedad::class,
+                'source_id' => $propiedad->pk_propiedad,
+                'created_by' => auth()->id(),
+            ]);
+        }
+
+        if ($propiedad->mantenimiento_fecha_pago) {
+            Task::create([
+                'title' => 'Pagar mantenimiento: ' . $propiedad->alias,
+                'description' => 'Pago de mantenimiento programado.',
+                'due_date' => $propiedad->mantenimiento_fecha_pago,
+                'status' => 'pending',
+                'priority' => 'medium',
                 'source_type' => Propiedad::class,
                 'source_id' => $propiedad->pk_propiedad,
                 'created_by' => auth()->id(),
@@ -92,6 +106,7 @@ class PropiedadController extends Controller
             'mantenimiento_banco' => 'nullable|string|max:255',
             'mantenimiento_cuenta' => 'nullable|string|max:255',
             'mantenimiento_monto' => 'nullable|numeric',
+            'mantenimiento_fecha_pago' => 'nullable|date',
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
