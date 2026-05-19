@@ -23,70 +23,66 @@
                     @csrf
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Nombre -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="nombre">Nombre</label>
                             <input name="nombre" id="nombre" type="text" value="{{ old('nombre') }}" required
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- RFC -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="rfc">RFC</label>
                             <input name="rfc" id="rfc" type="text" value="{{ old('rfc') }}" required
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Domicilio -->
                         <div class="md:col-span-2">
                             <label class="block font-medium text-sm text-gray-700" for="domicilio">Domicilio</label>
                             <input name="domicilio" id="domicilio" type="text" value="{{ old('domicilio') }}" required
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Teléfono fijo -->
+                        <div class="md:col-span-2">
+                            <label class="block font-medium text-sm text-gray-700" for="domicilio_notificaciones">Domicilio para notificaciones</label>
+                            <textarea name="domicilio_notificaciones" id="domicilio_notificaciones" rows="3"
+                                class="form-textarea rounded-md shadow-sm mt-1 block w-full">{{ old('domicilio_notificaciones') }}</textarea>
+                        </div>
+
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="fijo">Teléfono fijo</label>
                             <input name="fijo" id="fijo" type="text" value="{{ old('fijo') }}"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Teléfono celular -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="celular">Celular</label>
                             <input name="celular" id="celular" type="text" value="{{ old('celular') }}"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Correo electrónico -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="correo">Correo</label>
                             <input name="correo" id="correo" type="email" value="{{ old('correo') }}"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Banco -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="banco">Banco</label>
                             <input name="banco" id="banco" type="text" value="{{ old('banco') }}"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Cuenta -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="cuenta">Cuenta</label>
                             <input name="cuenta" id="cuenta" type="text" value="{{ old('cuenta') }}"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- CLABE -->
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="clabe">CLABE</label>
                             <input name="clabe" id="clabe" type="text" value="{{ old('clabe') }}"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
-                        <!-- Notas -->
                         <div class="md:col-span-2">
                             <label for="notas" class="block font-medium text-sm text-gray-700">Notas</label>
                             <textarea name="notas" id="notas" rows="4"
