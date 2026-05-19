@@ -23,22 +23,45 @@
     @endphp
 
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6 space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-white rounded-xl shadow-sm border p-4">
-                <div class="text-xs uppercase text-gray-500">Pendientes</div>
-                <div class="text-3xl font-bold text-amber-600 mt-1">{{ $pendingCount }}</div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase font-semibold text-amber-700">Pendientes</div>
+                        <div class="text-3xl font-bold text-amber-700 mt-1">{{ $pendingCount }}</div>
+                    </div>
+                    <div class="h-11 w-11 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xl">●</div>
+                </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border p-4">
-                <div class="text-xs uppercase text-gray-500">En proceso</div>
-                <div class="text-3xl font-bold text-blue-600 mt-1">{{ $progressCount }}</div>
+
+            <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase font-semibold text-blue-700">En proceso</div>
+                        <div class="text-3xl font-bold text-blue-700 mt-1">{{ $progressCount }}</div>
+                    </div>
+                    <div class="h-11 w-11 rounded-full bg-blue-200 text-blue-800 flex items-center justify-center text-xl">↻</div>
+                </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border p-4">
-                <div class="text-xs uppercase text-gray-500">Urgentes</div>
-                <div class="text-3xl font-bold text-red-600 mt-1">{{ $urgentCount }}</div>
+
+            <div class="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase font-semibold text-red-700">Urgentes</div>
+                        <div class="text-3xl font-bold text-red-700 mt-1">{{ $urgentCount }}</div>
+                    </div>
+                    <div class="h-11 w-11 rounded-full bg-red-600 text-white flex items-center justify-center text-xl animate-pulse">!</div>
+                </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border p-4">
-                <div class="text-xs uppercase text-gray-500">Vencidos</div>
-                <div class="text-3xl font-bold text-rose-700 mt-1">{{ $overdueCount }}</div>
+
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase font-semibold text-rose-700">Vencidos</div>
+                        <div class="text-3xl font-bold text-rose-700 mt-1">{{ $overdueCount }}</div>
+                    </div>
+                    <div class="h-11 w-11 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center text-xl">⌛</div>
+                </div>
             </div>
         </div>
 
