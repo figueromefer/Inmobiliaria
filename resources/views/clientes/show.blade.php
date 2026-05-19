@@ -3,6 +3,17 @@
         <h2 class="font-semibold text-xl">Perfil del Cliente</h2>
     </x-slot>
 
+    @php
+        $documentTypeMeta = [
+            'comprobante_domicilio' => ['label' => 'Comprobante domicilio', 'class' => 'bg-slate-100 text-slate-800 border-slate-200', 'icon' => '🏠'],
+            'agua' => ['label' => 'Agua', 'class' => 'bg-blue-100 text-blue-800 border-blue-200', 'icon' => '🔵'],
+            'cfe' => ['label' => 'CFE', 'class' => 'bg-orange-100 text-orange-800 border-orange-200', 'icon' => '🟠'],
+            'predial' => ['label' => 'Predial', 'class' => 'bg-green-100 text-green-800 border-green-200', 'icon' => '🟢'],
+            'recibo' => ['label' => 'Recibo escaneado', 'class' => 'bg-purple-100 text-purple-800 border-purple-200', 'icon' => '🟣'],
+            'otro' => ['label' => 'Otro', 'class' => 'bg-gray-100 text-gray-800 border-gray-200', 'icon' => '📄'],
+        ];
+    @endphp
+
     <div class="py-6 max-w-7xl mx-auto space-y-6">
         <div class="bg-white p-6 rounded shadow flex justify-between">
             <div>
@@ -114,7 +125,10 @@
 
         <div class="bg-white p-6 rounded shadow">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold">Documentos</h3>
+                <div>
+                    <h3 class="font-bold">Documentos</h3>
+                    <p class="text-sm text-gray-500">Archivos del cliente agrupados por tipo</p>
+                </div>
                 @can('manage-records')
                     <a href="{{ route('documentos.create', ['cliente' => $cliente->pk_cliente]) }}"
                         class="bg-gray-800 text-white px-3 py-1 rounded">
@@ -123,10 +137,26 @@
                 @endcan
             </div>
 
-            @forelse($cliente->documentos as $d)
-                <div class="flex justify-between border p-2 mb-2 rounded">
-                    <span>{{ $d->nombre ?? 'Documento' }}</span>
-                    <a href="{{ route('documentos.view', $d) }}" class="text-blue-600">Ver</a>
+            @forelse($cliente->documentos->groupBy(fn($doc) => $doc->tipo ?: 'otro') as $tipo => $docs)
+                @php($meta = $documentTypeMeta[$tipo] ?? $documentTypeMeta['otro'])
+
+                <div class="border rounded-xl overflow-hidden mb-4">
+                    <div class="flex items-center justify-between bg-gray-50 px-4 py-3 border-b">
+                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide {{ $meta['class'] }}">
+                            <span>{{ $meta['icon'] }}</span>
+                            {{ $meta['label'] }}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ $docs->count() }} archivo(s)</span>
+                    </div>
+
+                    <div class="divide-y">
+                        @foreach($docs as $d)
+                            <div class="flex justify-between items-center p-3">
+                                <span class="font-medium">{{ $d->titulo ?: 'Documento sin título' }}</span>
+                                <a href="{{ route('documentos.view', $d) }}" class="text-blue-600 hover:underline">Ver</a>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @empty
                 <p class="text-sm text-gray-500">Sin documentos registrados.</p>
