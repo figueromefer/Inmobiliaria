@@ -2,22 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Propiedad;
 use App\Models\Cliente;
+use App\Models\Propiedad;
 use App\Models\Task;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class PropiedadController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $propiedades = Propiedad::with('cliente')->get();
-        return view('propiedades.index', compact('propiedades'));
+        $search = trim((string) $request->get('search'));
+
+        $propiedades = Propiedad::with('cliente')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('alias', 'like', "%{$search}%")
+                        ->orWhere('domicilio', 'like', "%{$search}%")
+                        ->orWhere('calle', 'like', "%{$search}%")
+                        ->orWhere('numero_exterior', 'like', "%{$search}%")
+                        ->orWhere('numero_interior', 'like', "%{$search}%")
+                        ->orWhere('colonia', 'like', "%{$search}%")
+                        ->orWhere('codigo_postal', 'like', "%{$search}%")
+                        ->orWhere('municipio', 'like', "%{$search}%")
+                        ->orWhere('estado', 'like', "%{$search}%")
+                        ->orWhere('siapa', 'like', "%{$search}%")
+                        ->orWhere('cfe', 'like', "%{$search}%")
+                        ->orWhere('predial', 'like', "%{$search}%")
+                        ->orWhereHas('cliente', function ($clienteQuery) use ($search) {
+                            $clienteQuery->where('nombre', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderBy('alias')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('propiedades.index', compact('propiedades', 'search'));
     }
 
     public function create(Request $request)
     {
+        Gate::authorize('manage-records');
+
         $clientes = Cliente::orderBy('nombre')->get();
         $clientePreseleccionado = $request->get('cliente_id');
 
@@ -26,6 +53,8 @@ class PropiedadController extends Controller
 
     public function store(Request $request)
     {
+        Gate::authorize('manage-records');
+
         $request->validate([
             'fk_cliente' => 'required|exists:clientes,pk_cliente',
             'alias' => 'required|string|max:255',
@@ -71,6 +100,8 @@ class PropiedadController extends Controller
                 'due_date' => $propiedad->mantenimiento_fecha_pago,
                 'status' => 'pending',
                 'priority' => 'medium',
+                'recurrence' => 'monthly',
+                'next_run_date' => $propiedad->mantenimiento_fecha_pago,
                 'source_type' => Propiedad::class,
                 'source_id' => $propiedad->pk_propiedad,
                 'created_by' => auth()->id(),
@@ -90,12 +121,16 @@ class PropiedadController extends Controller
 
     public function edit(Propiedad $propiedad)
     {
+        Gate::authorize('manage-records');
+
         $clientes = Cliente::orderBy('nombre')->get();
         return view('propiedades.edit', compact('propiedad', 'clientes'));
     }
 
     public function update(Request $request, Propiedad $propiedad)
     {
+        Gate::authorize('manage-records');
+
         $request->validate([
             'fk_cliente' => 'required|exists:clientes,pk_cliente',
             'alias' => 'required|string|max:255',
