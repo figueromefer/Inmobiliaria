@@ -33,11 +33,15 @@ class ClienteController extends Controller
 
     public function create()
     {
+        Gate::authorize('manage-records');
+
         return view('clientes.create');
     }
 
     public function store(Request $request)
     {
+        Gate::authorize('manage-records');
+
         $request->validate([
             'nombre' => 'required|string|max:255',
             'rfc' => 'nullable|string|max:13',
@@ -57,25 +61,29 @@ class ClienteController extends Controller
     }
 
     public function show($id)
-{
-    $cliente = Cliente::with([
-        'propiedades.contratos.inquilino',
-        'propiedades.documentos',
-        'contratos.inquilino',
-        'documentos',
-    ])->findOrFail($id);
+    {
+        $cliente = Cliente::with([
+            'propiedades.contratos.inquilino',
+            'propiedades.documentos',
+            'contratos.inquilino',
+            'documentos',
+        ])->findOrFail($id);
 
-    return view('clientes.show', compact('cliente'));
-}
+        return view('clientes.show', compact('cliente'));
+    }
 
     public function edit($id)
     {
+        Gate::authorize('manage-records');
+
         $cliente = Cliente::findOrFail($id);
         return view('clientes.edit', compact('cliente'));
     }
 
     public function update(Request $request, $id)
     {
+        Gate::authorize('manage-records');
+
         $request->validate([
             'nombre' => 'required|string|max:255',
             'rfc' => 'nullable|string|max:13',
