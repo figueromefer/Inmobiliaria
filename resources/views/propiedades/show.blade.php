@@ -23,6 +23,15 @@
             'pendiente' => 'Pendiente',
             default => 'Pendiente crítico',
         };
+
+        $documentTypeMeta = [
+            'comprobante_domicilio' => ['label' => 'Comprobante domicilio', 'class' => 'bg-slate-100 text-slate-800 border-slate-200', 'icon' => '🏠'],
+            'agua' => ['label' => 'Agua', 'class' => 'bg-blue-100 text-blue-800 border-blue-200', 'icon' => '🔵'],
+            'cfe' => ['label' => 'CFE', 'class' => 'bg-orange-100 text-orange-800 border-orange-200', 'icon' => '🟠'],
+            'predial' => ['label' => 'Predial', 'class' => 'bg-green-100 text-green-800 border-green-200', 'icon' => '🟢'],
+            'recibo' => ['label' => 'Recibo escaneado', 'class' => 'bg-purple-100 text-purple-800 border-purple-200', 'icon' => '🟣'],
+            'otro' => ['label' => 'Otro', 'class' => 'bg-gray-100 text-gray-800 border-gray-200', 'icon' => '📄'],
+        ];
     @endphp
 
     <div class="py-6 max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -98,26 +107,42 @@
             <div class="flex justify-between items-center mb-4">
                 <div>
                     <h3 class="font-bold text-lg text-gray-900">Documentos</h3>
-                    <p class="text-sm text-gray-500">Archivos relacionados con esta propiedad</p>
+                    <p class="text-sm text-gray-500">Archivos relacionados con esta propiedad, agrupados por tipo</p>
                 </div>
 
                 <a href="{{ route('documentos.create', ['propiedad' => $propiedad->pk_propiedad]) }}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">+ Subir</a>
             </div>
 
-            @forelse($propiedad->documentos as $doc)
-                <div class="flex justify-between items-center border rounded-lg p-3 mb-2">
-                    <span class="font-medium">{{ $doc->titulo ?: 'Documento' }}</span>
+            @forelse($propiedad->documentos->groupBy(fn($doc) => $doc->tipo ?: 'otro') as $tipo => $docs)
+                @php($meta = $documentTypeMeta[$tipo] ?? $documentTypeMeta['otro'])
 
-                    <div class="space-x-3">
-                        <a href="{{ route('documentos.view', $doc) }}" class="text-blue-600 hover:underline">Ver</a>
+                <div class="border rounded-xl overflow-hidden mb-4">
+                    <div class="flex items-center justify-between bg-gray-50 px-4 py-3 border-b">
+                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide {{ $meta['class'] }}">
+                            <span>{{ $meta['icon'] }}</span>
+                            {{ $meta['label'] }}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ $docs->count() }} archivo(s)</span>
+                    </div>
 
-                        @can('delete-anything')
-                            <form action="{{ route('documentos.destroy', $doc) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
-                                @csrf
-                                @method('DELETE')
-                                <button class="text-red-600 hover:underline">Eliminar</button>
-                            </form>
-                        @endcan
+                    <div class="divide-y">
+                        @foreach($docs as $doc)
+                            <div class="flex justify-between items-center p-3">
+                                <span class="font-medium">{{ $doc->titulo ?: 'Documento sin título' }}</span>
+
+                                <div class="space-x-3 shrink-0">
+                                    <a href="{{ route('documentos.view', $doc) }}" class="text-blue-600 hover:underline">Ver</a>
+
+                                    @can('delete-anything')
+                                        <form action="{{ route('documentos.destroy', $doc) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="text-red-600 hover:underline">Eliminar</button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             @empty
@@ -141,22 +166,6 @@
             </div>
 
             @forelse($propiedad->tickets as $ticket)
-                @php
-                    $statusClass = match($ticket->status) {
-                        'completed' => 'bg-green-100 text-green-800',
-                        'in_progress' => 'bg-blue-100 text-blue-800',
-                        'canceled' => 'bg-gray-100 text-gray-700',
-                        default => 'bg-yellow-100 text-yellow-800',
-                    };
-
-                    $statusLabel = match($ticket->status) {
-                        'completed' => 'Completado',
-                        'in_progress' => 'En proceso',
-                        'canceled' => 'Cancelado',
-                        default => 'Abierto',
-                    };
-                @endphp
-
                 <div class="border rounded-lg p-4 mb-3">
                     <div class="flex justify-between gap-4">
                         <div>
@@ -178,9 +187,7 @@
                         </div>
 
                         <div class="text-right shrink-0">
-                            <span class="inline-block px-2 py-1 rounded-full text-xs {{ $statusClass }}">
-                                {{ $statusLabel }}
-                            </span>
+                            <x-ticket-status :status="$ticket->status" />
 
                             <div class="text-xs text-gray-500 mt-2">
                                 Vence: {{ $ticket->due_date?->format('d/m/Y') ?? '—' }}
