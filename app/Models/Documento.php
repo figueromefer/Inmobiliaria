@@ -17,6 +17,7 @@ class Documento extends Model {
         'fk_cliente',
         'fk_propiedad',
         'titulo',
+        'tipo',
         'archivo',
     ];
 
