@@ -21,6 +21,7 @@ class ClienteController extends Controller
                         ->orWhere('celular', 'like', "%{$search}%")
                         ->orWhere('fijo', 'like', "%{$search}%")
                         ->orWhere('domicilio', 'like', "%{$search}%")
+                        ->orWhere('domicilio_notificaciones', 'like', "%{$search}%")
                         ->orWhere('notas', 'like', "%{$search}%");
                 });
             })
@@ -46,6 +47,7 @@ class ClienteController extends Controller
             'nombre' => 'required|string|max:255',
             'rfc' => 'nullable|string|max:13',
             'domicilio' => 'nullable|string',
+            'domicilio_notificaciones' => 'nullable|string',
             'fijo' => 'nullable|string',
             'celular' => 'nullable|string',
             'correo' => 'nullable|email',
@@ -88,6 +90,7 @@ class ClienteController extends Controller
             'nombre' => 'required|string|max:255',
             'rfc' => 'nullable|string|max:13',
             'domicilio' => 'nullable|string',
+            'domicilio_notificaciones' => 'nullable|string',
             'fijo' => 'nullable|string',
             'celular' => 'nullable|string',
             'correo' => 'nullable|email',
