@@ -33,8 +33,11 @@
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Rol</label>
                         <select name="role" class="w-full border-gray-300 rounded-md shadow-sm mt-1" required>
-                            <option value="admin" @selected(old('role') === 'admin')>Administrador</option>
-                            <option value="agent" @selected(old('role') === 'agent')>Agente</option>
+                          @foreach($roles as $key=>$label)
+<option value="{{ $key }}">
+    {{ $label }}
+</option>
+@endforeach
                         </select>
                         @error('role')
                             <span class="text-red-600 text-sm">{{ $message }}</span>
