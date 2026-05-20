@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Documento;
+use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,7 @@ class DocumentoController extends Controller
 
         $clienteId = $request->query('cliente');
         $propiedadId = $request->query('propiedad');
+        $inquilinoId = $request->query('inquilino');
 
         if ($clienteId) {
             $query->where('fk_cliente', $clienteId);
@@ -34,23 +36,30 @@ class DocumentoController extends Controller
             $query->where('fk_propiedad', $propiedadId);
         }
 
-        $documentos = $query->with(['cliente', 'propiedad'])->paginate(10)->withQueryString();
+        if ($inquilinoId) {
+            $query->where('fk_inquilino', $inquilinoId);
+        }
+
+        $documentos = $query->with(['cliente', 'propiedad', 'inquilino'])->paginate(10)->withQueryString();
         $clientes = Cliente::orderBy('nombre')->get();
         $propiedades = Propiedad::orderBy('alias')->get();
+        $inquilinos = Inquilino::orderBy('nombre')->get();
         $tipos = self::$tipos;
 
-        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'clienteId', 'propiedadId', 'tipos'));
+        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos'));
     }
 
     public function create(Request $request)
     {
         $clientes = Cliente::orderBy('nombre')->get();
         $propiedades = Propiedad::orderBy('alias')->get();
+        $inquilinos = Inquilino::orderBy('nombre')->get();
         $clienteId = $request->query('cliente');
         $propiedadId = $request->query('propiedad');
+        $inquilinoId = $request->query('inquilino');
         $tipos = self::$tipos;
 
-        return view('documentos.create', compact('clientes', 'propiedades', 'clienteId', 'propiedadId', 'tipos'));
+        return view('documentos.create', compact('clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos'));
     }
 
     public function store(Request $request)
@@ -61,6 +70,7 @@ class DocumentoController extends Controller
             'archivo' => 'required|file|max:10240',
             'fk_cliente' => 'nullable|exists:clientes,pk_cliente',
             'fk_propiedad' => 'nullable|exists:propiedades,pk_propiedad',
+            'fk_inquilino' => 'nullable|exists:inquilinos,id',
         ]);
 
         $path = $request->file('archivo')->store('documentos', 'public');
@@ -71,6 +81,7 @@ class DocumentoController extends Controller
             'archivo' => $path,
             'fk_cliente' => $request->input('fk_cliente'),
             'fk_propiedad' => $request->input('fk_propiedad'),
+            'fk_inquilino' => $request->input('fk_inquilino'),
         ]);
 
         if ($documento->fk_cliente) {
@@ -79,6 +90,10 @@ class DocumentoController extends Controller
 
         if ($documento->fk_propiedad) {
             return redirect()->route('propiedades.show', $documento->fk_propiedad)->with('success', 'Documento agregado correctamente.');
+        }
+
+        if ($documento->fk_inquilino) {
+            return redirect()->route('inquilinos.show', $documento->fk_inquilino)->with('success', 'Documento agregado correctamente.');
         }
 
         return redirect()->route('documentos.index')->with('success', 'Documento agregado correctamente.');
@@ -112,6 +127,7 @@ class DocumentoController extends Controller
     {
         $clienteId = $documento->fk_cliente;
         $propiedadId = $documento->fk_propiedad;
+        $inquilinoId = $documento->fk_inquilino;
 
         Storage::disk('public')->delete($documento->archivo);
         $documento->delete();
@@ -122,6 +138,10 @@ class DocumentoController extends Controller
 
         if ($propiedadId) {
             return redirect()->route('propiedades.show', $propiedadId)->with('success', 'Documento eliminado correctamente.');
+        }
+
+        if ($inquilinoId) {
+            return redirect()->route('inquilinos.show', $inquilinoId)->with('success', 'Documento eliminado correctamente.');
         }
 
         return redirect()->route('documentos.index')->with('success', 'Documento eliminado correctamente.');
