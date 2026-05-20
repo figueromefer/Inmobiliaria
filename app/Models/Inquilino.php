@@ -9,11 +9,20 @@ class Inquilino extends Model
     protected $table = 'inquilinos';
 
     protected $fillable = [
-        'nombre', 'nacionalidad', 'domicilio', 'telefono', 'correo', 'solicitud_id', 'solicitud_url'
+        'nombre',
+        'nacionalidad',
+        'domicilio',
+        'telefono',
+        'correo'
     ];
 
     public function contratos()
     {
         return $this->hasMany(Contrato::class, 'inquilino_id');
+    }
+
+    public function documentos()
+    {
+        return $this->hasMany(Documento::class, 'fk_inquilino', 'id');
     }
 }
