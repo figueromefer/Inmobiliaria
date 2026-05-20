@@ -26,7 +26,7 @@
                         <label class="block text-sm font-medium text-gray-700" for="titulo">Título</label>
                         <input type="text" name="titulo" id="titulo" value="{{ old('titulo') }}"
                             class="form-input mt-1 block w-full rounded-md shadow-sm border-gray-300"
-                            placeholder="Ej. Recibo predial 2026" />
+                            placeholder="Ej. Identificación oficial" />
                     </div>
 
                     <div>
@@ -46,7 +46,7 @@
                         <p class="text-xs text-gray-500 mt-1">Máximo 10MB.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="fk_cliente">Asignar a cliente</label>
                             <select name="fk_cliente" id="fk_cliente"
@@ -72,7 +72,26 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="fk_inquilino">Asignar a inquilino</label>
+                            <select name="fk_inquilino" id="fk_inquilino"
+                                class="form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
+                                <option value="">— Sin inquilino —</option>
+                                @foreach(($inquilinos ?? []) as $inquilino)
+                                    <option value="{{ $inquilino->id }}" @selected(old('fk_inquilino', $inquilinoId ?? null) == $inquilino->id)>
+                                        {{ $inquilino->nombre }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
+
+                    @if(!empty($inquilinoId))
+                        <p class="text-sm text-blue-700 bg-blue-50 rounded p-3">
+                            Este documento se guardará en el perfil del inquilino seleccionado.
+                        </p>
+                    @endif
 
                     <div class="flex justify-end gap-3 pt-2">
                         <a href="{{ route('documentos.index') }}" class="px-4 py-2 rounded border text-gray-600 hover:bg-gray-50">Cancelar</a>
