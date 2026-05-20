@@ -7,12 +7,14 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto mt-6 bg-white lg:px-8 py-6">
-            <div class="mb-4 flex justify-end">
-                <a href="{{ route('documentos.create') }}"
-                   class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
-                    + Nuevo documento
-                </a>
-            </div>
+            @can('manage-records')
+                <div class="mb-4 flex justify-end">
+                    <a href="{{ route('documentos.create') }}"
+                    class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
+                        + Nuevo documento
+                    </a>
+                </div>
+            @endcan
 
             <form method="GET" action="{{ route('documentos.index') }}" class="mb-6 flex flex-wrap gap-2">
                 <select name="cliente" class="border-gray-300 rounded shadow-sm px-3 py-2">
@@ -33,8 +35,7 @@
                     @endforeach
                 </select>
 
-                <button type="submit"
-                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
                     Filtrar
                 </button>
             </form>
@@ -56,30 +57,26 @@
                                 <td class="px-4 py-2 whitespace-nowrap">{{ $documento->cliente->nombre ?? '—' }}</td>
                                 <td class="px-4 py-2 whitespace-nowrap">{{ $documento->propiedad->alias ?? '—' }}</td>
                                 <td class="px-4 py-2 whitespace-nowrap text-right space-x-2">
-                                <a href="{{ route('documentos.view', $documento) }}" target="_blank"
-                                    class="text-blue-600 hover:text-blue-800">
+                                    <a href="{{ route('documentos.view', $documento) }}" target="_blank" class="text-blue-600 hover:text-blue-800">
                                         Ver
-                                    </a>    
-                                <a href="{{ route('documentos.download', $documento) }}"
-                                       class="text-blue-600 hover:text-blue-800">
-                                       Descargar
                                     </a>
-                                    <form action="{{ route('documentos.destroy', $documento) }}" method="POST"
-                                          class="inline-block"
-                                          onsubmit="return confirm('¿Está seguro de eliminar este documento?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="text-red-600 hover:text-red-800">
-                                            Eliminar
-                                        </button>
-                                    </form>
+                                    <a href="{{ route('documentos.download', $documento) }}" class="text-blue-600 hover:text-blue-800">
+                                        Descargar
+                                    </a>
+                                    @can('delete-anything')
+                                        <form action="{{ route('documentos.destroy', $documento) }}" method="POST" class="inline-block" onsubmit="return confirm('¿Está seguro de eliminar este documento?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4"
-                                    class="px-4 py-6 text-center text-gray-500">
+                                <td colspan="4" class="px-4 py-6 text-center text-gray-500">
                                     No hay documentos registrados.
                                 </td>
                             </tr>
