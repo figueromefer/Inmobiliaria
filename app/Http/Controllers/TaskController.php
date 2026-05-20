@@ -9,8 +9,22 @@ class TaskController extends Controller
 {
     public function index()
     {
-        $tasks = Task::orderBy('due_date')->get();
-        return view('tasks.index', compact('tasks'));
+        $tasks = Task::where('status', '!=', 'archived')
+            ->orderBy('due_date')
+            ->get();
+
+        $archivedCount = Task::where('status', 'archived')->count();
+
+        return view('tasks.index', compact('tasks', 'archivedCount'));
+    }
+
+    public function archived()
+    {
+        $tasks = Task::where('status', 'archived')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return view('tasks.archived', compact('tasks'));
     }
 
     public function store(Request $request)
@@ -32,10 +46,14 @@ class TaskController extends Controller
 
     public function updateStatus(Task $task, Request $request)
     {
+        $request->validate([
+            'status' => 'required|in:pending,in_progress,done,archived',
+        ]);
+
         $task->update([
             'status' => $request->status,
         ]);
 
-        return back();
+        return back()->with('success', 'Estatus actualizado');
     }
 }
