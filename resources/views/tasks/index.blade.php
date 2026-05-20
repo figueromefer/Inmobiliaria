@@ -3,6 +3,13 @@
     <h2 class="font-semibold text-xl text-gray-800">Tareas</h2>
 </x-slot>
 
+<div class="flex justify-end mb-4">
+    <a href="{{ route('tasks.archived') }}"
+       class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+        Archivadas ({{ $archivedCount }})
+    </a>
+</div>
+
 <div class="py-6 max-w-7xl mx-auto px-4">
 
     <form method="POST" action="{{ route('tasks.store') }}" class="bg-white rounded-xl shadow-sm p-4 mb-6 flex gap-3">
@@ -59,6 +66,10 @@ class="text-xs rounded-lg border-gray-300"
 <option value="pending" {{ $task->status=='pending'?'selected':'' }}>Pendiente</option>
 <option value="in_progress" {{ $task->status=='in_progress'?'selected':'' }}>Proceso</option>
 <option value="done" {{ $task->status=='done'?'selected':'' }}>Listo</option>
+<option value="archived"
+{{ $task->status=='archived'?'selected':'' }}>
+Archivada
+</option>
 </select>
 </form>
 
