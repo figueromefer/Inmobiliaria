@@ -104,6 +104,86 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-6">
+    <div class="mb-4">
+        <h3 class="font-bold text-lg text-gray-900">Contratos e inquilinos</h3>
+        <p class="text-sm text-gray-500">
+            Contratos activos o históricos vinculados a esta propiedad
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @forelse($propiedad->contratos as $contrato)
+            @php
+                $fin = $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin) : null;
+                $porVencer = $fin && $fin->isFuture() && now()->diffInDays($fin) <= 60;
+                $vencido = $fin && $fin->isPast();
+
+                $badgeClass = $vencido
+                    ? 'bg-red-100 text-red-800 border-red-200'
+                    : ($porVencer
+                        ? 'bg-orange-100 text-orange-800 border-orange-200'
+                        : 'bg-green-100 text-green-800 border-green-200');
+
+                $badgeLabel = $vencido
+                    ? 'Vencido'
+                    : ($porVencer ? 'Por vencer' : 'Vigente');
+            @endphp
+
+            <div class="border rounded-xl p-4 bg-gray-50/60">
+                <div class="flex justify-between items-start gap-3 mb-3">
+                    <div>
+                        <div class="text-xs uppercase text-gray-500">Inquilino</div>
+
+                        @if($contrato->inquilino)
+                            <a href="{{ route('inquilinos.show', $contrato->inquilino) }}"
+                               class="font-bold text-gray-900 hover:text-blue-600">
+                                {{ $contrato->inquilino->nombre }}
+                            </a>
+                        @else
+                            <div class="font-bold text-gray-900">Sin inquilino</div>
+                        @endif
+                    </div>
+
+                    <span class="inline-flex rounded-full border px-3 py-1 text-xs font-bold {{ $badgeClass }}">
+                        {{ $badgeLabel }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                        <div class="text-gray-500">Inicio</div>
+                        <div class="font-medium">{{ $contrato->fecha_inicio ?: '—' }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Fin</div>
+                        <div class="font-medium">{{ $contrato->fecha_fin ?: '—' }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Renta mensual</div>
+                        <div class="font-medium">
+                            {{ $contrato->monto_mensual ? '$'.number_format($contrato->monto_mensual, 2) : '—' }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Creado</div>
+                        <div class="font-medium">
+                            {{ $contrato->created_at?->format('d/m/Y') ?? '—' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="md:col-span-2 text-gray-500 bg-gray-50 rounded-lg p-4">
+                Sin contratos registrados para esta propiedad.
+            </div>
+        @endforelse
+    </div>
+</div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
             <div class="flex justify-between items-center mb-4">
                 <div>
                     <h3 class="font-bold text-lg text-gray-900">Documentos</h3>
