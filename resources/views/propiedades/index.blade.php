@@ -5,7 +5,9 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
+            @can('manage-records')
             <a href="{{ route('propiedades.create') }}" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">+ Nueva propiedad</a>
+            @endcan
             <a href="{{ route('propiedades.mapa') }}" class="bg-gray-500 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded right-0 absolute mr-4">Mapa de propiedades</a>
 
             <table class="min-w-full divide-y divide-gray-200 mt-6">
@@ -25,7 +27,9 @@
                             <td class="px-4 py-2">{{ $propiedad->domicilio }}</td>
                             <td class="px-4 py-2 text-right space-x-2">
                                 <a href="{{ route('propiedades.show', $propiedad) }}" class="text-indigo-600 hover:underline">Ver</a>
+                                @can('manage-records')
                                 <a href="{{ route('propiedades.edit', $propiedad) }}" class="text-green-600 hover:underline">Editar</a>
+                                @endcan
                                 <form action="{{ route('propiedades.destroy', $propiedad) }}" method="POST" class="inline-block" onsubmit="return confirm('¿Estás seguro de eliminar esta propiedad?');">
                                     @csrf
                                     @method('DELETE')

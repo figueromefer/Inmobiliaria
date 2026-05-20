@@ -9,8 +9,9 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
 
             <div class="mb-4 flex justify-between items-center">
+                @can('manage-records')
                 <a href="{{ route('clientes.create') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">+ Nuevo Cliente</a>
-
+                @endcan
                 <form method="GET" class="flex gap-2">
                     <input
                         type="text"
@@ -41,8 +42,9 @@
                                 <td class="px-4 py-2">{{ $cliente->correo }}</td>
                                 <td class="px-4 py-2 text-right space-x-2">
                                     <a href="{{ route('clientes.show', $cliente) }}" class="text-indigo-600">Ver</a>
+                                    @can('manage-records')
                                     <a href="{{ route('clientes.edit', $cliente) }}" class="text-green-600">Editar</a>
-
+                                    @endcan
                                     @can('delete-anything')
                                         <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar?');">
                                             @csrf
