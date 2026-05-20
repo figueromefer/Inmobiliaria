@@ -124,17 +124,42 @@
                                     <div class="mt-2 text-gray-700 whitespace-pre-line">{{ $comment->body }}</div>
 
                                     @if($comment->attachments)
-                                        <div class="mt-3 flex flex-wrap gap-2">
-                                            @foreach($comment->attachments as $path)
-                                                <a class="inline-flex items-center rounded-lg border px-3 py-1 text-sm text-blue-600 hover:bg-blue-50" target="_blank" href="{{ route('tickets.attachment', [
-    'ticket' => $ticket,
-    'encodedPath' => base64_encode($path)
-]) }}"href="{{ Storage::disk('public')->url($path) }}">
-                                                    Ver archivo
-                                                </a>
-                                            @endforeach
-                                        </div>
-                                    @endif
+    <div class="mt-3 flex flex-wrap gap-2">
+        @foreach($comment->attachments as $path)
+
+            @php
+                $filename = basename($path);
+
+                $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+                $inlineExtensions = [
+                    'jpg',
+                    'jpeg',
+                    'png',
+                    'gif',
+                    'webp',
+                    'svg',
+                    'pdf'
+                ];
+
+                $opensInline = in_array($extension,$inlineExtensions,true);
+            @endphp
+
+            <a
+                class="inline-flex items-center rounded-lg border px-3 py-1 text-sm text-blue-600 hover:bg-blue-50"
+                target="{{ $opensInline ? '_blank' : '_self' }}"
+                href="{{ route('tickets.attachment',[
+                    'ticket'=>$ticket,
+                    'encodedPath'=>base64_encode($path)
+                ]) }}"
+            >
+                {{ $opensInline ? 'Ver' : 'Descargar' }}:
+                {{ $filename }}
+            </a>
+
+        @endforeach
+    </div>
+@endif
                                 </div>
                             </div>
                         @empty
