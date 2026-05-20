@@ -9,6 +9,12 @@ use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
+    private array $roles = [
+        'admin' => 'Administrador',
+        'agent' => 'Agente',
+        'viewer' => 'Solo visualización',
+    ];
+
     public function index()
     {
         $users = User::orderBy('name')->paginate(15);
@@ -17,7 +23,7 @@ class UserController extends Controller
 
     public function create()
     {
-        $roles = ['admin' => 'Administrador', 'agent' => 'Agente'];
+        $roles = $this->roles;
         return view('users.create', compact('roles'));
     }
 
@@ -26,8 +32,8 @@ class UserController extends Controller
         $data = $request->validate([
             'name'  => ['required','string','max:255'],
             'email' => ['required','email','max:255','unique:users,email'],
-            'role'  => ['required', Rule::in(['admin','agent'])],
-            'password' => ['nullable','string','min:8'], // si no envías, se genera
+            'role'  => ['required', Rule::in(array_keys($this->roles))],
+            'password' => ['nullable','string','min:8'],
         ]);
 
         $password = $data['password'] ?? Str::password(12);
@@ -39,14 +45,12 @@ class UserController extends Controller
             'password' => Hash::make($password),
         ]);
 
-        // Aquí puedes mandar correo con credenciales si lo deseas
-
-        return redirect()->route('users.index')->with('status','Usuario creado.');
+        return redirect()->route('users.index')->with('success','Usuario creado.');
     }
 
     public function edit(User $user)
     {
-        $roles = ['admin' => 'Administrador', 'agent' => 'Agente'];
+        $roles = $this->roles;
         return view('users.edit', compact('user','roles'));
     }
 
@@ -55,12 +59,11 @@ class UserController extends Controller
         $data = $request->validate([
             'name'  => ['required','string','max:255'],
             'email' => ['required','email','max:255', Rule::unique('users','email')->ignore($user->id)],
-            'role'  => ['required', Rule::in(['admin','agent'])],
+            'role'  => ['required', Rule::in(array_keys($this->roles))],
             'password' => ['nullable','string','min:8'],
         ]);
 
-        // Evitar dejar el sistema sin admins
-        if ($user->role === 'admin' && $data['role'] === 'agent') {
+        if ($user->role === 'admin' && $data['role'] !== 'admin') {
             $adminCount = User::where('role','admin')->count();
             if ($adminCount <= 1) {
                 return back()->withErrors(['role' => 'No puedes degradar al último Administrador.']);
@@ -73,12 +76,11 @@ class UserController extends Controller
         }
         $user->save();
 
-        return redirect()->route('users.index')->with('status','Usuario actualizado.');
+        return redirect()->route('users.index')->with('success','Usuario actualizado.');
     }
 
     public function destroy(User $user)
     {
-        // Evitar que un admin se elimine a sí mismo o eliminar último admin
         if (auth()->id() === $user->id) {
             return back()->withErrors(['delete' => 'No puedes eliminar tu propia cuenta.']);
         }
@@ -87,6 +89,6 @@ class UserController extends Controller
         }
 
         $user->delete();
-        return redirect()->route('users.index')->with('status','Usuario eliminado.');
+        return redirect()->route('users.index')->with('success','Usuario eliminado.');
     }
 }
