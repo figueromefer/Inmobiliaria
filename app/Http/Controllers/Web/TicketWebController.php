@@ -13,6 +13,8 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TicketWebController extends Controller
 {
@@ -58,7 +60,7 @@ class TicketWebController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        return redirect()->route('tickets.show', $ticket)->with('ok','Ticket creado y tarea generada.');
+        return redirect()->route('tickets.show', $ticket)->with('success','Ticket creado y tarea generada.');
     }
 
     public function show(MaintenanceTicket $ticket)
@@ -88,13 +90,13 @@ class TicketWebController extends Controller
         }
 
         $ticket->save();
-        return redirect()->route('tickets.show',$ticket)->with('ok','Ticket actualizado.');
+        return redirect()->route('tickets.show',$ticket)->with('success','Ticket actualizado.');
     }
 
     public function destroy(MaintenanceTicket $ticket)
     {
         $ticket->delete();
-        return redirect()->route('tickets.index')->with('ok','Ticket eliminado.');
+        return redirect()->route('tickets.index')->with('success','Ticket eliminado.');
     }
 
     public function storeComment(CommentStoreRequest $request, MaintenanceTicket $ticket)
@@ -113,7 +115,18 @@ class TicketWebController extends Controller
             'attachments' => $attachments ?: null,
         ]);
 
-        return back()->with('ok','Comentario agregado.');
+        return back()->with('success','Comentario agregado.');
+    }
+
+    public function attachment(MaintenanceTicket $ticket, string $encodedPath): StreamedResponse
+    {
+        $path = base64_decode($encodedPath, true);
+
+        abort_if(! $path, 404);
+        abort_unless(str_starts_with($path, "tickets/{$ticket->id}/attachments/"), 403);
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        return Storage::disk('public')->download($path);
     }
 
     public function updateStatus(Request $request, MaintenanceTicket $ticket)
@@ -123,6 +136,6 @@ class TicketWebController extends Controller
         $ticket->closed_at = $request->status === MaintenanceTicket::STATUS_COMPLETED ? Carbon::now() : null;
         $ticket->save();
 
-        return back()->with('ok','Estatus actualizado.');
+        return back()->with('success','Estatus actualizado.');
     }
 }
