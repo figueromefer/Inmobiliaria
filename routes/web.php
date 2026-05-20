@@ -38,6 +38,8 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+
+
     Route::get('/tareas', [\App\Http\Controllers\TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tareas', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tareas/{task}', [\App\Http\Controllers\TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
@@ -80,6 +82,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/tickets/{ticket}', [TicketWebController::class, 'destroy'])->name('tickets.destroy');
     Route::post('/tickets/{ticket}/comments', [TicketWebController::class, 'storeComment'])->name('tickets.comments.store');
     Route::patch('/tickets/{ticket}/status', [TicketWebController::class, 'updateStatus'])->name('tickets.status.update');
+Route::get(
+    '/tickets/{ticket}/attachment/{encodedPath}',
+    [TicketWebController::class, 'attachment']
+)->name('tickets.attachment');
 
     Route::get('/calendario/eventos-adeudos', [\App\Http\Controllers\CalendarioController::class, 'eventosDeAdeudos'])->name('calendario.eventos-adeudos');
     Route::get('/pagos-pendientes/events', [PagoCalendarController::class, 'events'])->name('api.pagos.events');

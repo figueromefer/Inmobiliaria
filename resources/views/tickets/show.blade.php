@@ -126,7 +126,10 @@
                                     @if($comment->attachments)
                                         <div class="mt-3 flex flex-wrap gap-2">
                                             @foreach($comment->attachments as $path)
-                                                <a class="inline-flex items-center rounded-lg border px-3 py-1 text-sm text-blue-600 hover:bg-blue-50" target="_blank" href="{{ Storage::disk('public')->url($path) }}">
+                                                <a class="inline-flex items-center rounded-lg border px-3 py-1 text-sm text-blue-600 hover:bg-blue-50" target="_blank" href="{{ route('tickets.attachment', [
+    'ticket' => $ticket,
+    'encodedPath' => base64_encode($path)
+]) }}"href="{{ Storage::disk('public')->url($path) }}">
                                                     Ver archivo
                                                 </a>
                                             @endforeach
