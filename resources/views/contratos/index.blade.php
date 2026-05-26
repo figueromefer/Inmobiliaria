@@ -1,19 +1,26 @@
 <x-app-layout>
   <x-slot name="header">
-    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-      {{ __('Contratos') }}
-    </h2>
-  </x-slot>
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+          {{ __('Contratos') }}
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">Contratos privados y futuras integraciones con Justicia Alternativa.</p>
+      </div>
 
- <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
-            @can('manage-users')
-                <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
-                    + Nuevo contrato
-                </a>
-            @endcan
+      @can('manage-users')
+        <div class="flex flex-wrap gap-2">
+          <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+            + Nuevo contrato privado
+          </a>
+
+          <a href="{{ route('contratos.justicia-alternativa') }}" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">
+            Traer contrato de justicia alternativa
+          </a>
         </div>
+      @endcan
     </div>
+  </x-slot>
 
   <div class="max-w-7xl mx-auto mt-6 bg-white lg:px-8 py-6">
       
@@ -59,14 +66,12 @@
       </div>
 
       <div class="sm:col-span-6 flex gap-2">
-        <button type="submit" class="inline-flex items-center bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">
+        <button type="submit" class="inline-flex items-center bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
           Aplicar
         </button>
         <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
           Limpiar
         </a>
-
-       
       </div>
     </form>
 
@@ -86,7 +91,6 @@
             <tr>
                 <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('id',$sort,$dir) }}">ID</a></th>
                 <th class="text-left px-4 py-2">Tipo Solicitante</th>
-                {{-- antes era solicitante (texto); ahora ordenamos por nombre del cliente --}}
                 <th class="text-left px-4 py-2"><a class="underline" href="{{ sortUrlC('cliente',$sort,$dir) }}">Cliente</a></th>
                 <th class="text-left px-4 py-2">Inquilino</th>
                 <th class="text-left px-4 py-2">Domicilio inmueble</th>
@@ -102,19 +106,14 @@
             <tbody>
             @forelse ($contratos as $c)
                 @php
-                    // variable booleana creada en el controlador
                     $alerta = $c->por_expirar;
                 @endphp
                 <tr class="border-b hover:bg-gray-50">
                 <td class="px-4 py-2">{{ $c->id }}</td>
                 <td class="px-4 py-2">{{ $c->tipo_solicitante ?? '—' }}</td>
-
-                {{-- Cliente por relación (fk_cliente) --}}
                 <td class="px-4 py-2">{{ optional($c->cliente)->nombre ?? '—' }}</td>
-
                 <td class="px-4 py-2">{{ optional($c->inquilino)->nombre ?? '—' }}</td>
                 <td class="px-4 py-2">{{ $c->domicilio_inmueble ?? '—' }}</td>
-
                 <td class="px-4 py-2">
                     {{ $c->fecha ? \Illuminate\Support\Carbon::parse($c->fecha)->format('Y-m-d H:i') : '—' }}
                 </td>
@@ -129,12 +128,9 @@
                         </span>
                     @endif
                 </td>
-
                 <td class="px-4 py-2">
                     {{ $c->comision_renta !== null ? number_format($c->comision_renta, 2) : '—' }}
                 </td>
-
-                {{-- Si comision_mensual está guardada como fracción (0.10), muéstrala como 10.00 % --}}
                 <td class="px-4 py-2">
                     @if(!is_null($c->comision_mensual))
                     {{ number_format($c->comision_mensual * 100, 2) }} %
@@ -142,12 +138,9 @@
                     —
                     @endif
                 </td>
-
                 <td class="px-4 py-2">
                     {{ $c->monto_mensual !== null ? number_format($c->monto_mensual, 2) : '—' }}
                 </td>
-
-                {{-- Documento: la columna ahora es edit_url (antes urldoc) --}}
                 <td class="px-4 py-2">
                     @if(!empty($c->urldoc))
                     <a href="{{ $c->urldoc }}" target="_blank" class="text-blue-600 underline">Abrir</a>
@@ -165,12 +158,9 @@
         </table>
         </div>
 
-
     {{-- Paginación --}}
     <div class="mt-4">
       {{ $contratos->onEachSide(1)->links() }}
-      {{-- Si tu proyecto no usa Tailwind para paginación:
-      {{ $contratos->withQueryString()->links('pagination::simple-default') }} --}}
     </div>
   </div>
 </x-app-layout>
