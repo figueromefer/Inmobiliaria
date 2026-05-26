@@ -7,6 +7,7 @@ use App\Models\Propiedad;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class PropiedadController extends Controller
 {
@@ -57,7 +58,7 @@ class PropiedadController extends Controller
 
         $request->validate([
             'fk_cliente' => 'required|exists:clientes,pk_cliente',
-            'alias' => 'required|string|max:255',
+            'alias' => ['required','string','max:255','unique:propiedades,alias'],
             'domicilio' => 'nullable|string|max:255',
             'siapa' => 'nullable|string|max:255',
             'cfe' => 'nullable|string|max:255',
@@ -108,27 +109,18 @@ class PropiedadController extends Controller
             ]);
         }
 
-        return redirect()
-            ->route('clientes.show', $propiedad->fk_cliente)
-            ->with('success', 'Propiedad creada correctamente.');
+        return redirect()->route('clientes.show', $propiedad->fk_cliente)->with('success', 'Propiedad creada correctamente.');
     }
 
     public function show(Propiedad $propiedad)
     {
-        $propiedad->load([
-    'cliente',
-    'documentos',
-    'contratos.inquilino',
-    'tickets.creator',
-    'tickets.assignee',
-]);
+        $propiedad->load(['cliente','documentos','contratos.inquilino','tickets.creator','tickets.assignee']);
         return view('propiedades.show', compact('propiedad'));
     }
 
     public function edit(Propiedad $propiedad)
     {
         Gate::authorize('manage-records');
-
         $clientes = Cliente::orderBy('nombre')->get();
         return view('propiedades.edit', compact('propiedad', 'clientes'));
     }
@@ -139,7 +131,7 @@ class PropiedadController extends Controller
 
         $request->validate([
             'fk_cliente' => 'required|exists:clientes,pk_cliente',
-            'alias' => 'required|string|max:255',
+            'alias' => ['required','string','max:255',Rule::unique('propiedades','alias')->ignore($propiedad->pk_propiedad,'pk_propiedad')],
             'domicilio' => 'nullable|string|max:255',
             'siapa' => 'nullable|string|max:255',
             'cfe' => 'nullable|string|max:255',
@@ -168,7 +160,6 @@ class PropiedadController extends Controller
     public function destroy(Propiedad $propiedad)
     {
         Gate::authorize('delete-anything');
-
         $propiedad->delete();
         return redirect()->route('propiedades.index')->with('success', 'Propiedad eliminada correctamente.');
     }
