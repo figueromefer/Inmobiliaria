@@ -47,7 +47,9 @@
 
                 <div class="flex gap-2">
                     <a href="{{ route('propiedades.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Volver</a>
-                    <a href="{{ route('propiedades.edit', $propiedad->pk_propiedad) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Editar</a>
+                    @can('manage-records')
+                        <a href="{{ route('propiedades.edit', $propiedad->pk_propiedad) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Editar</a>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -104,84 +106,46 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-6">
-    <div class="mb-4">
-        <h3 class="font-bold text-lg text-gray-900">Contratos e inquilinos</h3>
-        <p class="text-sm text-gray-500">
-            Contratos activos o históricos vinculados a esta propiedad
-        </p>
-    </div>
+            <div class="mb-4">
+                <h3 class="font-bold text-lg text-gray-900">Contratos e inquilinos</h3>
+                <p class="text-sm text-gray-500">Contratos activos o históricos vinculados a esta propiedad</p>
+            </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        @forelse($propiedad->contratos as $contrato)
-            @php
-                $fin = $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin) : null;
-                $porVencer = $fin && $fin->isFuture() && now()->diffInDays($fin) <= 60;
-                $vencido = $fin && $fin->isPast();
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @forelse($propiedad->contratos as $contrato)
+                    @php
+                        $fin = $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin) : null;
+                        $porVencer = $fin && $fin->isFuture() && now()->diffInDays($fin) <= 60;
+                        $vencido = $fin && $fin->isPast();
+                        $badgeClass = $vencido ? 'bg-red-100 text-red-800 border-red-200' : ($porVencer ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-green-100 text-green-800 border-green-200');
+                        $badgeLabel = $vencido ? 'Vencido' : ($porVencer ? 'Por vencer' : 'Vigente');
+                    @endphp
 
-                $badgeClass = $vencido
-                    ? 'bg-red-100 text-red-800 border-red-200'
-                    : ($porVencer
-                        ? 'bg-orange-100 text-orange-800 border-orange-200'
-                        : 'bg-green-100 text-green-800 border-green-200');
+                    <div class="border rounded-xl p-4 bg-gray-50/60">
+                        <div class="flex justify-between items-start gap-3 mb-3">
+                            <div>
+                                <div class="text-xs uppercase text-gray-500">Inquilino</div>
+                                @if($contrato->inquilino)
+                                    <a href="{{ route('inquilinos.show', $contrato->inquilino) }}" class="font-bold text-gray-900 hover:text-blue-600">{{ $contrato->inquilino->nombre }}</a>
+                                @else
+                                    <div class="font-bold text-gray-900">Sin inquilino</div>
+                                @endif
+                            </div>
+                            <span class="inline-flex rounded-full border px-3 py-1 text-xs font-bold {{ $badgeClass }}">{{ $badgeLabel }}</span>
+                        </div>
 
-                $badgeLabel = $vencido
-                    ? 'Vencido'
-                    : ($porVencer ? 'Por vencer' : 'Vigente');
-            @endphp
-
-            <div class="border rounded-xl p-4 bg-gray-50/60">
-                <div class="flex justify-between items-start gap-3 mb-3">
-                    <div>
-                        <div class="text-xs uppercase text-gray-500">Inquilino</div>
-
-                        @if($contrato->inquilino)
-                            <a href="{{ route('inquilinos.show', $contrato->inquilino) }}"
-                               class="font-bold text-gray-900 hover:text-blue-600">
-                                {{ $contrato->inquilino->nombre }}
-                            </a>
-                        @else
-                            <div class="font-bold text-gray-900">Sin inquilino</div>
-                        @endif
-                    </div>
-
-                    <span class="inline-flex rounded-full border px-3 py-1 text-xs font-bold {{ $badgeClass }}">
-                        {{ $badgeLabel }}
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                        <div class="text-gray-500">Inicio</div>
-                        <div class="font-medium">{{ $contrato->fecha_inicio ?: '—' }}</div>
-                    </div>
-
-                    <div>
-                        <div class="text-gray-500">Fin</div>
-                        <div class="font-medium">{{ $contrato->fecha_fin ?: '—' }}</div>
-                    </div>
-
-                    <div>
-                        <div class="text-gray-500">Renta mensual</div>
-                        <div class="font-medium">
-                            {{ $contrato->monto_mensual ? '$'.number_format($contrato->monto_mensual, 2) : '—' }}
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div><div class="text-gray-500">Inicio</div><div class="font-medium">{{ $contrato->fecha_inicio ?: '—' }}</div></div>
+                            <div><div class="text-gray-500">Fin</div><div class="font-medium">{{ $contrato->fecha_fin ?: '—' }}</div></div>
+                            <div><div class="text-gray-500">Renta mensual</div><div class="font-medium">{{ $contrato->monto_mensual ? '$'.number_format($contrato->monto_mensual, 2) : '—' }}</div></div>
+                            <div><div class="text-gray-500">Creado</div><div class="font-medium">{{ $contrato->created_at?->format('d/m/Y') ?? '—' }}</div></div>
                         </div>
                     </div>
-
-                    <div>
-                        <div class="text-gray-500">Creado</div>
-                        <div class="font-medium">
-                            {{ $contrato->created_at?->format('d/m/Y') ?? '—' }}
-                        </div>
-                    </div>
-                </div>
+                @empty
+                    <div class="md:col-span-2 text-gray-500 bg-gray-50 rounded-lg p-4">Sin contratos registrados para esta propiedad.</div>
+                @endforelse
             </div>
-        @empty
-            <div class="md:col-span-2 text-gray-500 bg-gray-50 rounded-lg p-4">
-                Sin contratos registrados para esta propiedad.
-            </div>
-        @endforelse
-    </div>
-</div>
+        </div>
 
         <div class="bg-white rounded-xl shadow-sm p-6">
             <div class="flex justify-between items-center mb-4">
@@ -190,29 +154,24 @@
                     <p class="text-sm text-gray-500">Archivos relacionados con esta propiedad, agrupados por tipo</p>
                 </div>
 
-                <a href="{{ route('documentos.create', ['propiedad' => $propiedad->pk_propiedad]) }}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">+ Subir</a>
+                @can('manage-records')
+                    <a href="{{ route('documentos.create', ['propiedad' => $propiedad->pk_propiedad]) }}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">+ Subir</a>
+                @endcan
             </div>
 
             @forelse($propiedad->documentos->groupBy(fn($doc) => $doc->tipo ?: 'otro') as $tipo => $docs)
                 @php($meta = $documentTypeMeta[$tipo] ?? $documentTypeMeta['otro'])
-
                 <div class="border rounded-xl overflow-hidden mb-4">
                     <div class="flex items-center justify-between bg-gray-50 px-4 py-3 border-b">
-                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide {{ $meta['class'] }}">
-                            <span>{{ $meta['icon'] }}</span>
-                            {{ $meta['label'] }}
-                        </span>
+                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide {{ $meta['class'] }}"><span>{{ $meta['icon'] }}</span>{{ $meta['label'] }}</span>
                         <span class="text-xs text-gray-500">{{ $docs->count() }} archivo(s)</span>
                     </div>
-
                     <div class="divide-y">
                         @foreach($docs as $doc)
                             <div class="flex justify-between items-center p-3">
                                 <span class="font-medium">{{ $doc->titulo ?: 'Documento sin título' }}</span>
-
                                 <div class="space-x-3 shrink-0">
                                     <a href="{{ route('documentos.view', $doc) }}" class="text-blue-600 hover:underline">Ver</a>
-
                                     @can('delete-anything')
                                         <form action="{{ route('documentos.destroy', $doc) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
                                             @csrf
@@ -234,14 +193,11 @@
             <div class="flex justify-between items-center mb-4">
                 <div>
                     <h3 class="font-bold text-lg text-gray-900">Tickets</h3>
-                    <p class="text-sm text-gray-500">Incidencias y tareas relacionadas con esta propiedad</p>
+                    <p class="text-sm text-gray-500">Incidencias relacionadas con esta propiedad</p>
                 </div>
 
                 @can('manage-records')
-                    <a href="{{ route('tickets.create', ['propiedad' => $propiedad->pk_propiedad]) }}"
-                    class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
-                        + Nuevo ticket
-                    </a>
+                    <a href="{{ route('tickets.create', ['propiedad' => $propiedad->pk_propiedad]) }}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">+ Nuevo ticket</a>
                 @endcan
             </div>
 
@@ -249,36 +205,18 @@
                 <div class="border rounded-lg p-4 mb-3">
                     <div class="flex justify-between gap-4">
                         <div>
-                            <a href="{{ route('tickets.show', $ticket) }}"
-                            class="font-semibold text-gray-900 hover:text-blue-600">
-                                {{ $ticket->title }}
-                            </a>
-
-                            <p class="text-sm text-gray-500 mt-1">
-                                {{ $ticket->description ?: 'Sin descripción' }}
-                            </p>
-
-                            <div class="text-xs text-gray-500 mt-2">
-                                Creado por: {{ $ticket->creator?->name ?? '—' }}
-                                @if($ticket->assignee)
-                                    · Asignado a: {{ $ticket->assignee->name }}
-                                @endif
-                            </div>
+                            <a href="{{ route('tickets.show', $ticket) }}" class="font-semibold text-gray-900 hover:text-blue-600">{{ $ticket->title }}</a>
+                            <p class="text-sm text-gray-500 mt-1">{{ $ticket->description ?: 'Sin descripción' }}</p>
+                            <div class="text-xs text-gray-500 mt-2">Creado por: {{ $ticket->creator?->name ?? '—' }} @if($ticket->assignee) · Asignado a: {{ $ticket->assignee->name }} @endif</div>
                         </div>
-
                         <div class="text-right shrink-0">
                             <x-ticket-status :status="$ticket->status" />
-
-                            <div class="text-xs text-gray-500 mt-2">
-                                Vence: {{ $ticket->due_date?->format('d/m/Y') ?? '—' }}
-                            </div>
+                            <div class="text-xs text-gray-500 mt-2">Vence: {{ $ticket->due_date?->format('d/m/Y') ?? '—' }}</div>
                         </div>
                     </div>
                 </div>
             @empty
-                <div class="text-gray-500 bg-gray-50 rounded-lg p-4">
-                    Sin tickets registrados para esta propiedad.
-                </div>
+                <div class="text-gray-500 bg-gray-50 rounded-lg p-4">Sin tickets registrados para esta propiedad.</div>
             @endforelse
         </div>
     </div>
