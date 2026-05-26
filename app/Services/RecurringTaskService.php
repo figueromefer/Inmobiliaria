@@ -9,6 +9,24 @@ use Carbon\Carbon;
 
 class RecurringTaskService
 {
+    public function generateAll(?Carbon $today = null): array
+    {
+        $today = ($today ?: now())->startOfDay();
+
+        $maintenance = $this->generateMaintenancePaymentTasks($today->copy());
+        $propertyTax = $this->generatePropertyTaxTasks($today->copy());
+        $contractRenewal = $this->generateContractRenewalTasks($today->copy());
+        $rentCollection = $this->generateRentCollectionTasks($today->copy());
+
+        return [
+            'maintenance_payment' => $maintenance,
+            'property_tax' => $propertyTax,
+            'contract_renewal' => $contractRenewal,
+            'rent_collection' => $rentCollection,
+            'total' => $maintenance + $propertyTax + $contractRenewal + $rentCollection,
+        ];
+    }
+
     public function generateMaintenancePaymentTasks(?Carbon $today = null): int
     {
         $today = ($today ?: now())->startOfDay();
@@ -165,7 +183,6 @@ class RecurringTaskService
     {
         $paymentDate = Carbon::parse($propiedad->mantenimiento_fecha_pago);
         $paymentDay = (int) $paymentDate->day;
-
         $created = 0;
 
         foreach ([0, 1] as $monthOffset) {
@@ -205,7 +222,6 @@ class RecurringTaskService
     protected function rentDueDateForContract(Contrato $contrato, Carbon $month): Carbon
     {
         $day = $this->extractFirstPaymentDay($contrato->dias_pago) ?: 1;
-
         return $this->dateForDayInMonth($month, $day);
     }
 
@@ -232,7 +248,6 @@ class RecurringTaskService
     {
         $date = $month->copy()->startOfMonth();
         $lastDay = (int) $date->copy()->endOfMonth()->day;
-
         return $date->day(min($day, $lastDay));
     }
 }
