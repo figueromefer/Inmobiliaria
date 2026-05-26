@@ -8,7 +8,6 @@ use App\Http\Requests\CommentStoreRequest;
 use App\Models\MaintenanceTicket;
 use App\Models\MaintenanceComment;
 use App\Models\Propiedad;
-use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -47,19 +46,9 @@ class TicketWebController extends Controller
         $data['created_by'] = $request->user()->id;
         $ticket = MaintenanceTicket::create($data);
 
-        Task::create([
-            'title' => 'Ticket: ' . $ticket->title,
-            'description' => $ticket->description,
-            'due_date' => $ticket->due_date,
-            'status' => 'pending',
-            'priority' => $ticket->priority,
-            'source_type' => MaintenanceTicket::class,
-            'source_id' => $ticket->id,
-            'assigned_to' => $ticket->assigned_to,
-            'created_by' => $request->user()->id,
-        ]);
-
-        return redirect()->route('tickets.show', $ticket)->with('success','Ticket creado y tarea generada.');
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success','Ticket creado correctamente.');
     }
 
     public function show(MaintenanceTicket $ticket)
