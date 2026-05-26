@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
     Route::get('/movimientos/crear', [MovimientoController::class, 'create'])->name('movimientos.create');
     Route::post('/movimientos', [MovimientoController::class, 'store'])->name('movimientos.store');
+    Route::patch('/movimientos/{movimiento}/aprobar', [MovimientoController::class, 'approve'])->name('movimientos.approve');
     Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
     Route::get('/movimientos/{movimiento}/recibo', [MovimientoController::class, 'recibo'])->name('movimientos.recibo');
 
