@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Contrato;
 use App\Models\Propiedad;
 use App\Models\Task;
 use Carbon\Carbon;
@@ -63,6 +64,58 @@ class RecurringTaskService
             }, 'pk_propiedad');
 
         return $created;
+    }
+
+    public function generateContractRenewalTasks(?Carbon $today = null): int
+    {
+        $today = ($today ?: now())->startOfDay();
+        $created = 0;
+
+        Contrato::query()
+            ->with(['propiedad', 'inquilino'])
+            ->whereNotNull('fecha_fin')
+            ->orderBy('id')
+            ->chunkById(100, function ($contratos) use ($today, &$created) {
+                foreach ($contratos as $contrato) {
+                    $created += $this->generateRenewalForContract($contrato, $today);
+                }
+            });
+
+        return $created;
+    }
+
+    protected function generateRenewalForContract(Contrato $contrato, Carbon $today): int
+    {
+        $endDate = Carbon::parse($contrato->fecha_fin)->startOfDay();
+        $reminderDate = $endDate->copy()->subMonthNoOverflow();
+
+        if ($today->lt($reminderDate) || $today->gt($endDate)) {
+            return 0;
+        }
+
+        $periodKey = $endDate->format('Y-m-d');
+
+        if (Task::alreadyExists(Task::TYPE_CONTRACT_RENEWAL, $periodKey, Contrato::class, $contrato->id)) {
+            return 0;
+        }
+
+        $propertyLabel = $contrato->propiedad?->alias ?: ($contrato->domicilio_inmueble ?: 'propiedad sin alias');
+        $tenantLabel = $contrato->inquilino?->nombre ?: 'inquilino no asignado';
+
+        Task::create([
+            'title' => 'Renovar contrato: ' . $propertyLabel,
+            'description' => 'El contrato de ' . $tenantLabel . ' finaliza el ' . $endDate->format('d/m/Y') . '.',
+            'due_date' => $reminderDate->toDateString(),
+            'status' => 'pending',
+            'priority' => 'high',
+            'task_type' => Task::TYPE_CONTRACT_RENEWAL,
+            'period_key' => $periodKey,
+            'source_type' => Contrato::class,
+            'source_id' => $contrato->id,
+            'created_by' => null,
+        ]);
+
+        return 1;
     }
 
     protected function generateMaintenanceForProperty(Propiedad $propiedad, Carbon $today): int
