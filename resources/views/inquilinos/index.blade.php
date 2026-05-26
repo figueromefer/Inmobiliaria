@@ -3,18 +3,16 @@
         <div class="flex items-center justify-between gap-4">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Inquilinos') }}</h2>
-                <p class="text-sm text-gray-500 mt-1">Catálogo de inquilinos, documentos y contratos relacionados</p>
+                <p class="text-sm text-gray-500 mt-1">Consulta de inquilinos sincronizados desde contratos y sistemas externos.</p>
             </div>
-
-            @can('manage-records')
-                <a href="{{ route('inquilinos.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-                    + Nuevo inquilino
-                </a>
-            @endcan
         </div>
     </x-slot>
 
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6 space-y-6">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+            Los inquilinos ya no se crean ni editan manualmente desde el sistema. Su información proviene de contratos privados y futuras integraciones externas.
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <form method="GET" action="{{ route('inquilinos.index') }}" class="grid gap-3 md:grid-cols-4">
                 <div class="md:col-span-2">
@@ -49,12 +47,12 @@
 
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="text-left px-4 py-3"><a href="{{ sortUrl('id', $sort ?? 'nombre', $dir ?? 'asc') }}" class="underline">ID</a></th>
-                        <th class="text-left px-4 py-3"><a href="{{ sortUrl('nombre', $sort ?? 'nombre', $dir ?? 'asc') }}" class="underline">Nombre</a></th>
-                        <th class="text-left px-4 py-3"><a href="{{ sortUrl('correo', $sort ?? 'nombre', $dir ?? 'asc') }}" class="underline">Correo</a></th>
+                        <th class="text-left px-4 py-3">ID</th>
+                        <th class="text-left px-4 py-3">Nombre</th>
+                        <th class="text-left px-4 py-3">Correo</th>
                         <th class="text-left px-4 py-3">Teléfono</th>
                         <th class="text-left px-4 py-3">Nacionalidad</th>
-                        <th class="text-left px-4 py-3"><a href="{{ sortUrl('created_at', $sort ?? 'nombre', $dir ?? 'asc') }}" class="underline">Creado</a></th>
+                        <th class="text-left px-4 py-3">Creado</th>
                         <th class="text-right px-4 py-3">Acciones</th>
                     </tr>
                 </thead>
@@ -70,16 +68,6 @@
                             <td class="px-4 py-3">{{ optional($inq->created_at)->format('Y-m-d H:i') ?? '—' }}</td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
                                 <a href="{{ route('inquilinos.show', $inq) }}" class="text-blue-600 hover:underline">Ver</a>
-                                @can('manage-records')
-                                    <a href="{{ route('inquilinos.edit', $inq) }}" class="text-gray-700 hover:underline ml-3">Editar</a>
-                                @endcan
-                                @can('delete-anything')
-                                    <form action="{{ route('inquilinos.destroy', $inq) }}" method="POST" class="inline ml-3" onsubmit="return confirm('¿Eliminar inquilino?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="text-red-600 hover:underline">Eliminar</button>
-                                    </form>
-                                @endcan
                             </td>
                         </tr>
                     @empty
