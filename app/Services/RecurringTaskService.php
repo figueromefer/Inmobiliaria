@@ -25,6 +25,46 @@ class RecurringTaskService
         return $created;
     }
 
+    public function generatePropertyTaxTasks(?Carbon $today = null): int
+    {
+        $today = ($today ?: now())->startOfDay();
+        $year = (int) $today->year;
+        $dueDate = Carbon::create($year, 1, 1)->startOfDay();
+        $periodKey = (string) $year;
+        $created = 0;
+
+        if (! $today->isSameDay($dueDate) && ! $today->gt($dueDate)) {
+            return 0;
+        }
+
+        Propiedad::query()
+            ->orderBy('pk_propiedad')
+            ->chunkById(100, function ($propiedades) use ($dueDate, $periodKey, &$created) {
+                foreach ($propiedades as $propiedad) {
+                    if (Task::alreadyExists(Task::TYPE_PROPERTY_TAX, $periodKey, Propiedad::class, $propiedad->pk_propiedad)) {
+                        continue;
+                    }
+
+                    Task::create([
+                        'title' => 'Pagar predial: ' . $propiedad->alias,
+                        'description' => 'Pago anual de predial de la propiedad ' . $propiedad->alias . '.',
+                        'due_date' => $dueDate->toDateString(),
+                        'status' => 'pending',
+                        'priority' => 'medium',
+                        'task_type' => Task::TYPE_PROPERTY_TAX,
+                        'period_key' => $periodKey,
+                        'source_type' => Propiedad::class,
+                        'source_id' => $propiedad->pk_propiedad,
+                        'created_by' => null,
+                    ]);
+
+                    $created++;
+                }
+            }, 'pk_propiedad');
+
+        return $created;
+    }
+
     protected function generateMaintenanceForProperty(Propiedad $propiedad, Carbon $today): int
     {
         $paymentDate = Carbon::parse($propiedad->mantenimiento_fecha_pago);
