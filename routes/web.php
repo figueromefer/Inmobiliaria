@@ -17,6 +17,7 @@ use App\Http\Controllers\PagoCalendarController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReporteGananciasClientesController;
 use App\Http\Controllers\ActivityLogController;
+use App\Services\RecurringTaskService;
 
 Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
 Route::get('/__migrate_status__', function () { Artisan::call('migrate:status'); return nl2br(e(Artisan::output())); });
@@ -46,6 +47,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/tareas', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tareas/{task}', [\App\Http\Controllers\TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::get('/tareas/archivadas', [\App\Http\Controllers\TaskController::class,'archived'])->name('tasks.archived');
+    Route::post('/tareas/generar-recurrentes/mantenimiento', function (RecurringTaskService $service) {
+        $created = $service->generateMaintenancePaymentTasks();
+        return redirect()->route('tasks.index')->with('success', "Tareas de mantenimiento generadas: {$created}");
+    })->middleware('can:manage-records')->name('tasks.generate-maintenance');
 
     Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('bitacora.index');
     Route::resource('clientes', ClienteCtl::class);
