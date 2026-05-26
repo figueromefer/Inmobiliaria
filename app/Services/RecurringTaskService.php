@@ -84,6 +84,49 @@ class RecurringTaskService
         return $created;
     }
 
+    public function generateRentCollectionTasks(?Carbon $today = null): int
+    {
+        $today = ($today ?: now())->startOfDay();
+        $month = $today->copy()->startOfMonth();
+        $periodKey = $month->format('Y-m');
+        $created = 0;
+
+        Contrato::query()
+            ->activosEnMes($month)
+            ->with(['propiedad', 'inquilino'])
+            ->whereNotNull('monto_mensual')
+            ->orderBy('id')
+            ->chunkById(100, function ($contratos) use ($month, $periodKey, &$created) {
+                foreach ($contratos as $contrato) {
+                    if (Task::alreadyExists(Task::TYPE_RENT_COLLECTION, $periodKey, Contrato::class, $contrato->id)) {
+                        continue;
+                    }
+
+                    $dueDate = $this->rentDueDateForContract($contrato, $month);
+                    $propertyLabel = $contrato->propiedad?->alias ?: ($contrato->domicilio_inmueble ?: 'propiedad sin alias');
+                    $tenantLabel = $contrato->inquilino?->nombre ?: 'inquilino no asignado';
+                    $amount = $contrato->monto_mensual !== null ? '$' . number_format((float) $contrato->monto_mensual, 2) : 'monto no registrado';
+
+                    Task::create([
+                        'title' => 'Cobro de renta: ' . $propertyLabel,
+                        'description' => 'Cobro mensual de renta a ' . $tenantLabel . ' por ' . $amount . '.',
+                        'due_date' => $dueDate->toDateString(),
+                        'status' => 'pending',
+                        'priority' => 'high',
+                        'task_type' => Task::TYPE_RENT_COLLECTION,
+                        'period_key' => $periodKey,
+                        'source_type' => Contrato::class,
+                        'source_id' => $contrato->id,
+                        'created_by' => null,
+                    ]);
+
+                    $created++;
+                }
+            });
+
+        return $created;
+    }
+
     protected function generateRenewalForContract(Contrato $contrato, Carbon $today): int
     {
         $endDate = Carbon::parse($contrato->fecha_fin)->startOfDay();
@@ -157,6 +200,32 @@ class RecurringTaskService
         }
 
         return $created;
+    }
+
+    protected function rentDueDateForContract(Contrato $contrato, Carbon $month): Carbon
+    {
+        $day = $this->extractFirstPaymentDay($contrato->dias_pago) ?: 1;
+
+        return $this->dateForDayInMonth($month, $day);
+    }
+
+    protected function extractFirstPaymentDay($diasPago): ?int
+    {
+        if ($diasPago === null || $diasPago === '') {
+            return null;
+        }
+
+        if (is_numeric($diasPago)) {
+            $day = (int) $diasPago;
+            return $day >= 1 && $day <= 31 ? $day : null;
+        }
+
+        if (preg_match('/\d{1,2}/', (string) $diasPago, $matches)) {
+            $day = (int) $matches[0];
+            return $day >= 1 && $day <= 31 ? $day : null;
+        }
+
+        return null;
     }
 
     protected function dateForDayInMonth(Carbon $month, int $day): Carbon
