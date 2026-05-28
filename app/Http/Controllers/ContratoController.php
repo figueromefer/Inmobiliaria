@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Models\Inquilino;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Models\Cliente; 
-use App\Http\Requests\ContratoRequest;
+use App\Models\Propiedad;
+use App\Services\JusticiaAlternativaImportService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ContratoController extends Controller
 {
@@ -97,6 +98,11 @@ class ContratoController extends Controller
 
         // === Calcular proximidad a vencimiento ===
         $contratos->getCollection()->transform(function ($contrato) {
+            if (!$contrato->fecha_fin) {
+                $contrato->por_expirar = false;
+                return $contrato;
+            }
+
             $fechaFin = Carbon::parse($contrato->fecha_fin);
             // true si la fecha fin es dentro de 2 meses desde hoy (o antes)
             $contrato->por_expirar = Carbon::now()->diffInMonths($fechaFin, false) <= 2;
@@ -116,5 +122,144 @@ class ContratoController extends Controller
             'clientes',     // nuevo (id + nombre)
             'q','solicitante','clienteId','desde','hasta','perPage','sort','dir'
         ));
+    }
+
+    public function showImportJusticiaAlternativaForm()
+    {
+        return view('contratos.justicia-alternativa');
+    }
+
+    public function previewJusticiaAlternativa(Request $request, JusticiaAlternativaImportService $service)
+    {
+        $validated = $request->validate([
+            'expediente' => ['required', 'string', 'max:255'],
+        ]);
+
+        $expediente = trim($validated['expediente']);
+
+        $existing = Contrato::where('expediente_justicia_alternativa', $expediente)->first();
+        if ($existing) {
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => 'Este expediente ya fue importado en el contrato #'.$existing->id.'.']);
+        }
+
+        $remote = $service->fetchByExpediente($expediente);
+        if (!($remote['ok'] ?? false)) {
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => $remote['message'] ?? 'No se pudo consultar el expediente.']);
+        }
+
+        if (($remote['status'] ?? null) === 'duplicate') {
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => 'Se encontró más de una respuesta con el mismo expediente en Justicia Alternativa. Corrige el Google Sheet antes de importar.']);
+        }
+
+        if (($remote['status'] ?? null) === 'not_found') {
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => 'No se encontró ningún expediente con ese número.']);
+        }
+
+        $row = $remote['data'] ?? null;
+        if (!is_array($row)) {
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => 'La respuesta de Justicia Alternativa no contiene datos válidos.']);
+        }
+
+        $mapped = $service->mapPayload($row);
+        $matches = $service->resolveMatches($mapped);
+
+        $clientes = Cliente::orderBy('nombre')->get(['pk_cliente', 'nombre', 'correo', 'rfc']);
+        $propiedades = Propiedad::orderBy('alias')->orderBy('domicilio')->get(['pk_propiedad', 'fk_cliente', 'alias', 'domicilio']);
+        $inquilinos = Inquilino::orderBy('nombre')->get(['id', 'nombre', 'correo', 'telefono']);
+
+        return view('contratos.justicia-alternativa-preview', compact(
+            'expediente',
+            'row',
+            'mapped',
+            'matches',
+            'clientes',
+            'propiedades',
+            'inquilinos'
+        ));
+    }
+
+    public function storeJusticiaAlternativa(Request $request, JusticiaAlternativaImportService $service)
+    {
+        $validated = $request->validate([
+            'expediente' => ['required', 'string', 'max:255'],
+            'fk_cliente' => ['required', 'integer', 'exists:clientes,pk_cliente'],
+            'fk_propiedad' => ['required', 'integer', 'exists:propiedades,pk_propiedad'],
+            'inquilino_id' => ['nullable', 'integer', 'exists:inquilinos,id'],
+        ]);
+
+        $expediente = trim($validated['expediente']);
+
+        $existing = Contrato::where('expediente_justicia_alternativa', $expediente)->first();
+        if ($existing) {
+            return redirect()
+                ->route('contratos.index')
+                ->with('error', 'Este expediente ya fue importado en el contrato #'.$existing->id.'.');
+        }
+
+        $remote = $service->fetchByExpediente($expediente);
+        if (!($remote['ok'] ?? false)) {
+            return back()->withInput()->withErrors([
+                'expediente' => $remote['message'] ?? 'No se pudo consultar nuevamente el expediente.',
+            ]);
+        }
+
+        $row = $remote['data'] ?? null;
+        if (!is_array($row)) {
+            return back()->withInput()->withErrors([
+                'expediente' => 'La respuesta de Justicia Alternativa no contiene datos válidos.',
+            ]);
+        }
+
+        $mapped = $service->mapPayload($row);
+
+        $contrato = DB::transaction(function () use ($validated, $mapped, $row, $expediente) {
+            $inquilinoId = $validated['inquilino_id'] ?? null;
+
+            if (!$inquilinoId && !empty($mapped['nombre_complementaria'])) {
+                $inquilino = Inquilino::create([
+                    'nombre' => $mapped['nombre_complementaria'],
+                    'nacionalidad' => $mapped['nacionalidad_complementaria'] ?? null,
+                    'domicilio' => $mapped['domicilio_complementaria'] ?? null,
+                    'telefono' => $mapped['telefono_complementaria'] ?? null,
+                    'correo' => $mapped['correo_complementaria'] ?? null,
+                ]);
+
+                $inquilinoId = $inquilino->id;
+            }
+
+            return Contrato::create([
+                'fk_cliente' => $validated['fk_cliente'],
+                'fk_propiedad' => $validated['fk_propiedad'],
+                'tipo_solicitante' => $mapped['tipo_solicitante'] ?? null,
+                'tipo_complementaria' => $mapped['tipo_complementaria'] ?? null,
+                'fecha' => now(),
+                'inquilino_id' => $inquilinoId,
+                'domicilio_inmueble' => $mapped['domicilio_inmueble_arrendamiento'] ?? null,
+                'fecha_inicio' => $mapped['fecha_inicio_contrato'] ?? null,
+                'fecha_fin' => $mapped['fecha_terminacion_contrato'] ?? null,
+                'dias_pago' => $mapped['dias_pago'] ?? null,
+                'monto_total' => $mapped['monto_total'] ?? null,
+                'monto_mensual' => $mapped['monto_mensual'] ?? null,
+                'monto_deposito' => $mapped['monto_deposito'] ?? null,
+                'origen' => 'justicia_alternativa',
+                'expediente_justicia_alternativa' => $expediente,
+                'imported_at' => now(),
+                'raw_justicia_alternativa' => $row,
+            ]);
+        });
+
+        return redirect()
+            ->route('contratos.index')
+            ->with('success', 'Contrato de Justicia Alternativa importado correctamente. Contrato #'.$contrato->id.'.');
     }
 }
