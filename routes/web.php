@@ -60,9 +60,15 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('inquilinos', InquilinoController::class)->only(['index', 'show']);
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
-    Route::get('/contratos/justicia-alternativa', function () {
-        return view('contratos.justicia-alternativa');
-    })->name('contratos.justicia-alternativa');
+    Route::get('/contratos/justicia-alternativa', [ContratoController::class, 'showImportJusticiaAlternativaForm'])
+        ->middleware('can:manage-records')
+        ->name('contratos.justicia-alternativa');
+    Route::post('/contratos/justicia-alternativa/preview', [ContratoController::class, 'previewJusticiaAlternativa'])
+        ->middleware('can:manage-records')
+        ->name('contratos.justicia-alternativa.preview');
+    Route::post('/contratos/justicia-alternativa/importar', [ContratoController::class, 'storeJusticiaAlternativa'])
+        ->middleware('can:manage-records')
+        ->name('contratos.justicia-alternativa.importar');
     Route::get('/calendario', [ContratoCalendarController::class, 'index'])->name('calendario.index');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
