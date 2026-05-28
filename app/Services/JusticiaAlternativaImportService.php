@@ -3,11 +3,10 @@
 namespace App\Services;
 
 use App\Models\Cliente;
-use App\Models\Contrato;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 class JusticiaAlternativaImportService
 {
@@ -41,7 +40,11 @@ class JusticiaAlternativaImportService
                 ];
             }
 
-            return $response->json();
+            return $response->json() ?: [
+                'ok' => false,
+                'status' => 'invalid_json',
+                'message' => 'La respuesta de Justicia Alternativa no es JSON válido.',
+            ];
         } catch (\Throwable $e) {
             return [
                 'ok' => false,
@@ -64,32 +67,45 @@ class JusticiaAlternativaImportService
     {
         return [
             'expediente' => $row['Número de expediente:'] ?? null,
+            'fecha_firma' => $this->parseDate($row['Fecha de firma de documentación:'] ?? null),
+            'tipo_solicitante' => $row['La Parte Solicitante (Arrendador) es:'] ?? null,
             'nombre_solicitante' => $row['Nombre completo de la Parte Solicitante:'] ?? null,
             'correo_solicitante' => $row['Correo electrónico de la Parte Solicitante:'] ?? null,
             'rfc_solicitante' => $row['RFC de la Sociedad de la Parte Solicitante'] ?? null,
+            'domicilio_solicitante' => $row['Domicilio completo de la Parte Solicitante:'] ?? null,
+            'tipo_complementaria' => $row['La Parte Complementaria (Arrendatario) es:'] ?? null,
             'nombre_complementaria' => $row['Nombre completo de la Parte Complementaria:'] ?? null,
+            'nacionalidad_complementaria' => $row['Nacionalidad de la Parte Complementaria:'] ?? null,
+            'domicilio_complementaria' => $row['Domicilio completo de la Parte Complementaria:'] ?? null,
             'correo_complementaria' => $row['Correo electrónico de la Parte Complementaria:'] ?? null,
             'telefono_complementaria' => $row['Teléfono de la Parte Complementaria:'] ?? null,
             'domicilio_inmueble_arrendamiento' => $row['Domicilio completo del Inmueble en Arrendamiento'] ?? null,
+            'uso_inmueble' => $row['Indica el uso que tendrá el Inmueble en Arrendamiento'] ?? null,
             'fecha_inicio_contrato' => $this->parseDate($row['Fecha de inicio de vigencia del Contrato'] ?? null),
             'fecha_terminacion_contrato' => $this->parseDate($row['Fecha de terminación de vigencia del Contrato'] ?? null),
+            'meses_vigencia' => $this->parseInt($row['Meses de vigencia del Contrato'] ?? null),
             'dias_pago' => $this->parseInt($row['Días de pago de la renta'] ?? null),
             'monto_total' => $this->parseMoney($row['Monto por concepto de Renta Total'] ?? null),
             'monto_mensual' => $this->parseMoney($row['Monto por concepto de Renta Mensual'] ?? null),
             'monto_deposito' => $this->parseMoney($row['Monto por concepto de Depósito en Garantía'] ?? null),
+            'forma_pago' => $row['Forma de pago'] ?? null,
+            'institucion_bancaria' => $row['Institución Bancaria'] ?? null,
+            'beneficiario' => $row['Beneficiario'] ?? null,
+            'clabe' => $row['CLABE'] ?? null,
+            'lleva_iva' => $row['¿Lleva IVA?'] ?? null,
         ];
     }
 
     private function findCliente(array $mapped): ?Cliente
     {
         if (!empty($mapped['rfc_solicitante'])) {
-            $c = Cliente::where('rfc', trim($mapped['rfc_solicitante']))->first();
-            if ($c) return $c;
+            $cliente = Cliente::where('rfc', trim($mapped['rfc_solicitante']))->first();
+            if ($cliente) return $cliente;
         }
 
         if (!empty($mapped['correo_solicitante'])) {
-            $c = Cliente::where('correo', trim($mapped['correo_solicitante']))->first();
-            if ($c) return $c;
+            $cliente = Cliente::where('correo', trim($mapped['correo_solicitante']))->first();
+            if ($cliente) return $cliente;
         }
 
         if (!empty($mapped['nombre_solicitante'])) {
@@ -111,8 +127,8 @@ class JusticiaAlternativaImportService
     private function findInquilino(array $mapped): ?Inquilino
     {
         if (!empty($mapped['correo_complementaria'])) {
-            $inq = Inquilino::where('correo', trim($mapped['correo_complementaria']))->first();
-            if ($inq) return $inq;
+            $inquilino = Inquilino::where('correo', trim($mapped['correo_complementaria']))->first();
+            if ($inquilino) return $inquilino;
         }
 
         if (!empty($mapped['nombre_complementaria'])) {
@@ -127,7 +143,22 @@ class JusticiaAlternativaImportService
         if (blank($value)) return null;
 
         $value = preg_replace('/[^\d,.-]/', '', (string) $value);
-        $value = str_replace(',', '', $value);
+        $commas = substr_count($value, ',');
+        $dots = substr_count($value, '.');
+
+        if ($commas && $dots) {
+            $lastComma = strrpos($value, ',');
+            $lastDot = strrpos($value, '.');
+
+            if ($lastComma > $lastDot) {
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+            } else {
+                $value = str_replace(',', '', $value);
+            }
+        } elseif ($commas && !$dots) {
+            $value = str_replace(',', '.', $value);
+        }
 
         return is_numeric($value) ? (float) $value : null;
     }
@@ -146,7 +177,7 @@ class JusticiaAlternativaImportService
         if (blank($value)) return null;
 
         try {
-            return now()->parse($value)->format('Y-m-d');
+            return Carbon::parse($value)->format('Y-m-d');
         } catch (\Throwable $e) {
             return null;
         }
