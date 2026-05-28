@@ -34,8 +34,14 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-    
-     'clients_api' => [
+
+    'clients_api' => [
         'token' => env('CLIENTS_API_TOKEN', ''), // fallback vacío
+    ],
+
+    'justicia_alternativa' => [
+        'url' => env('JUSTICIA_ALTERNATIVA_WEBAPP_URL', ''),
+        'token' => env('JUSTICIA_ALTERNATIVA_TOKEN', ''),
+        'timeout' => env('JUSTICIA_ALTERNATIVA_TIMEOUT', 20),
     ],
 ];
