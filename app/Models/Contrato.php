@@ -30,7 +30,11 @@ class Contrato extends Model
         'monto_mensual',
         'monto_deposito',
         'edit_url',
-        'urldoc'
+        'urldoc',
+        'origen',
+        'expediente_justicia_alternativa',
+        'imported_at',
+        'raw_justicia_alternativa',
     ];
 
     // Casts (opcional) para fechas y números
@@ -38,6 +42,8 @@ class Contrato extends Model
         'fecha'        => 'datetime',
         'fecha_inicio' => 'date',
         'fecha_fin'    => 'date',
+        'imported_at'  => 'datetime',
+        'raw_justicia_alternativa' => 'array',
     ];
 
     // Relaciones Eloquent
