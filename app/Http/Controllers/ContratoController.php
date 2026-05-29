@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Contrato;
+use App\Models\ContratoPendiente;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use App\Services\JusticiaAlternativaImportService;
@@ -115,11 +116,13 @@ class ContratoController extends Controller
 
         // NUEVO (recomendado para migrar el filtro a cliente_id):
         $clientes = Cliente::orderBy('nombre')->get(['pk_cliente as id','nombre']);
+        $pendientesCount = ContratoPendiente::pendientes()->count();
 
         return view('contratos.index', compact(
             'contratos',
             'solicitantes', // legado (array de nombres)
             'clientes',     // nuevo (id + nombre)
+            'pendientesCount',
             'q','solicitante','clienteId','desde','hasta','perPage','sort','dir'
         ));
     }
