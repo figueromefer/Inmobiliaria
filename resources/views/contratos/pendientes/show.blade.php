@@ -23,12 +23,29 @@ $mapped = $pendiente->mapped_payload ?? [];
 
 <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 space-y-6">
 
+@if ($errors->any())
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
+<p class="font-semibold mb-2">No se pudo resolver el contrato pendiente.</p>
+<ul class="list-disc pl-5 space-y-1">
+@foreach ($errors->all() as $error)
+<li>{{ $error }}</li>
+@endforeach
+</ul>
+</div>
+@endif
+
+@if (session('error'))
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
+{{ session('error') }}
+</div>
+@endif
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
 <div class="bg-white rounded-xl shadow border p-6 space-y-4">
 <h3 class="font-bold text-lg">Datos recibidos</h3>
 
-<div><strong>Origen:</strong> {{ $pendiente->origen }}</div>
+<div><strong>Origen:</strong> {{ str_replace('_', ' ', $pendiente->origen) }}</div>
 <div><strong>Expediente:</strong> {{ $pendiente->expediente ?: '—' }}</div>
 <div><strong>Cliente recibido:</strong> {{ $mapped['nombre_solicitante'] ?? '—' }}</div>
 <div><strong>RFC:</strong> {{ $mapped['rfc_solicitante'] ?? '—' }}</div>
@@ -37,29 +54,127 @@ $mapped = $pendiente->mapped_payload ?? [];
 <div><strong>Inmueble:</strong> {{ $mapped['domicilio_inmueble_arrendamiento'] ?? '—' }}</div>
 <div><strong>Inicio:</strong> {{ $mapped['fecha_inicio_contrato'] ?? '—' }}</div>
 <div><strong>Fin:</strong> {{ $mapped['fecha_terminacion_contrato'] ?? '—' }}</div>
+<div><strong>Renta mensual:</strong> {{ isset($mapped['monto_mensual']) ? '$'.number_format($mapped['monto_mensual'], 2) : '—' }}</div>
+<div><strong>Depósito:</strong> {{ isset($mapped['monto_deposito']) ? '$'.number_format($mapped['monto_deposito'], 2) : '—' }}</div>
 </div>
 
-<div class="bg-white rounded-xl shadow border p-6 space-y-5">
-<h3 class="font-bold text-lg">Próximo paso</h3>
+<form method="POST" action="{{ route('contratos.pendientes.resolver', $pendiente) }}" class="bg-white rounded-xl shadow border p-6 space-y-6">
+@csrf
 
-<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
-La siguiente fase implementará aquí el flujo completo de conciliación:
-<ul class="list-disc pl-5 mt-3 space-y-1">
-<li>Seleccionar cliente existente o crear nuevo.</li>
-<li>Seleccionar propiedad existente del cliente o crear nueva.</li>
-<li>Seleccionar o crear inquilino.</li>
-<li>Crear tareas automáticas para completar información faltante.</li>
-<li>Crear contrato definitivo.</li>
-</ul>
+<h3 class="font-bold text-lg">Conciliación</h3>
+
+<section class="space-y-3 border-b pb-5">
+<h4 class="font-semibold">1. Cliente</h4>
+<label class="flex items-center gap-2">
+<input type="radio" name="cliente_action" value="existing" checked>
+<span>Usar cliente existente</span>
+</label>
+<label class="flex items-center gap-2">
+<input type="radio" name="cliente_action" value="new">
+<span>Crear cliente nuevo con los datos recibidos</span>
+</label>
+
+<select name="fk_cliente" id="fk_cliente" class="w-full rounded-lg border-gray-300 shadow-sm">
+<option value="">Seleccionar cliente…</option>
+@foreach($clientes as $cliente)
+<option value="{{ $cliente->pk_cliente }}">
+{{ $cliente->nombre }}{{ $cliente->rfc ? ' — RFC: '.$cliente->rfc : '' }}{{ $cliente->correo ? ' — '.$cliente->correo : '' }}
+</option>
+@endforeach
+</select>
+<p class="text-xs text-gray-500">Si creas cliente nuevo, se generará una tarea para completar su información.</p>
+</section>
+
+<section class="space-y-3 border-b pb-5">
+<h4 class="font-semibold">2. Propiedad</h4>
+<label class="flex items-center gap-2">
+<input type="radio" name="propiedad_action" value="existing" checked>
+<span>Usar propiedad existente del cliente seleccionado</span>
+</label>
+<label class="flex items-center gap-2">
+<input type="radio" name="propiedad_action" value="new">
+<span>Crear propiedad nueva</span>
+</label>
+
+<select name="fk_propiedad" id="fk_propiedad" class="w-full rounded-lg border-gray-300 shadow-sm">
+<option value="">Seleccionar propiedad…</option>
+@foreach($propiedades as $propiedad)
+<option value="{{ $propiedad->pk_propiedad }}" data-cliente="{{ $propiedad->fk_cliente }}">
+{{ $propiedad->alias ?: $propiedad->domicilio }}{{ $propiedad->domicilio ? ' — '.$propiedad->domicilio : '' }}
+</option>
+@endforeach
+</select>
+<p class="text-xs text-gray-500">Si creas propiedad nueva, quedará marcada como pendiente de completar información.</p>
+</section>
+
+<section class="space-y-3 border-b pb-5">
+<h4 class="font-semibold">3. Inquilino</h4>
+<label class="flex items-center gap-2">
+<input type="radio" name="inquilino_action" value="existing">
+<span>Usar inquilino existente</span>
+</label>
+<label class="flex items-center gap-2">
+<input type="radio" name="inquilino_action" value="new" checked>
+<span>Crear inquilino nuevo con los datos recibidos</span>
+</label>
+
+<select name="inquilino_id" id="inquilino_id" class="w-full rounded-lg border-gray-300 shadow-sm">
+<option value="">Seleccionar inquilino…</option>
+@foreach($inquilinos as $inquilino)
+<option value="{{ $inquilino->id }}">
+{{ $inquilino->nombre }}{{ $inquilino->correo ? ' — '.$inquilino->correo : '' }}{{ $inquilino->telefono ? ' — '.$inquilino->telefono : '' }}
+</option>
+@endforeach
+</select>
+</section>
+
+<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-900">
+Al confirmar se creará el contrato definitivo. Si se crean cliente o propiedad nuevos, también se crearán tareas para completar la información faltante.
 </div>
 
+<div class="flex justify-end gap-3">
+<a href="{{ route('contratos.pendientes.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg">
+Cancelar
+</a>
+<button type="submit" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg">
+Resolver pendiente y crear contrato
+</button>
+</div>
+</form>
+
+</div>
+
+<div class="bg-white rounded-xl shadow border p-6">
+<h3 class="font-bold text-lg mb-4">Payload mapeado</h3>
 <div class="bg-gray-50 border rounded-lg p-4 text-xs overflow-auto">
 <pre>{{ json_encode($mapped, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre>
 </div>
-
 </div>
 
 </div>
 
-</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const clienteSelect = document.getElementById('fk_cliente');
+    const propiedadSelect = document.getElementById('fk_propiedad');
+    const propiedadOptions = Array.from(propiedadSelect.options);
+
+    function filtrarPropiedades() {
+        const clienteId = clienteSelect.value;
+        propiedadSelect.value = '';
+
+        propiedadOptions.forEach(function(option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            option.hidden = clienteId && option.dataset.cliente !== clienteId;
+        });
+    }
+
+    clienteSelect.addEventListener('change', filtrarPropiedades);
+    filtrarPropiedades();
+});
+</script>
 </x-app-layout>
