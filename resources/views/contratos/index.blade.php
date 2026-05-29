@@ -17,6 +17,11 @@
           <a href="{{ route('contratos.justicia-alternativa') }}" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">
             Traer contrato de justicia alternativa
           </a>
+
+          <a href="{{ route('contratos.pendientes.index') }}"
+             class="{{ ($pendientesCount ?? 0) > 0 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white font-bold py-2 px-4 rounded-lg">
+            {{ $pendientesCount ?? 0 }} Contratos pendientes
+          </a>
         </div>
       @endcan
     </div>
