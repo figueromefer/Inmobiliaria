@@ -67,6 +67,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/contratos/pendientes/{pendiente}', [ContratoPendienteController::class, 'show'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.show');
+    Route::post('/contratos/pendientes/{pendiente}/resolver', [ContratoPendienteController::class, 'resolver'])
+        ->middleware('can:manage-records')
+        ->name('contratos.pendientes.resolver');
     Route::get('/contratos/justicia-alternativa', [ContratoController::class, 'showImportJusticiaAlternativaForm'])
         ->middleware('can:manage-records')
         ->name('contratos.justicia-alternativa');
