@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     Contratos pendientes
@@ -10,7 +10,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('contratos.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg">
+            <a href="{{ route('contratos.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
                 ← Volver a contratos
             </a>
         </div>
@@ -35,13 +35,27 @@
                     @forelse ($pendientes as $pendiente)
                         @php
                             $mapped = $pendiente->mapped_payload ?? [];
+                            $origenLabel = match ($pendiente->origen) {
+                                'justicia_alternativa' => 'JA',
+                                'privado' => 'PRIVADO',
+                                default => strtoupper(str_replace('_', ' ', $pendiente->origen)),
+                            };
+                            $origenTitle = match ($pendiente->origen) {
+                                'justicia_alternativa' => 'Justicia Alternativa',
+                                'privado' => 'Contrato privado',
+                                default => str_replace('_', ' ', $pendiente->origen),
+                            };
+                            $origenClass = $pendiente->origen === 'justicia_alternativa'
+                                ? 'bg-gray-800 text-white'
+                                : 'bg-gray-500 text-white';
                         @endphp
                         <tr class="border-b hover:bg-gray-50">
                             <td class="px-4 py-3">{{ $pendiente->id }}</td>
                             <td class="px-4 py-3">
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                                    {{ str_replace('_', ' ', $pendiente->origen) }}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $origenClass }}" title="{{ $origenTitle }}">
+                                    {{ $origenLabel }}
                                 </span>
+                                <div class="text-xs text-gray-500 mt-1">{{ $origenTitle }}</div>
                             </td>
                             <td class="px-4 py-3">
                                 {{ $pendiente->expediente ?: ($pendiente->external_id ?: '—') }}
@@ -54,11 +68,11 @@
                             </td>
                             <td class="px-4 py-3">
                                 @if($pendiente->estado === 'pendiente_match')
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-800 text-white">
                                         Pendiente match
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-500 text-white">
                                         {{ $pendiente->estado }}
                                     </span>
                                 @endif
