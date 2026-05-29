@@ -7,6 +7,7 @@ use App\Http\Controllers\ClienteController as ClienteCtl;
 use App\Http\Controllers\PropiedadController;
 use App\Http\Controllers\InquilinoController;
 use App\Http\Controllers\ContratoController;
+use App\Http\Controllers\ContratoPendienteController;
 use App\Http\Controllers\ContratoCalendarController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\ReporteMensualController;
@@ -60,6 +61,12 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('inquilinos', InquilinoController::class)->only(['index', 'show']);
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
+    Route::get('/contratos/pendientes', [ContratoPendienteController::class, 'index'])
+        ->middleware('can:manage-records')
+        ->name('contratos.pendientes.index');
+    Route::get('/contratos/pendientes/{pendiente}', [ContratoPendienteController::class, 'show'])
+        ->middleware('can:manage-records')
+        ->name('contratos.pendientes.show');
     Route::get('/contratos/justicia-alternativa', [ContratoController::class, 'showImportJusticiaAlternativaForm'])
         ->middleware('can:manage-records')
         ->name('contratos.justicia-alternativa');
