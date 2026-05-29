@@ -1,6 +1,6 @@
 <x-app-layout>
   <x-slot name="header">
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
           {{ __('Contratos') }}
@@ -9,17 +9,17 @@
       </div>
 
       @can('manage-users')
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
             + Nuevo contrato privado
           </a>
 
-          <a href="{{ route('contratos.justicia-alternativa') }}" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">
+          <a href="{{ route('contratos.justicia-alternativa') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
             Traer contrato de justicia alternativa
           </a>
 
           <a href="{{ route('contratos.pendientes.index') }}"
-             class="{{ ($pendientesCount ?? 0) > 0 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-500 hover:bg-gray-600' }} text-white font-bold py-2 px-4 rounded-lg">
+             class="{{ ($pendientesCount ?? 0) > 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-700' }} text-white font-bold py-2 px-4 rounded-lg">
             {{ $pendientesCount ?? 0 }} Contratos pendientes
           </a>
         </div>
