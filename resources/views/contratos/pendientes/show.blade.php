@@ -1,6 +1,6 @@
 <x-app-layout>
 <x-slot name="header">
-<div class="flex items-center justify-between gap-4">
+<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 <div>
 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
 Resolver contrato pendiente #{{ $pendiente->id }}
@@ -11,7 +11,7 @@ Conciliación de cliente, propiedad e inquilino antes de crear el contrato defin
 </div>
 
 <a href="{{ route('contratos.pendientes.index') }}"
-class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg">
+class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
 ← Volver a pendientes
 </a>
 </div>
@@ -30,6 +30,13 @@ $badgeClass = function ($confidence) {
         'alta' => 'bg-green-100 text-green-800 border-green-200',
         'media' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
         default => 'bg-gray-100 text-gray-700 border-gray-200',
+    };
+};
+$confidenceNote = function ($confidence) {
+    return match ($confidence) {
+        'alta' => 'Coincidencia fuerte. Aun así conviene revisar antes de confirmar.',
+        'media' => 'Coincidencia probable, pero requiere revisión manual.',
+        default => 'No se encontró coincidencia confiable. Se sugiere crear nuevo o seleccionar manualmente.',
     };
 };
 @endphp
@@ -53,6 +60,12 @@ $badgeClass = function ($confidence) {
 </div>
 @endif
 
+@if (session('success'))
+<div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
+{{ session('success') }}
+</div>
+@endif
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
 <div class="bg-white rounded-xl shadow border p-6 space-y-4">
@@ -63,6 +76,8 @@ $badgeClass = function ($confidence) {
 <div><strong>Cliente recibido:</strong> {{ $mapped['nombre_solicitante'] ?? '—' }}</div>
 <div><strong>RFC:</strong> {{ $mapped['rfc_solicitante'] ?? '—' }}</div>
 <div><strong>Correo cliente:</strong> {{ $mapped['correo_solicitante'] ?? '—' }}</div>
+<div><strong>Teléfono cliente:</strong> {{ $mapped['telefono_solicitante'] ?? '—' }}</div>
+<div><strong>Propiedad alias:</strong> {{ $mapped['propiedad_alias'] ?? '—' }}</div>
 <div><strong>Arrendatario:</strong> {{ $mapped['nombre_complementaria'] ?? '—' }}</div>
 <div><strong>Inmueble:</strong> {{ $mapped['domicilio_inmueble_arrendamiento'] ?? '—' }}</div>
 <div><strong>Inicio:</strong> {{ $mapped['fecha_inicio_contrato'] ?? '—' }}</div>
@@ -83,8 +98,13 @@ $badgeClass = function ($confidence) {
 {{ ucfirst($clienteSuggestion['confidence']) }} — {{ $clienteSuggestion['reason'] }}
 </span>
 </div>
+<p class="text-xs text-gray-500">{{ $confidenceNote($clienteSuggestion['confidence']) }}</p>
 @if($clienteSuggested)
-<p class="text-sm text-green-700">Sugerido: <strong>{{ $clienteSuggested->nombre }}</strong></p>
+<div class="bg-gray-50 border rounded-lg p-3 text-sm">
+<p class="text-gray-700">Cliente sugerido:</p>
+<p class="font-semibold">{{ $clienteSuggested->nombre }}</p>
+<p class="text-xs text-gray-500">{{ $clienteSuggested->rfc ? 'RFC: '.$clienteSuggested->rfc.' · ' : '' }}{{ $clienteSuggested->correo ?: '' }}</p>
+</div>
 @endif
 <label class="flex items-center gap-2">
 <input type="radio" name="cliente_action" value="existing" @checked($clienteSuggested)>
@@ -113,8 +133,13 @@ $badgeClass = function ($confidence) {
 {{ ucfirst($propiedadSuggestion['confidence']) }} — {{ $propiedadSuggestion['reason'] }}
 </span>
 </div>
+<p class="text-xs text-gray-500">{{ $confidenceNote($propiedadSuggestion['confidence']) }}</p>
 @if($propiedadSuggested)
-<p class="text-sm text-green-700">Sugerida: <strong>{{ $propiedadSuggested->alias ?: $propiedadSuggested->domicilio }}</strong></p>
+<div class="bg-gray-50 border rounded-lg p-3 text-sm">
+<p class="text-gray-700">Propiedad sugerida:</p>
+<p class="font-semibold">{{ $propiedadSuggested->alias ?: $propiedadSuggested->domicilio }}</p>
+<p class="text-xs text-gray-500">{{ $propiedadSuggested->domicilio ?: '' }}</p>
+</div>
 @endif
 <label class="flex items-center gap-2">
 <input type="radio" name="propiedad_action" value="existing" @checked($propiedadSuggested)>
@@ -143,8 +168,13 @@ $badgeClass = function ($confidence) {
 {{ ucfirst($inquilinoSuggestion['confidence']) }} — {{ $inquilinoSuggestion['reason'] }}
 </span>
 </div>
+<p class="text-xs text-gray-500">{{ $confidenceNote($inquilinoSuggestion['confidence']) }}</p>
 @if($inquilinoSuggested)
-<p class="text-sm text-green-700">Sugerido: <strong>{{ $inquilinoSuggested->nombre }}</strong></p>
+<div class="bg-gray-50 border rounded-lg p-3 text-sm">
+<p class="text-gray-700">Inquilino sugerido:</p>
+<p class="font-semibold">{{ $inquilinoSuggested->nombre }}</p>
+<p class="text-xs text-gray-500">{{ $inquilinoSuggested->correo ? $inquilinoSuggested->correo.' · ' : '' }}{{ $inquilinoSuggested->telefono ?: '' }}</p>
+</div>
 @endif
 <label class="flex items-center gap-2">
 <input type="radio" name="inquilino_action" value="existing" @checked($inquilinoSuggested)>
@@ -170,10 +200,10 @@ Al confirmar se creará el contrato definitivo. Si se crean cliente o propiedad 
 </div>
 
 <div class="flex justify-end gap-3">
-<a href="{{ route('contratos.pendientes.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg">
+<a href="{{ route('contratos.pendientes.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
 Cancelar
 </a>
-<button type="submit" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg">
+<button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">
 Resolver pendiente y crear contrato
 </button>
 </div>
