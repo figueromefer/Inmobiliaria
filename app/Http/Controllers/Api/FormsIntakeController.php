@@ -207,12 +207,15 @@ class FormsIntakeController extends Controller
         if ($value === null || $value === '') return null;
 
         $value = preg_replace('/[^\d,.\-]/', '', trim((string) $value));
+        if ($value === '' || $value === '-' || $value === '.' || $value === ',') return null;
+
         $commas = substr_count($value, ',');
         $dots = substr_count($value, '.');
 
         if ($commas && $dots) {
             $lastComma = strrpos($value, ',');
             $lastDot = strrpos($value, '.');
+
             if ($lastComma > $lastDot) {
                 $value = str_replace('.', '', $value);
                 $value = str_replace(',', '.', $value);
@@ -220,7 +223,21 @@ class FormsIntakeController extends Controller
                 $value = str_replace(',', '', $value);
             }
         } elseif ($commas && !$dots) {
-            $value = str_replace(',', '.', $value);
+            $parts = explode(',', $value);
+            $last = end($parts);
+
+            if ($commas > 1 || strlen($last) === 3) {
+                $value = str_replace(',', '', $value);
+            } else {
+                $value = str_replace(',', '.', $value);
+            }
+        } elseif ($dots && !$commas) {
+            $parts = explode('.', $value);
+            $last = end($parts);
+
+            if ($dots > 1 || strlen($last) === 3) {
+                $value = str_replace('.', '', $value);
+            }
         }
 
         return is_numeric($value) ? (float) $value : null;
