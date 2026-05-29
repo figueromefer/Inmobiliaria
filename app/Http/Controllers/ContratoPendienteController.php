@@ -10,6 +10,7 @@ use App\Models\Propiedad;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ContratoPendienteController extends Controller
 {
@@ -29,11 +30,14 @@ class ContratoPendienteController extends Controller
 
     public function show(ContratoPendiente $pendiente)
     {
+        $mapped = $pendiente->mapped_payload ?? [];
+
         $clientes = Cliente::orderBy('nombre')->get(['pk_cliente', 'nombre', 'correo', 'rfc']);
         $propiedades = Propiedad::orderBy('alias')->orderBy('domicilio')->get(['pk_propiedad', 'fk_cliente', 'alias', 'domicilio']);
         $inquilinos = Inquilino::orderBy('nombre')->get(['id', 'nombre', 'correo', 'telefono']);
+        $suggestions = $this->buildSuggestions($mapped);
 
-        return view('contratos.pendientes.show', compact('pendiente', 'clientes', 'propiedades', 'inquilinos'));
+        return view('contratos.pendientes.show', compact('pendiente', 'clientes', 'propiedades', 'inquilinos', 'suggestions'));
     }
 
     public function resolver(Request $request, ContratoPendiente $pendiente)
@@ -135,6 +139,102 @@ class ContratoPendienteController extends Controller
         return redirect()
             ->route('contratos.index')
             ->with('success', 'Contrato pendiente resuelto correctamente. Contrato #'.$contrato->id.'.');
+    }
+
+    private function buildSuggestions(array $mapped): array
+    {
+        $cliente = $this->suggestCliente($mapped);
+        $propiedad = $this->suggestPropiedad($mapped, $cliente['model'] ?? null);
+        $inquilino = $this->suggestInquilino($mapped);
+
+        return compact('cliente', 'propiedad', 'inquilino');
+    }
+
+    private function suggestCliente(array $mapped): array
+    {
+        if (!empty($mapped['rfc_solicitante'])) {
+            $cliente = Cliente::where('rfc', trim($mapped['rfc_solicitante']))->first();
+            if ($cliente) return ['model' => $cliente, 'confidence' => 'alta', 'reason' => 'RFC exacto'];
+        }
+
+        if (!empty($mapped['correo_solicitante'])) {
+            $cliente = Cliente::where('correo', trim($mapped['correo_solicitante']))->first();
+            if ($cliente) return ['model' => $cliente, 'confidence' => 'alta', 'reason' => 'Correo exacto'];
+        }
+
+        if (!empty($mapped['nombre_solicitante'])) {
+            $needle = $this->normalizeForMatch($mapped['nombre_solicitante']);
+            $cliente = Cliente::all()->first(function ($cliente) use ($needle) {
+                return $needle !== '' && Str::contains($this->normalizeForMatch($cliente->nombre), $needle);
+            });
+            if ($cliente) return ['model' => $cliente, 'confidence' => 'media', 'reason' => 'Nombre parecido'];
+        }
+
+        return ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
+    }
+
+    private function suggestPropiedad(array $mapped, ?Cliente $cliente): array
+    {
+        if (!$cliente || empty($mapped['domicilio_inmueble_arrendamiento'])) {
+            return ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin cliente o domicilio para comparar'];
+        }
+
+        $needle = $this->normalizeForMatch($mapped['domicilio_inmueble_arrendamiento']);
+        $propiedad = Propiedad::where('fk_cliente', $cliente->pk_cliente)->get()->first(function ($propiedad) use ($needle) {
+            $domicilio = $this->normalizeForMatch($propiedad->domicilio);
+            $alias = $this->normalizeForMatch($propiedad->alias);
+
+            return $needle !== '' && (
+                Str::contains($domicilio, $needle) ||
+                Str::contains($needle, $domicilio) ||
+                Str::contains($alias, $needle) ||
+                Str::contains($needle, $alias)
+            );
+        });
+
+        if ($propiedad) {
+            return ['model' => $propiedad, 'confidence' => 'media', 'reason' => 'Domicilio/alias parecido dentro del cliente sugerido'];
+        }
+
+        return ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia de propiedad para el cliente sugerido'];
+    }
+
+    private function suggestInquilino(array $mapped): array
+    {
+        if (!empty($mapped['correo_complementaria'])) {
+            $inquilino = Inquilino::where('correo', trim($mapped['correo_complementaria']))->first();
+            if ($inquilino) return ['model' => $inquilino, 'confidence' => 'alta', 'reason' => 'Correo exacto'];
+        }
+
+        if (!empty($mapped['telefono_complementaria'])) {
+            $telefono = preg_replace('/\D+/', '', $mapped['telefono_complementaria']);
+            $inquilino = Inquilino::all()->first(function ($inquilino) use ($telefono) {
+                return $telefono !== '' && preg_replace('/\D+/', '', (string) $inquilino->telefono) === $telefono;
+            });
+            if ($inquilino) return ['model' => $inquilino, 'confidence' => 'alta', 'reason' => 'Teléfono exacto'];
+        }
+
+        if (!empty($mapped['nombre_complementaria'])) {
+            $needle = $this->normalizeForMatch($mapped['nombre_complementaria']);
+            $inquilino = Inquilino::all()->first(function ($inquilino) use ($needle) {
+                return $needle !== '' && Str::contains($this->normalizeForMatch($inquilino->nombre), $needle);
+            });
+            if ($inquilino) return ['model' => $inquilino, 'confidence' => 'media', 'reason' => 'Nombre parecido'];
+        }
+
+        return ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
+    }
+
+    private function normalizeForMatch($value): string
+    {
+        $value = Str::of((string) $value)
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
+
+        return $value;
     }
 
     private function crearTareaCompletarInformacion(string $sourceType, int $sourceId, string $title, int $pendienteId): void
