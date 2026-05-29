@@ -19,6 +19,19 @@ class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-l
 
 @php
 $mapped = $pendiente->mapped_payload ?? [];
+$clienteSuggestion = $suggestions['cliente'] ?? ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
+$propiedadSuggestion = $suggestions['propiedad'] ?? ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
+$inquilinoSuggestion = $suggestions['inquilino'] ?? ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
+$clienteSuggested = $clienteSuggestion['model'] ?? null;
+$propiedadSuggested = $propiedadSuggestion['model'] ?? null;
+$inquilinoSuggested = $inquilinoSuggestion['model'] ?? null;
+$badgeClass = function ($confidence) {
+    return match ($confidence) {
+        'alta' => 'bg-green-100 text-green-800 border-green-200',
+        'media' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        default => 'bg-gray-100 text-gray-700 border-gray-200',
+    };
+};
 @endphp
 
 <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 space-y-6">
@@ -64,20 +77,28 @@ $mapped = $pendiente->mapped_payload ?? [];
 <h3 class="font-bold text-lg">Conciliación</h3>
 
 <section class="space-y-3 border-b pb-5">
+<div class="flex items-center justify-between gap-3">
 <h4 class="font-semibold">1. Cliente</h4>
+<span class="inline-flex items-center px-2 py-1 rounded-full border text-xs font-semibold {{ $badgeClass($clienteSuggestion['confidence']) }}">
+{{ ucfirst($clienteSuggestion['confidence']) }} — {{ $clienteSuggestion['reason'] }}
+</span>
+</div>
+@if($clienteSuggested)
+<p class="text-sm text-green-700">Sugerido: <strong>{{ $clienteSuggested->nombre }}</strong></p>
+@endif
 <label class="flex items-center gap-2">
-<input type="radio" name="cliente_action" value="existing" checked>
+<input type="radio" name="cliente_action" value="existing" @checked($clienteSuggested)>
 <span>Usar cliente existente</span>
 </label>
 <label class="flex items-center gap-2">
-<input type="radio" name="cliente_action" value="new">
+<input type="radio" name="cliente_action" value="new" @checked(!$clienteSuggested)>
 <span>Crear cliente nuevo con los datos recibidos</span>
 </label>
 
 <select name="fk_cliente" id="fk_cliente" class="w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar cliente…</option>
 @foreach($clientes as $cliente)
-<option value="{{ $cliente->pk_cliente }}">
+<option value="{{ $cliente->pk_cliente }}" @selected($clienteSuggested && $clienteSuggested->pk_cliente === $cliente->pk_cliente)>
 {{ $cliente->nombre }}{{ $cliente->rfc ? ' — RFC: '.$cliente->rfc : '' }}{{ $cliente->correo ? ' — '.$cliente->correo : '' }}
 </option>
 @endforeach
@@ -86,20 +107,28 @@ $mapped = $pendiente->mapped_payload ?? [];
 </section>
 
 <section class="space-y-3 border-b pb-5">
+<div class="flex items-center justify-between gap-3">
 <h4 class="font-semibold">2. Propiedad</h4>
+<span class="inline-flex items-center px-2 py-1 rounded-full border text-xs font-semibold {{ $badgeClass($propiedadSuggestion['confidence']) }}">
+{{ ucfirst($propiedadSuggestion['confidence']) }} — {{ $propiedadSuggestion['reason'] }}
+</span>
+</div>
+@if($propiedadSuggested)
+<p class="text-sm text-green-700">Sugerida: <strong>{{ $propiedadSuggested->alias ?: $propiedadSuggested->domicilio }}</strong></p>
+@endif
 <label class="flex items-center gap-2">
-<input type="radio" name="propiedad_action" value="existing" checked>
+<input type="radio" name="propiedad_action" value="existing" @checked($propiedadSuggested)>
 <span>Usar propiedad existente del cliente seleccionado</span>
 </label>
 <label class="flex items-center gap-2">
-<input type="radio" name="propiedad_action" value="new">
+<input type="radio" name="propiedad_action" value="new" @checked(!$propiedadSuggested)>
 <span>Crear propiedad nueva</span>
 </label>
 
 <select name="fk_propiedad" id="fk_propiedad" class="w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar propiedad…</option>
 @foreach($propiedades as $propiedad)
-<option value="{{ $propiedad->pk_propiedad }}" data-cliente="{{ $propiedad->fk_cliente }}">
+<option value="{{ $propiedad->pk_propiedad }}" data-cliente="{{ $propiedad->fk_cliente }}" @selected($propiedadSuggested && $propiedadSuggested->pk_propiedad === $propiedad->pk_propiedad)>
 {{ $propiedad->alias ?: $propiedad->domicilio }}{{ $propiedad->domicilio ? ' — '.$propiedad->domicilio : '' }}
 </option>
 @endforeach
@@ -108,20 +137,28 @@ $mapped = $pendiente->mapped_payload ?? [];
 </section>
 
 <section class="space-y-3 border-b pb-5">
+<div class="flex items-center justify-between gap-3">
 <h4 class="font-semibold">3. Inquilino</h4>
+<span class="inline-flex items-center px-2 py-1 rounded-full border text-xs font-semibold {{ $badgeClass($inquilinoSuggestion['confidence']) }}">
+{{ ucfirst($inquilinoSuggestion['confidence']) }} — {{ $inquilinoSuggestion['reason'] }}
+</span>
+</div>
+@if($inquilinoSuggested)
+<p class="text-sm text-green-700">Sugerido: <strong>{{ $inquilinoSuggested->nombre }}</strong></p>
+@endif
 <label class="flex items-center gap-2">
-<input type="radio" name="inquilino_action" value="existing">
+<input type="radio" name="inquilino_action" value="existing" @checked($inquilinoSuggested)>
 <span>Usar inquilino existente</span>
 </label>
 <label class="flex items-center gap-2">
-<input type="radio" name="inquilino_action" value="new" checked>
+<input type="radio" name="inquilino_action" value="new" @checked(!$inquilinoSuggested)>
 <span>Crear inquilino nuevo con los datos recibidos</span>
 </label>
 
 <select name="inquilino_id" id="inquilino_id" class="w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar inquilino…</option>
 @foreach($inquilinos as $inquilino)
-<option value="{{ $inquilino->id }}">
+<option value="{{ $inquilino->id }}" @selected($inquilinoSuggested && $inquilinoSuggested->id === $inquilino->id)>
 {{ $inquilino->nombre }}{{ $inquilino->correo ? ' — '.$inquilino->correo : '' }}{{ $inquilino->telefono ? ' — '.$inquilino->telefono : '' }}
 </option>
 @endforeach
@@ -158,10 +195,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const clienteSelect = document.getElementById('fk_cliente');
     const propiedadSelect = document.getElementById('fk_propiedad');
     const propiedadOptions = Array.from(propiedadSelect.options);
+    const suggestedPropiedadId = @json($propiedadSuggested?->pk_propiedad);
 
-    function filtrarPropiedades() {
+    function filtrarPropiedades(keepSelection = false) {
         const clienteId = clienteSelect.value;
-        propiedadSelect.value = '';
+        const currentValue = propiedadSelect.value;
 
         propiedadOptions.forEach(function(option) {
             if (!option.value) {
@@ -171,10 +209,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
             option.hidden = clienteId && option.dataset.cliente !== clienteId;
         });
+
+        if (keepSelection && currentValue) {
+            propiedadSelect.value = currentValue;
+        } else if (suggestedPropiedadId) {
+            propiedadSelect.value = suggestedPropiedadId;
+        } else {
+            propiedadSelect.value = '';
+        }
     }
 
-    clienteSelect.addEventListener('change', filtrarPropiedades);
-    filtrarPropiedades();
+    clienteSelect.addEventListener('change', function () {
+        filtrarPropiedades(false);
+    });
+
+    filtrarPropiedades(true);
 });
 </script>
 </x-app-layout>
