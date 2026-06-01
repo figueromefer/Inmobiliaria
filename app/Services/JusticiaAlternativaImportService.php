@@ -7,6 +7,7 @@ use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class JusticiaAlternativaImportService
 {
@@ -65,35 +66,72 @@ class JusticiaAlternativaImportService
 
     public function mapPayload(array $row): array
     {
+        $tipoSolicitante = $this->get($row, ['La Parte Solicitante (Arrendador) es']);
+        $nombreSolicitante = $this->get($row, ['Nombre completo de la Parte Solicitante']);
+        $correoSolicitante = $this->get($row, ['Correo electrónico de la Parte Solicitante']);
+        $telefonoSolicitante = $this->get($row, ['Teléfono de la Parte Solicitante']);
+        $domicilioSolicitante = $this->get($row, ['Domicilio completo de la Parte Solicitante']);
+
         return [
-            'expediente' => $row['Número de expediente:'] ?? null,
-            'fecha_firma' => $this->parseDate($row['Fecha de firma de documentación:'] ?? null),
-            'tipo_solicitante' => $row['La Parte Solicitante (Arrendador) es:'] ?? null,
-            'nombre_solicitante' => $row['Nombre completo de la Parte Solicitante:'] ?? null,
-            'correo_solicitante' => $row['Correo electrónico de la Parte Solicitante:'] ?? null,
-            'rfc_solicitante' => $row['RFC de la Sociedad de la Parte Solicitante'] ?? null,
-            'domicilio_solicitante' => $row['Domicilio completo de la Parte Solicitante:'] ?? null,
-            'tipo_complementaria' => $row['La Parte Complementaria (Arrendatario) es:'] ?? null,
-            'nombre_complementaria' => $row['Nombre completo de la Parte Complementaria:'] ?? null,
-            'nacionalidad_complementaria' => $row['Nacionalidad de la Parte Complementaria:'] ?? null,
-            'domicilio_complementaria' => $row['Domicilio completo de la Parte Complementaria:'] ?? null,
-            'correo_complementaria' => $row['Correo electrónico de la Parte Complementaria:'] ?? null,
-            'telefono_complementaria' => $row['Teléfono de la Parte Complementaria:'] ?? null,
-            'domicilio_inmueble_arrendamiento' => $row['Domicilio completo del Inmueble en Arrendamiento'] ?? null,
-            'uso_inmueble' => $row['Indica el uso que tendrá el Inmueble en Arrendamiento'] ?? null,
-            'fecha_inicio_contrato' => $this->parseDate($row['Fecha de inicio de vigencia del Contrato'] ?? null),
-            'fecha_terminacion_contrato' => $this->parseDate($row['Fecha de terminación de vigencia del Contrato'] ?? null),
-            'meses_vigencia' => $this->parseInt($row['Meses de vigencia del Contrato'] ?? null),
-            'dias_pago' => $this->parseInt($row['Días de pago de la renta'] ?? null),
-            'monto_total' => $this->parseMoney($row['Monto por concepto de Renta Total'] ?? null),
-            'monto_mensual' => $this->parseMoney($row['Monto por concepto de Renta Mensual'] ?? null),
-            'monto_deposito' => $this->parseMoney($row['Monto por concepto de Depósito en Garantía'] ?? null),
-            'forma_pago' => $row['Forma de pago'] ?? null,
-            'institucion_bancaria' => $row['Institución Bancaria'] ?? null,
-            'beneficiario' => $row['Beneficiario'] ?? null,
-            'clabe' => $row['CLABE'] ?? null,
-            'lleva_iva' => $row['¿Lleva IVA?'] ?? null,
+            'expediente' => $this->get($row, ['Número de expediente']),
+            'fecha_firma' => $this->parseDate($this->get($row, ['Fecha de firma de documentación'])),
+
+            'tipo_solicitante' => $tipoSolicitante,
+            'nombre_solicitante' => $nombreSolicitante,
+            'correo_solicitante' => $correoSolicitante,
+            'telefono_solicitante' => $telefonoSolicitante,
+            'rfc_solicitante' => $this->get($row, ['RFC de la Sociedad de la Parte Solicitante']),
+            'domicilio_solicitante' => $domicilioSolicitante,
+
+            // En el flujo de Justicia Alternativa, la Parte Solicitante es también el inquilino del sistema.
+            'tipo_complementaria' => $tipoSolicitante,
+            'nombre_complementaria' => $nombreSolicitante,
+            'nacionalidad_complementaria' => $this->get($row, ['Nacionalidad de la Parte Solicitante']),
+            'domicilio_complementaria' => $domicilioSolicitante,
+            'correo_complementaria' => $correoSolicitante,
+            'telefono_complementaria' => $telefonoSolicitante,
+
+            // La Parte Complementaria se conserva aparte porque para este negocio representa fiador/obligado, no inquilino.
+            'fiador_tipo' => $this->get($row, ['La Parte Complementaria']),
+            'fiador_nombre' => $this->get($row, ['Nombre completo de la Parte Complementaria']),
+            'fiador_nacionalidad' => $this->get($row, ['Nacionalidad de la Parte Complementaria']),
+            'fiador_domicilio' => $this->get($row, ['Domicilio completo de la Parte Complementaria']),
+            'fiador_correo' => $this->get($row, ['Correo electrónico de la Parte Complementaria']),
+            'fiador_telefono' => $this->get($row, ['Teléfono de la Parte Complementaria']),
+
+            'domicilio_inmueble_arrendamiento' => $this->get($row, ['Domicilio completo del Inmueble en Arrendamiento']),
+            'uso_inmueble' => $this->get($row, ['Indica el uso que tendrá el Inmueble en Arrendamiento']),
+            'fecha_inicio_contrato' => $this->parseDate($this->get($row, ['Fecha de inicio de vigencia del Contrato'])),
+            'fecha_terminacion_contrato' => $this->parseDate($this->get($row, ['Fecha de terminación de vigencia del Contrato'])),
+            'meses_vigencia' => $this->parseInt($this->get($row, ['Meses de vigencia del Contrato'])),
+            'dias_pago' => $this->parseInt($this->get($row, ['Días de pago de la renta'])),
+            'monto_total' => $this->parseMoney($this->get($row, ['Monto por concepto de Renta Total'])),
+            'monto_mensual' => $this->parseMoney($this->get($row, ['Monto por concepto de Renta Mensual'])),
+            'monto_deposito' => $this->parseMoney($this->get($row, ['Monto por concepto de Depósito en Garantía'])),
+            'forma_pago' => $this->get($row, ['Forma de pago']),
+            'institucion_bancaria' => $this->get($row, ['Institución Bancaria']),
+            'beneficiario' => $this->get($row, ['Beneficiario']),
+            'clabe' => $this->get($row, ['CLABE']),
+            'lleva_iva' => $this->get($row, ['¿Lleva IVA?']),
         ];
+    }
+
+    private function get(array $row, array $needles): ?string
+    {
+        foreach ($needles as $needle) {
+            $needleNorm = $this->normalizeHeader($needle);
+
+            foreach ($row as $key => $value) {
+                $keyNorm = $this->normalizeHeader($key);
+
+                if ($keyNorm === $needleNorm || Str::contains($keyNorm, $needleNorm)) {
+                    $value = is_string($value) ? trim($value) : $value;
+                    return blank($value) ? null : (string) $value;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function findCliente(array $mapped): ?Cliente
@@ -142,7 +180,9 @@ class JusticiaAlternativaImportService
     {
         if (blank($value)) return null;
 
-        $value = preg_replace('/[^\d,.-]/', '', (string) $value);
+        $value = preg_replace('/[^\d,.\-]/', '', (string) $value);
+        if ($value === '' || $value === '-' || $value === '.' || $value === ',') return null;
+
         $commas = substr_count($value, ',');
         $dots = substr_count($value, '.');
 
@@ -157,7 +197,21 @@ class JusticiaAlternativaImportService
                 $value = str_replace(',', '', $value);
             }
         } elseif ($commas && !$dots) {
-            $value = str_replace(',', '.', $value);
+            $parts = explode(',', $value);
+            $last = end($parts);
+
+            if ($commas > 1 || strlen($last) === 3) {
+                $value = str_replace(',', '', $value);
+            } else {
+                $value = str_replace(',', '.', $value);
+            }
+        } elseif ($dots && !$commas) {
+            $parts = explode('.', $value);
+            $last = end($parts);
+
+            if ($dots > 1 || strlen($last) === 3) {
+                $value = str_replace('.', '', $value);
+            }
         }
 
         return is_numeric($value) ? (float) $value : null;
@@ -181,5 +235,15 @@ class JusticiaAlternativaImportService
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    private function normalizeHeader($value): string
+    {
+        return Str::of((string) $value)
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
     }
 }
