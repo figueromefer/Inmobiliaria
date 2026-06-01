@@ -66,10 +66,10 @@ class ContratoPendienteController extends Controller
             } else {
                 $cliente = Cliente::create([
                     'nombre' => $mapped['nombre_solicitante'] ?? 'Cliente sin nombre',
-                    'rfc' => $mapped['rfc_solicitante'] ?? null,
-                    'correo' => $mapped['correo_solicitante'] ?? null,
-                    'telefono' => $mapped['telefono_solicitante'] ?? null,
-                    'domicilio' => $mapped['domicilio_solicitante'] ?? null,
+                    'rfc' => $mapped['rfc_solicitante'] ?? '',
+                    'correo' => $mapped['correo_solicitante'] ?? '',
+                    'telefono' => $mapped['telefono_solicitante'] ?? '',
+                    'domicilio' => $mapped['domicilio_solicitante'] ?? '',
                     'notas' => 'Cliente creado desde contrato pendiente #'.$pendiente->id.'. Información pendiente de completar.',
                 ]);
 
@@ -84,7 +84,7 @@ class ContratoPendienteController extends Controller
                 $propiedad = Propiedad::create([
                     'fk_cliente' => $cliente->pk_cliente,
                     'alias' => $mapped['propiedad_alias'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? 'Propiedad pendiente',
-                    'domicilio' => $mapped['propiedad_domicilio'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? null,
+                    'domicilio' => $mapped['propiedad_domicilio'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? '',
                     'estatus_informacion' => 'pendiente_completar',
                 ]);
 
