@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     Traer contrato de Justicia Alternativa
@@ -10,7 +10,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('contratos.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg">
+            <a href="{{ route('contratos.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
                 ← Volver a contratos
             </a>
         </div>
@@ -29,7 +29,7 @@
                 </div>
             @endif
 
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+            <div class="bg-gray-50 border rounded-lg p-4 text-sm text-gray-800">
                 Captura el número de expediente exactamente como aparece en Justicia Alternativa. El sistema validará que exista, que no esté duplicado en la fuente externa y que no haya sido importado antes.
             </div>
 
@@ -45,7 +45,7 @@
                         id="expediente"
                         name="expediente"
                         value="{{ old('expediente') }}"
-                        placeholder="Ej. JA-2026-0001"
+                        placeholder="Ej. 923-2026"
                         class="mt-1 w-full border-gray-300 rounded-lg shadow-sm"
                         required
                         autofocus
@@ -56,10 +56,10 @@
                 </div>
 
                 <div class="flex justify-end gap-2">
-                    <a href="{{ route('contratos.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg">
+                    <a href="{{ route('contratos.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
                         Cancelar
                     </a>
-                    <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">
+                    <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
                         Consultar expediente
                     </button>
                 </div>
