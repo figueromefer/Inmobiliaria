@@ -16,14 +16,15 @@ class ContratoPendienteController extends Controller
 {
     public function index()
     {
-        $pendientes = ContratoPendiente::with([
-            'cliente',
-            'propiedad',
-            'inquilino',
-            'contrato',
-        ])
-        ->latest()
-        ->paginate(20);
+        $pendientes = ContratoPendiente::pendientes()
+            ->with([
+                'cliente',
+                'propiedad',
+                'inquilino',
+                'contrato',
+            ])
+            ->latest()
+            ->paginate(20);
 
         return view('contratos.pendientes.index', compact('pendientes'));
     }
@@ -44,8 +45,8 @@ class ContratoPendienteController extends Controller
     {
         if ($pendiente->estado !== 'pendiente_match') {
             return redirect()
-                ->route('contratos.pendientes.show', $pendiente)
-                ->with('error', 'Este contrato pendiente ya no está disponible para resolver.');
+                ->route('contratos.pendientes.index')
+                ->with('error', 'Este contrato pendiente ya fue resuelto o ya no está disponible.');
         }
 
         $validated = $request->validate([
