@@ -3,17 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 
 class Contrato extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'contratos';
 
-    // Incluye todas tus columnas originales más las FKs nuevas
     protected $fillable = [
         'fk_cliente',
         'fk_propiedad',
-
         'tipo_solicitante',
         'tipo_complementaria',
         'tipo_tercero',
@@ -37,7 +38,6 @@ class Contrato extends Model
         'raw_justicia_alternativa',
     ];
 
-    // Casts (opcional) para fechas y números
     protected $casts = [
         'fecha'        => 'datetime',
         'fecha_inicio' => 'date',
@@ -46,12 +46,10 @@ class Contrato extends Model
         'raw_justicia_alternativa' => 'array',
     ];
 
-    // Relaciones Eloquent
     public function cliente()   { return $this->belongsTo(Cliente::class, 'fk_cliente', 'pk_cliente'); }
     public function propiedad() { return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad'); }
     public function inquilino() { return $this->belongsTo(Inquilino::class, 'inquilino_id'); }
 
-    // Scope para encontrar contratos activos en un mes (útil para reportes)
     public function scopeActivosEnMes($query, Carbon $mes)
     {
         $inicio = $mes->copy()->startOfMonth();
