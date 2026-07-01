@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class ClienteController extends Controller
 {
@@ -13,6 +14,7 @@ class ClienteController extends Controller
         $search = trim((string) $request->get('search'));
 
         $clientes = Cliente::query()
+            ->withCount('contratos')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
@@ -106,13 +108,23 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente actualizado exitosamente.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         Gate::authorize('delete-anything');
 
-        $cliente = Cliente::findOrFail($id);
-        $cliente->delete();
+        $cliente = Cliente::withCount('contratos')->findOrFail($id);
 
-        return redirect()->route('clientes.index')->with('success', 'Cliente eliminado exitosamente.');
+        if ($cliente->contratos_count > 0 && !$request->boolean('archive_contracts')) {
+            return redirect()
+                ->route('clientes.index')
+                ->with('error', 'El cliente tiene contratos asociados. Confirma que deseas archivar también sus contratos.');
+        }
+
+        DB::transaction(function () use ($cliente) {
+            $cliente->contratos()->delete();
+            $cliente->delete();
+        });
+
+        return redirect()->route('clientes.index')->with('success', 'Cliente y contratos asociados archivados correctamente.');
     }
 }
