@@ -115,6 +115,7 @@ $confidenceNote = function ($confidence) {
 <span>Crear cliente nuevo con los datos recibidos</span>
 </label>
 
+<div data-action-panel="cliente" data-visible-when="existing">
 <select name="fk_cliente" id="fk_cliente" class="w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar cliente…</option>
 @foreach($clientes as $cliente)
@@ -123,6 +124,7 @@ $confidenceNote = function ($confidence) {
 </option>
 @endforeach
 </select>
+</div>
 <p class="text-xs text-gray-500">Si creas cliente nuevo, se generará una tarea para completar su información.</p>
 </section>
 
@@ -150,6 +152,7 @@ $confidenceNote = function ($confidence) {
 <span>Crear propiedad nueva</span>
 </label>
 
+<div data-action-panel="propiedad" data-visible-when="existing">
 <select name="fk_propiedad" id="fk_propiedad" class="w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar propiedad…</option>
 @foreach($propiedades as $propiedad)
@@ -158,6 +161,7 @@ $confidenceNote = function ($confidence) {
 </option>
 @endforeach
 </select>
+</div>
 <p class="text-xs text-gray-500">Si creas propiedad nueva, quedará marcada como pendiente de completar información.</p>
 </section>
 
@@ -185,6 +189,7 @@ $confidenceNote = function ($confidence) {
 <span>Crear inquilino nuevo con los datos recibidos</span>
 </label>
 
+<div data-action-panel="inquilino" data-visible-when="existing">
 <select name="inquilino_id" id="inquilino_id" class="w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar inquilino…</option>
 @foreach($inquilinos as $inquilino)
@@ -193,6 +198,7 @@ $confidenceNote = function ($confidence) {
 </option>
 @endforeach
 </select>
+</div>
 </section>
 
 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-900">
@@ -211,15 +217,6 @@ Resolver pendiente y crear contrato
 
 </div>
 
-<div class="bg-white rounded-xl shadow border p-6">
-<h3 class="font-bold text-lg mb-4">Payload mapeado</h3>
-<div class="bg-gray-50 border rounded-lg p-4 text-xs overflow-auto">
-<pre>{{ json_encode($mapped, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre>
-</div>
-</div>
-
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const clienteSelect = document.getElementById('fk_cliente');
@@ -228,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const suggestedPropiedadId = @json($propiedadSuggested?->pk_propiedad);
 
     function filtrarPropiedades(keepSelection = false) {
+        if (!clienteSelect || !propiedadSelect) return;
         const clienteId = clienteSelect.value;
         const currentValue = propiedadSelect.value;
 
@@ -249,9 +247,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    clienteSelect.addEventListener('change', function () {
-        filtrarPropiedades(false);
+    function toggleActionPanels(name) {
+        const selected = document.querySelector('input[name="' + name + '_action"]:checked');
+        const value = selected ? selected.value : null;
+        document.querySelectorAll('[data-action-panel="' + name + '"]').forEach(function(panel) {
+            panel.hidden = panel.dataset.visibleWhen !== value;
+        });
+    }
+
+    ['cliente', 'propiedad', 'inquilino'].forEach(function(name) {
+        document.querySelectorAll('input[name="' + name + '_action"]').forEach(function(input) {
+            input.addEventListener('change', function () {
+                toggleActionPanels(name);
+                if (name === 'cliente') filtrarPropiedades(false);
+            });
+        });
+        toggleActionPanels(name);
     });
+
+    if (clienteSelect) {
+        clienteSelect.addEventListener('change', function () {
+            filtrarPropiedades(false);
+        });
+    }
 
     filtrarPropiedades(true);
 });
