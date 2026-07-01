@@ -83,7 +83,6 @@ class JusticiaAlternativaImportService
             'rfc_solicitante' => $this->get($row, ['RFC de la Sociedad de la Parte Solicitante']),
             'domicilio_solicitante' => $domicilioSolicitante,
 
-            // En el flujo de Justicia Alternativa, la Parte Solicitante es también el inquilino del sistema.
             'tipo_complementaria' => $tipoSolicitante,
             'nombre_complementaria' => $nombreSolicitante,
             'nacionalidad_complementaria' => $this->get($row, ['Nacionalidad de la Parte Solicitante']),
@@ -91,7 +90,6 @@ class JusticiaAlternativaImportService
             'correo_complementaria' => $correoSolicitante,
             'telefono_complementaria' => $telefonoSolicitante,
 
-            // La Parte Complementaria se conserva aparte porque para este negocio representa fiador/obligado, no inquilino.
             'fiador_tipo' => $this->get($row, ['La Parte Complementaria']),
             'fiador_nombre' => $this->get($row, ['Nombre completo de la Parte Complementaria']),
             'fiador_nacionalidad' => $this->get($row, ['Nacionalidad de la Parte Complementaria']),
@@ -142,7 +140,8 @@ class JusticiaAlternativaImportService
         }
 
         if (!empty($mapped['correo_solicitante'])) {
-            $cliente = Cliente::where('correo', trim($mapped['correo_solicitante']))->first();
+            $correo = strtolower(trim($mapped['correo_solicitante']));
+            $cliente = Cliente::whereNotNull('correo')->get()->first(fn ($cliente) => strtolower(trim((string) $cliente->correo)) === $correo && $correo !== '');
             if ($cliente) return $cliente;
         }
 
@@ -165,7 +164,8 @@ class JusticiaAlternativaImportService
     private function findInquilino(array $mapped): ?Inquilino
     {
         if (!empty($mapped['correo_complementaria'])) {
-            $inquilino = Inquilino::where('correo', trim($mapped['correo_complementaria']))->first();
+            $correo = strtolower(trim($mapped['correo_complementaria']));
+            $inquilino = Inquilino::whereNotNull('correo')->get()->first(fn ($inquilino) => strtolower(trim((string) $inquilino->correo)) === $correo && $correo !== '');
             if ($inquilino) return $inquilino;
         }
 
@@ -229,6 +229,30 @@ class JusticiaAlternativaImportService
     private function parseDate($value): ?string
     {
         if (blank($value)) return null;
+
+        $value = trim((string) $value);
+
+        $formats = [
+            'Y-m-d',
+            'Y/m/d',
+            'd/m/Y',
+            'd-m-Y',
+            'm/d/Y',
+            'm-d-Y',
+            'd/m/y',
+            'd-m-y',
+        ];
+
+        foreach ($formats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $value);
+                if ($date !== false) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Throwable $e) {
+                // probar siguiente formato
+            }
+        }
 
         try {
             return Carbon::parse($value)->format('Y-m-d');
