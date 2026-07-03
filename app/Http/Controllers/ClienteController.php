@@ -15,7 +15,14 @@ class ClienteController extends Controller
         $search = trim((string) $request->get('search'));
 
         $clientes = Cliente::query()
-            ->withCount('contratos')
+            ->when(Schema::hasColumn('clientes', 'deleted_at'), function ($query) {
+                $query->whereNull('clientes.deleted_at');
+            })
+            ->withCount(['contratos' => function ($query) {
+                if (Schema::hasColumn('contratos', 'deleted_at')) {
+                    $query->whereNull('contratos.deleted_at');
+                }
+            }])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
@@ -119,7 +126,9 @@ class ClienteController extends Controller
                 ->with('error', 'Falta ejecutar migraciones para habilitar archivado lógico. Ejecuta migrate antes de archivar clientes.');
         }
 
-        $cliente = Cliente::withCount('contratos')->findOrFail($id);
+        $cliente = Cliente::withCount(['contratos' => function ($query) {
+            $query->whereNull('contratos.deleted_at');
+        }])->findOrFail($id);
 
         if ($cliente->contratos_count > 0 && !$request->boolean('archive_contracts')) {
             return redirect()
