@@ -6,6 +6,7 @@ use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ClienteController extends Controller
 {
@@ -112,6 +113,12 @@ class ClienteController extends Controller
     {
         Gate::authorize('delete-anything');
 
+        if (!Schema::hasColumn('clientes', 'deleted_at') || !Schema::hasColumn('contratos', 'deleted_at')) {
+            return redirect()
+                ->route('clientes.index')
+                ->with('error', 'Falta ejecutar migraciones para habilitar archivado lógico. Ejecuta migrate antes de archivar clientes.');
+        }
+
         $cliente = Cliente::withCount('contratos')->findOrFail($id);
 
         if ($cliente->contratos_count > 0 && !$request->boolean('archive_contracts')) {
@@ -121,8 +128,17 @@ class ClienteController extends Controller
         }
 
         DB::transaction(function () use ($cliente) {
-            $cliente->contratos()->delete();
-            $cliente->delete();
+            $now = now();
+
+            DB::table('contratos')
+                ->where('fk_cliente', $cliente->pk_cliente)
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => $now, 'updated_at' => $now]);
+
+            DB::table('clientes')
+                ->where('pk_cliente', $cliente->pk_cliente)
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => $now, 'updated_at' => $now]);
         });
 
         return redirect()->route('clientes.index')->with('success', 'Cliente y contratos asociados archivados correctamente.');
