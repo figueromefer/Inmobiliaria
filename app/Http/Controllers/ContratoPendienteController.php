@@ -41,6 +41,21 @@ class ContratoPendienteController extends Controller
         return view('contratos.pendientes.show', compact('pendiente', 'clientes', 'propiedades', 'inquilinos', 'suggestions'));
     }
 
+    public function destroy(ContratoPendiente $pendiente)
+    {
+        if ($pendiente->estado !== 'pendiente_match') {
+            return redirect()
+                ->route('contratos.pendientes.index')
+                ->with('error', 'Solo se pueden eliminar pendientes activos.');
+        }
+
+        $pendiente->delete();
+
+        return redirect()
+            ->route('contratos.pendientes.index')
+            ->with('success', 'Contrato pendiente eliminado correctamente.');
+    }
+
     public function resolver(Request $request, ContratoPendiente $pendiente)
     {
         if ($pendiente->estado !== 'pendiente_match') {
