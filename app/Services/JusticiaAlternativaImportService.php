@@ -139,9 +139,9 @@ class JusticiaAlternativaImportService
             if ($cliente) return $cliente;
         }
 
-        if (!empty($mapped['correo_solicitante'])) {
-            $correo = strtolower(trim($mapped['correo_solicitante']));
-            $cliente = Cliente::whereNotNull('correo')->get()->first(fn ($cliente) => strtolower(trim((string) $cliente->correo)) === $correo && $correo !== '');
+        $correo = $this->normalizeEmail($mapped['correo_solicitante'] ?? null);
+        if ($correo !== '') {
+            $cliente = Cliente::all()->first(fn ($cliente) => $this->normalizeEmail($cliente->correo) === $correo);
             if ($cliente) return $cliente;
         }
 
@@ -163,9 +163,9 @@ class JusticiaAlternativaImportService
 
     private function findInquilino(array $mapped): ?Inquilino
     {
-        if (!empty($mapped['correo_complementaria'])) {
-            $correo = strtolower(trim($mapped['correo_complementaria']));
-            $inquilino = Inquilino::whereNotNull('correo')->get()->first(fn ($inquilino) => strtolower(trim((string) $inquilino->correo)) === $correo && $correo !== '');
+        $correo = $this->normalizeEmail($mapped['correo_complementaria'] ?? null);
+        if ($correo !== '') {
+            $inquilino = Inquilino::all()->first(fn ($inquilino) => $this->normalizeEmail($inquilino->correo) === $correo);
             if ($inquilino) return $inquilino;
         }
 
@@ -292,6 +292,17 @@ class JusticiaAlternativaImportService
         ];
 
         return strtr($value, $months);
+    }
+
+    private function normalizeEmail($value): string
+    {
+        $email = strtolower(trim((string) $value));
+
+        if (in_array($email, ['', '-', '--', '---', 'n/a', 'na', 'no aplica', 'sin correo', 'sin email'], true)) {
+            return '';
+        }
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
     }
 
     private function normalizeHeader($value): string
