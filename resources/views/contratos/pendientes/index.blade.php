@@ -17,6 +17,18 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto mt-6 bg-white lg:px-8 py-6">
+        @if(session('success'))
+            <div class="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <div class="overflow-x-auto bg-white border rounded-lg">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50 border-b">
@@ -28,7 +40,7 @@
                         <th class="text-left px-4 py-3">Propiedad recibida</th>
                         <th class="text-left px-4 py-3">Estado</th>
                         <th class="text-left px-4 py-3">Recibido</th>
-                        <th class="text-left px-4 py-3">Acción</th>
+                        <th class="text-left px-4 py-3">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -81,9 +93,19 @@
                                 {{ $pendiente->created_at ? $pendiente->created_at->format('Y-m-d H:i') : '—' }}
                             </td>
                             <td class="px-4 py-3">
-                                <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="text-blue-600 hover:underline font-semibold">
-                                    Resolver
-                                </a>
+                                <div class="flex items-center gap-3">
+                                    <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="text-blue-600 hover:underline font-semibold">
+                                        Resolver
+                                    </a>
+
+                                    <form action="{{ route('contratos.pendientes.destroy', $pendiente) }}" method="POST" onsubmit="return confirm('¿Eliminar este contrato pendiente? Esta acción solo elimina el registro temporal y no elimina contratos, clientes, propiedades ni inquilinos.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:underline font-semibold">
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
