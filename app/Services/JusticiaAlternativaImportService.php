@@ -230,7 +230,7 @@ class JusticiaAlternativaImportService
     {
         if (blank($value)) return null;
 
-        $value = trim((string) $value);
+        $value = $this->normalizeSpanishDate((string) $value);
 
         $formats = [
             'Y-m-d',
@@ -241,6 +241,8 @@ class JusticiaAlternativaImportService
             'm-d-Y',
             'd/m/y',
             'd-m-y',
+            'd F Y',
+            'd M Y',
         ];
 
         foreach ($formats as $format) {
@@ -259,6 +261,37 @@ class JusticiaAlternativaImportService
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    private function normalizeSpanishDate(string $value): string
+    {
+        $value = Str::of($value)
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/\s+/', ' ')
+            ->trim()
+            ->toString();
+
+        $value = preg_replace('/\bde\b/', ' ', $value);
+        $value = preg_replace('/\s+/', ' ', trim($value));
+
+        $months = [
+            'enero' => 'january',
+            'febrero' => 'february',
+            'marzo' => 'march',
+            'abril' => 'april',
+            'mayo' => 'may',
+            'junio' => 'june',
+            'julio' => 'july',
+            'agosto' => 'august',
+            'septiembre' => 'september',
+            'setiembre' => 'september',
+            'octubre' => 'october',
+            'noviembre' => 'november',
+            'diciembre' => 'december',
+        ];
+
+        return strtr($value, $months);
     }
 
     private function normalizeHeader($value): string
