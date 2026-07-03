@@ -160,9 +160,9 @@ class ContratoPendienteController extends Controller
             if ($cliente) return $this->suggestion($cliente, 'alta', 'RFC exacto', 100);
         }
 
-        if (!empty($mapped['correo_solicitante'])) {
-            $correo = strtolower(trim($mapped['correo_solicitante']));
-            $cliente = Cliente::all()->first(fn ($cliente) => $correo !== '' && strtolower(trim((string) $cliente->correo)) === $correo);
+        $correo = $this->normalizeEmail($mapped['correo_solicitante'] ?? null);
+        if ($correo !== '') {
+            $cliente = Cliente::all()->first(fn ($cliente) => $this->normalizeEmail($cliente->correo) === $correo);
             if ($cliente) return $this->suggestion($cliente, 'alta', 'Correo exacto', 100);
         }
 
@@ -222,9 +222,9 @@ class ContratoPendienteController extends Controller
 
     private function suggestInquilino(array $mapped): array
     {
-        if (!empty($mapped['correo_complementaria'])) {
-            $correo = strtolower(trim($mapped['correo_complementaria']));
-            $inquilino = Inquilino::all()->first(fn ($inquilino) => $correo !== '' && strtolower(trim((string) $inquilino->correo)) === $correo);
+        $correo = $this->normalizeEmail($mapped['correo_complementaria'] ?? null);
+        if ($correo !== '') {
+            $inquilino = Inquilino::all()->first(fn ($inquilino) => $this->normalizeEmail($inquilino->correo) === $correo);
             if ($inquilino) return $this->suggestion($inquilino, 'alta', 'Correo exacto', 100);
         }
 
@@ -299,6 +299,17 @@ class ContratoPendienteController extends Controller
             ->replaceMatches('/[^a-z0-9]+/', ' ')
             ->squish()
             ->toString();
+    }
+
+    private function normalizeEmail($value): string
+    {
+        $email = strtolower(trim((string) $value));
+
+        if (in_array($email, ['', '-', '--', '---', 'n/a', 'na', 'no aplica', 'sin correo', 'sin email'], true)) {
+            return '';
+        }
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
     }
 
     private function normalizeCode($value): string
