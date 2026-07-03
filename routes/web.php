@@ -67,6 +67,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/contratos/pendientes/{pendiente}', [ContratoPendienteController::class, 'show'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.show');
+    Route::delete('/contratos/pendientes/{pendiente}', [ContratoPendienteController::class, 'destroy'])
+        ->middleware('can:manage-records')
+        ->name('contratos.pendientes.destroy');
     Route::post('/contratos/pendientes/{pendiente}/resolver', [ContratoPendienteController::class, 'resolver'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.resolver');
