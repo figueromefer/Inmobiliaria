@@ -33,7 +33,13 @@
                 Captura el número de expediente exactamente como aparece en Justicia Alternativa. El sistema validará que exista, que no esté duplicado en la fuente externa y que no haya sido importado antes.
             </div>
 
-            <form method="POST" action="{{ route('contratos.justicia-alternativa.preview') }}" class="space-y-4">
+            <form
+                method="POST"
+                action="{{ route('contratos.justicia-alternativa.preview') }}"
+                class="space-y-4"
+                x-data="{ submitting: false }"
+                x-on:submit="submitting = true"
+            >
                 @csrf
 
                 <div>
@@ -59,8 +65,13 @@
                     <a href="{{ route('contratos.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
                         Cancelar
                     </a>
-                    <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
-                        Consultar expediente
+                    <button
+                        type="submit"
+                        class="bg-gray-800 hover:bg-gray-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
+                        x-bind:disabled="submitting"
+                    >
+                        <span x-show="!submitting">Consultar expediente</span>
+                        <span x-show="submitting" style="display: none;">Consultando expediente...</span>
                     </button>
                 </div>
             </form>

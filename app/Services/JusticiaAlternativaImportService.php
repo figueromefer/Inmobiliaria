@@ -71,6 +71,12 @@ class JusticiaAlternativaImportService
         $correoSolicitante = $this->get($row, ['Correo electrónico de la Parte Solicitante']);
         $telefonoSolicitante = $this->get($row, ['Teléfono de la Parte Solicitante']);
         $domicilioSolicitante = $this->get($row, ['Domicilio completo de la Parte Solicitante']);
+        $tipoComplementaria = $this->get($row, ['La Parte Complementaria']);
+        $nombreComplementaria = $this->get($row, ['Nombre completo de la Parte Complementaria']);
+        $nacionalidadComplementaria = $this->get($row, ['Nacionalidad de la Parte Complementaria']);
+        $domicilioComplementaria = $this->get($row, ['Domicilio completo de la Parte Complementaria']);
+        $correoComplementaria = $this->get($row, ['Correo electrónico de la Parte Complementaria']);
+        $telefonoComplementaria = $this->get($row, ['Teléfono de la Parte Complementaria']);
 
         return [
             'expediente' => $this->get($row, ['Número de expediente']),
@@ -83,19 +89,60 @@ class JusticiaAlternativaImportService
             'rfc_solicitante' => $this->get($row, ['RFC de la Sociedad de la Parte Solicitante']),
             'domicilio_solicitante' => $domicilioSolicitante,
 
-            'tipo_complementaria' => $tipoSolicitante,
-            'nombre_complementaria' => $nombreSolicitante,
-            'nacionalidad_complementaria' => $this->get($row, ['Nacionalidad de la Parte Solicitante']),
-            'domicilio_complementaria' => $domicilioSolicitante,
-            'correo_complementaria' => $correoSolicitante,
-            'telefono_complementaria' => $telefonoSolicitante,
+            'tipo_complementaria' => $tipoComplementaria,
+            'nombre_complementaria' => $nombreComplementaria,
+            'nacionalidad_complementaria' => $nacionalidadComplementaria,
+            'domicilio_complementaria' => $domicilioComplementaria,
+            'correo_complementaria' => $correoComplementaria,
+            'telefono_complementaria' => $telefonoComplementaria,
 
-            'fiador_tipo' => $this->get($row, ['La Parte Complementaria']),
-            'fiador_nombre' => $this->get($row, ['Nombre completo de la Parte Complementaria']),
-            'fiador_nacionalidad' => $this->get($row, ['Nacionalidad de la Parte Complementaria']),
-            'fiador_domicilio' => $this->get($row, ['Domicilio completo de la Parte Complementaria']),
-            'fiador_correo' => $this->get($row, ['Correo electrónico de la Parte Complementaria']),
-            'fiador_telefono' => $this->get($row, ['Teléfono de la Parte Complementaria']),
+            'fiador_tipo' => $this->getExact($row, [
+                'Tercer Interesado / Obligado Solidario / Fiador',
+            ]) ?? $this->get($row, [
+                'El Tercer Interesado / Obligado Solidario / Fiador es',
+                'La Parte Tercer Interesado',
+                'La Parte Tercera Interesada',
+            ]),
+            'fiador_nombre' => $this->get($row, [
+                'Nombre completo del Tercer Interesado / Obligado Solidario / Fiador',
+                'Nombre completo del Tercer Interesado',
+                'Nombre completo de la Parte Tercer Interesado',
+                'Nombre completo de la Parte Tercera Interesada',
+                'Nombre completo del Obligado Solidario',
+                'Nombre completo del Fiador',
+            ]),
+            'fiador_nacionalidad' => $this->get($row, [
+                'Nacionalidad del Tercer Interesado / Obligado Solidario / Fiador',
+                'Nacionalidad del Tercer Interesado',
+                'Nacionalidad de la Parte Tercer Interesado',
+                'Nacionalidad de la Parte Tercera Interesada',
+                'Nacionalidad del Obligado Solidario',
+                'Nacionalidad del Fiador',
+            ]),
+            'fiador_domicilio' => $this->get($row, [
+                'Domicilio completo del Tercer Interesado / Obligado Solidario / Fiador',
+                'Domicilio completo del Tercer Interesado',
+                'Domicilio completo de la Parte Tercer Interesado',
+                'Domicilio completo de la Parte Tercera Interesada',
+                'Domicilio completo del Obligado Solidario',
+                'Domicilio completo del Fiador',
+            ]),
+            'fiador_correo' => $this->get($row, [
+                'Correo electrónico del Tercer Interesado / Obligado Solidario / Fiador',
+                'Correo electrónico del Tercer Interesado',
+                'Correo electrónico de la Parte Tercer Interesado',
+                'Correo electrónico de la Parte Tercera Interesada',
+                'Correo electrónico del Obligado Solidario',
+                'Correo electrónico del Fiador',
+            ]),
+            'fiador_telefono' => $this->get($row, [
+                'Teléfono del Tercer Interesado / Obligado Solidario / Fiador',
+                'Teléfono del Tercer Interesado',
+                'Teléfono de la Parte Tercer Interesado',
+                'Teléfono de la Parte Tercera Interesada',
+                'Teléfono del Obligado Solidario',
+                'Teléfono del Fiador',
+            ]),
 
             'domicilio_inmueble_arrendamiento' => $this->get($row, ['Domicilio completo del Inmueble en Arrendamiento']),
             'uso_inmueble' => $this->get($row, ['Indica el uso que tendrá el Inmueble en Arrendamiento']),
@@ -123,6 +170,22 @@ class JusticiaAlternativaImportService
                 $keyNorm = $this->normalizeHeader($key);
 
                 if ($keyNorm === $needleNorm || Str::contains($keyNorm, $needleNorm)) {
+                    $value = is_string($value) ? trim($value) : $value;
+                    return blank($value) ? null : (string) $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function getExact(array $row, array $needles): ?string
+    {
+        foreach ($needles as $needle) {
+            $needleNorm = $this->normalizeHeader($needle);
+
+            foreach ($row as $key => $value) {
+                if ($this->normalizeHeader($key) === $needleNorm) {
                     $value = is_string($value) ? trim($value) : $value;
                     return blank($value) ? null : (string) $value;
                 }
