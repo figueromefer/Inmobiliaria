@@ -8,6 +8,7 @@ use App\Models\ContratoPendiente;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use App\Models\Task;
+use App\Services\GeocodingService;
 use App\Services\JusticiaAlternativaImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,7 +60,7 @@ class ContratoPendienteController extends Controller
             ->with('success', 'Contrato pendiente eliminado correctamente.');
     }
 
-    public function resolver(Request $request, ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
+    public function resolver(Request $request, ContratoPendiente $pendiente, JusticiaAlternativaImportService $service, GeocodingService $geocodingService)
     {
         if ($pendiente->estado !== 'pendiente_match') {
             return redirect()
@@ -83,8 +84,13 @@ class ContratoPendienteController extends Controller
         }
 
         $mapped = $pendiente->mapped_payload ?? [];
+        $geocodedCoordinates = null;
 
-        $contrato = DB::transaction(function () use ($validated, $mapped, $pendiente) {
+        if ($validated['propiedad_action'] === 'new' && $pendiente->origen === 'justicia_alternativa') {
+            $geocodedCoordinates = $geocodingService->geocode($mapped['domicilio_inmueble_arrendamiento'] ?? null);
+        }
+
+        $contrato = DB::transaction(function () use ($validated, $mapped, $pendiente, $geocodedCoordinates) {
             if ($validated['cliente_action'] === 'existing') {
                 $cliente = Cliente::findOrFail($validated['fk_cliente']);
             } else {
@@ -105,12 +111,19 @@ class ContratoPendienteController extends Controller
                     ->where('fk_cliente', $cliente->pk_cliente)
                     ->firstOrFail();
             } else {
-                $propiedad = Propiedad::create([
+                $propiedadData = [
                     'fk_cliente' => $cliente->pk_cliente,
                     'alias' => $mapped['propiedad_alias'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? 'Propiedad pendiente',
                     'domicilio' => $mapped['propiedad_domicilio'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? '',
                     'estatus_informacion' => 'pendiente_completar',
-                ]);
+                ];
+
+                if ($geocodedCoordinates) {
+                    $propiedadData['latitud'] = $geocodedCoordinates['latitud'];
+                    $propiedadData['longitud'] = $geocodedCoordinates['longitud'];
+                }
+
+                $propiedad = Propiedad::create($propiedadData);
 
                 $this->crearTareaCompletarInformacion('propiedad', $propiedad->pk_propiedad, 'Completar información de la propiedad: '.($propiedad->alias ?: 'Propiedad #'.$propiedad->pk_propiedad), $pendiente->id);
             }
