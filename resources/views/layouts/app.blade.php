@@ -81,6 +81,8 @@
                         }
                     });
                 });
+
+                document.dispatchEvent(new CustomEvent('searchable-selects:ready'));
             });
         </script>
     </body>

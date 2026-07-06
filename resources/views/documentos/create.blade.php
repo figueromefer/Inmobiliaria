@@ -66,7 +66,7 @@
                                 class="js-searchable-select form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
                                 <option value="">— Sin propiedad —</option>
                                 @foreach($propiedades as $propiedad)
-                                    <option value="{{ $propiedad->pk_propiedad }}" @selected(old('fk_propiedad', $propiedadId ?? null) == $propiedad->pk_propiedad)>
+                                    <option value="{{ $propiedad->pk_propiedad }}" data-cliente="{{ $propiedad->fk_cliente }}" @selected(old('fk_propiedad', $propiedadId ?? null) == $propiedad->pk_propiedad)>
                                         {{ $propiedad->alias }}
                                     </option>
                                 @endforeach
@@ -103,4 +103,107 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const clienteSelect = document.getElementById('fk_cliente');
+            const propiedadSelect = document.getElementById('fk_propiedad');
+
+            if (!clienteSelect || !propiedadSelect) return;
+
+            const propertyOptions = Array.from(propiedadSelect.options).map(function (option) {
+                return {
+                    value: option.value,
+                    text: option.text,
+                    cliente: option.dataset.cliente || '',
+                    selected: option.selected,
+                };
+            });
+
+            let syncing = false;
+
+            function setSelectValue(select, value) {
+                select.value = value;
+
+                if (select.tomselect) {
+                    select.tomselect.setValue(value, true);
+                }
+            }
+
+            function rebuildTomSelectOptions(select, options) {
+                if (!select.tomselect) return;
+
+                const currentValue = select.value;
+                select.tomselect.clearOptions();
+                select.tomselect.addOptions(options.map(function (option) {
+                    return {
+                        value: option.value,
+                        text: option.text,
+                    };
+                }));
+                select.tomselect.refreshOptions(false);
+
+                if (currentValue && options.some(option => option.value === currentValue)) {
+                    select.tomselect.setValue(currentValue, true);
+                }
+            }
+
+            function filterPropertiesByClient(keepSelection = true) {
+                const clienteId = clienteSelect.value;
+                const currentPropertyId = propiedadSelect.value;
+                const allowedOptions = propertyOptions.filter(function (option) {
+                    return !option.value || !clienteId || option.cliente === clienteId;
+                });
+
+                propiedadSelect.innerHTML = '';
+                allowedOptions.forEach(function (option) {
+                    const element = new Option(option.text, option.value, false, false);
+                    element.dataset.cliente = option.cliente;
+                    propiedadSelect.add(element);
+                });
+
+                if (keepSelection && currentPropertyId && allowedOptions.some(option => option.value === currentPropertyId)) {
+                    propiedadSelect.value = currentPropertyId;
+                } else if (currentPropertyId && !allowedOptions.some(option => option.value === currentPropertyId)) {
+                    propiedadSelect.value = '';
+                }
+
+                rebuildTomSelectOptions(propiedadSelect, allowedOptions);
+            }
+
+            function syncClientFromProperty() {
+                if (syncing) return;
+
+                const propertyId = propiedadSelect.value;
+                if (!propertyId) return;
+
+                const selectedProperty = propertyOptions.find(option => option.value === propertyId);
+                if (!selectedProperty || !selectedProperty.cliente) return;
+
+                syncing = true;
+                setSelectValue(clienteSelect, selectedProperty.cliente);
+                filterPropertiesByClient(true);
+                setSelectValue(propiedadSelect, propertyId);
+                syncing = false;
+            }
+
+            function syncPropertiesFromClient() {
+                if (syncing) return;
+
+                syncing = true;
+                filterPropertiesByClient(false);
+                syncing = false;
+            }
+
+            clienteSelect.addEventListener('change', syncPropertiesFromClient);
+            propiedadSelect.addEventListener('change', syncClientFromProperty);
+            document.addEventListener('searchable-selects:ready', function () {
+                filterPropertiesByClient(true);
+                syncClientFromProperty();
+            });
+
+            filterPropertiesByClient(true);
+            syncClientFromProperty();
+        });
+    </script>
 </x-app-layout>

@@ -172,6 +172,7 @@
                                 <span class="font-medium">{{ $doc->titulo ?: 'Documento sin título' }}</span>
                                 <div class="space-x-3 shrink-0">
                                     <a href="{{ route('documentos.view', $doc) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Ver</a>
+                                    <a href="{{ route('documentos.download', $doc) }}" class="text-blue-600 hover:underline">Descargar</a>
                                     @can('delete-anything')
                                         <form action="{{ route('documentos.destroy', $doc) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
                                             @csrf

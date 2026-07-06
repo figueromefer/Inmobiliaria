@@ -69,7 +69,17 @@ Sin contratos
 @foreach($docs as $d)
 <div class="flex justify-between p-3 border-b">
 <span>{{ $d->titulo?:'Documento' }}</span>
+<div class="space-x-3 shrink-0">
 <a href="{{ route('documentos.view',$d) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600">Ver</a>
+<a href="{{ route('documentos.download',$d) }}" class="text-blue-600">Descargar</a>
+@can('delete-anything')
+<form action="{{ route('documentos.destroy',$d) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
+@csrf
+@method('DELETE')
+<button class="text-red-600">Eliminar</button>
+</form>
+@endcan
+</div>
 </div>
 @endforeach
 </div>
