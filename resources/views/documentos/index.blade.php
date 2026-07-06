@@ -17,6 +17,12 @@
             @endcan
 
             <form method="GET" action="{{ route('documentos.index') }}" class="mb-6 flex flex-wrap gap-2">
+                @if($inquilinoId)
+                    <input type="hidden" name="inquilino" value="{{ $inquilinoId }}">
+                @endif
+
+                <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Buscar documento..." class="border-gray-300 rounded shadow-sm px-3 py-2">
+
                 <select name="cliente" class="border-gray-300 rounded shadow-sm px-3 py-2">
                     <option value="">-- Filtrar por cliente --</option>
                     @foreach($clientes as $cliente)
@@ -36,8 +42,13 @@
                 </select>
 
                 <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
-                    Filtrar
+                    Buscar
                 </button>
+                @if(($q ?? '') !== '' || $clienteId || $propiedadId || $inquilinoId)
+                    <a href="{{ route('documentos.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded">
+                        Limpiar
+                    </a>
+                @endif
             </form>
 
             <div class="overflow-x-auto bg-white shadow-sm sm:rounded-lg">

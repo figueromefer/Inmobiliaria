@@ -23,6 +23,7 @@ class DocumentoController extends Controller
     public function index(Request $request)
     {
         $query = Documento::query();
+        $q = trim((string) $request->query('q', ''));
 
         $clienteId = $request->query('cliente');
         $propiedadId = $request->query('propiedad');
@@ -40,13 +41,31 @@ class DocumentoController extends Controller
             $query->where('fk_inquilino', $inquilinoId);
         }
 
+        if ($q !== '') {
+            $query->where(function ($w) use ($q) {
+                $w->where('titulo', 'like', "%{$q}%")
+                    ->orWhere('tipo', 'like', "%{$q}%")
+                    ->orWhere('archivo', 'like', "%{$q}%")
+                    ->orWhereHas('cliente', function ($clienteQuery) use ($q) {
+                        $clienteQuery->where('nombre', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('propiedad', function ($propiedadQuery) use ($q) {
+                        $propiedadQuery->where('alias', 'like', "%{$q}%")
+                            ->orWhere('domicilio', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('inquilino', function ($inquilinoQuery) use ($q) {
+                        $inquilinoQuery->where('nombre', 'like', "%{$q}%");
+                    });
+            });
+        }
+
         $documentos = $query->with(['cliente', 'propiedad', 'inquilino'])->paginate(10)->withQueryString();
         $clientes = Cliente::orderBy('nombre')->get();
         $propiedades = Propiedad::orderBy('alias')->get();
         $inquilinos = Inquilino::orderBy('nombre')->get();
         $tipos = self::$tipos;
 
-        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos'));
+        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos', 'q'));
     }
 
     public function create(Request $request)

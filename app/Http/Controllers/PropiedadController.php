@@ -13,25 +13,25 @@ class PropiedadController extends Controller
 {
     public function index(Request $request)
     {
-        $search = trim((string) $request->get('search'));
+        $q = trim((string) $request->query('q', $request->get('search', '')));
 
         $propiedades = Propiedad::with('cliente')
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('alias', 'like', "%{$search}%")
-                        ->orWhere('domicilio', 'like', "%{$search}%")
-                        ->orWhere('calle', 'like', "%{$search}%")
-                        ->orWhere('numero_exterior', 'like', "%{$search}%")
-                        ->orWhere('numero_interior', 'like', "%{$search}%")
-                        ->orWhere('colonia', 'like', "%{$search}%")
-                        ->orWhere('codigo_postal', 'like', "%{$search}%")
-                        ->orWhere('municipio', 'like', "%{$search}%")
-                        ->orWhere('estado', 'like', "%{$search}%")
-                        ->orWhere('siapa', 'like', "%{$search}%")
-                        ->orWhere('cfe', 'like', "%{$search}%")
-                        ->orWhere('predial', 'like', "%{$search}%")
-                        ->orWhereHas('cliente', function ($clienteQuery) use ($search) {
-                            $clienteQuery->where('nombre', 'like', "%{$search}%");
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($w) use ($q) {
+                    $w->where('alias', 'like', "%{$q}%")
+                        ->orWhere('domicilio', 'like', "%{$q}%")
+                        ->orWhere('calle', 'like', "%{$q}%")
+                        ->orWhere('numero_exterior', 'like', "%{$q}%")
+                        ->orWhere('numero_interior', 'like', "%{$q}%")
+                        ->orWhere('colonia', 'like', "%{$q}%")
+                        ->orWhere('codigo_postal', 'like', "%{$q}%")
+                        ->orWhere('municipio', 'like', "%{$q}%")
+                        ->orWhere('estado', 'like', "%{$q}%")
+                        ->orWhere('siapa', 'like', "%{$q}%")
+                        ->orWhere('cfe', 'like', "%{$q}%")
+                        ->orWhere('predial', 'like', "%{$q}%")
+                        ->orWhereHas('cliente', function ($clienteQuery) use ($q) {
+                            $clienteQuery->where('nombre', 'like', "%{$q}%");
                         });
                 });
             })
@@ -39,7 +39,7 @@ class PropiedadController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('propiedades.index', compact('propiedades', 'search'));
+        return view('propiedades.index', compact('propiedades', 'q'));
     }
 
     public function create(Request $request)

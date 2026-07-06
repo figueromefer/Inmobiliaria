@@ -15,10 +15,22 @@ class UserController extends Controller
         'viewer' => 'Solo visualización',
     ];
 
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('name')->paginate(15);
-        return view('users.index', compact('users'));
+        $q = trim((string) $request->query('q', ''));
+
+        $users = User::query()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($w) use ($q) {
+                    $w->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('users.index', compact('users', 'q'));
     }
 
     public function create()

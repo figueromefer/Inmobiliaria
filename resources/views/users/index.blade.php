@@ -20,6 +20,17 @@
                 </div>
             @endif
 
+            <form method="GET" action="{{ route('users.index') }}" class="mt-6 flex flex-wrap items-end gap-2">
+                <div>
+                    <label for="q" class="block text-sm font-medium text-gray-700">Buscar</label>
+                    <input type="text" id="q" name="q" value="{{ $q ?? '' }}" placeholder="Nombre o email" class="mt-1 border rounded px-3 py-2 w-80">
+                </div>
+                <button class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">Buscar</button>
+                @if(($q ?? '') !== '')
+                    <a href="{{ route('users.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded">Limpiar</a>
+                @endif
+            </form>
+
             <table class="min-w-full divide-y divide-gray-200 mt-6">
                 <thead class="bg-gray-100">
                     <tr>
