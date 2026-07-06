@@ -26,7 +26,6 @@
                     <span class="cursor-pointer flex items-center">Operaciones <svg class="ml-1 h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.29a.75.75 0 01-.02-1.06z" clip-rule="evenodd" /></svg></span>
                     <div x-show="open" x-transition class="absolute left-0 top-full hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg w-56 z-50">
                         <a href="{{ route('movimientos.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Movimientos</a>
-                        <a href="{{ route('calendario.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Calendario / Adeudos</a>
                     </div>
                 </div>
 
@@ -85,7 +84,6 @@
             <x-responsive-nav-link :href="route('contratos.index')" :active="request()->routeIs('contratos.*')">Contratos</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('documentos.index')" :active="request()->routeIs('documentos.*')">Documentos</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('movimientos.index')" :active="request()->routeIs('movimientos.*')">Movimientos</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('calendario.index')" :active="request()->routeIs('calendario.*')">Calendario / Adeudos</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('reportes.mensual')" :active="request()->routeIs('reportes.*')">Reportes</x-responsive-nav-link>
             @can('manage-users')
                 <x-responsive-nav-link :href="route('bitacora.index')" :active="request()->routeIs('bitacora.*')">Bitácora</x-responsive-nav-link>

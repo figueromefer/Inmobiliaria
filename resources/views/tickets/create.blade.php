@@ -14,7 +14,7 @@
                 <select name="property_id" class="w-full border rounded-md px-3 py-2" required>
                     <option value="">Selecciona…</option>
                     @foreach($properties as $p)
-                        <option value="{{ $p->id ?? $p->pk_propiedad }}" @selected(old('property_id')==($p->id ?? $p->pk_propiedad))>
+                        <option value="{{ $p->id ?? $p->pk_propiedad }}" @selected(old('property_id', $selectedPropertyId ?? null)==($p->id ?? $p->pk_propiedad))>
                             {{ $p->alias }}
                         </option>
                     @endforeach

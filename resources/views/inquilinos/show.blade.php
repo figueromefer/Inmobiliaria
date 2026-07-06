@@ -69,7 +69,7 @@ Sin contratos
 @foreach($docs as $d)
 <div class="flex justify-between p-3 border-b">
 <span>{{ $d->titulo?:'Documento' }}</span>
-<a href="{{ route('documentos.view',$d) }}" class="text-blue-600">Ver</a>
+<a href="{{ route('documentos.view',$d) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600">Ver</a>
 </div>
 @endforeach
 </div>

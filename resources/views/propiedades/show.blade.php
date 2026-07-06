@@ -171,7 +171,7 @@
                             <div class="flex justify-between items-center p-3">
                                 <span class="font-medium">{{ $doc->titulo ?: 'Documento sin título' }}</span>
                                 <div class="space-x-3 shrink-0">
-                                    <a href="{{ route('documentos.view', $doc) }}" class="text-blue-600 hover:underline">Ver</a>
+                                    <a href="{{ route('documentos.view', $doc) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Ver</a>
                                     @can('delete-anything')
                                         <form action="{{ route('documentos.destroy', $doc) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
                                             @csrf
@@ -197,7 +197,7 @@
                 </div>
 
                 @can('manage-records')
-                    <a href="{{ route('tickets.create', ['propiedad' => $propiedad->pk_propiedad]) }}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">+ Nuevo ticket</a>
+                    <a href="{{ route('tickets.create', ['propiedad_id' => $propiedad->pk_propiedad]) }}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">+ Nuevo ticket</a>
                 @endcan
             </div>
 

@@ -57,7 +57,7 @@
                                 <td class="px-4 py-2 whitespace-nowrap">{{ $documento->cliente->nombre ?? '—' }}</td>
                                 <td class="px-4 py-2 whitespace-nowrap">{{ $documento->propiedad->alias ?? '—' }}</td>
                                 <td class="px-4 py-2 whitespace-nowrap text-right space-x-2">
-                                    <a href="{{ route('documentos.view', $documento) }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                                    <a href="{{ route('documentos.view', $documento) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800">
                                         Ver
                                     </a>
                                     <a href="{{ route('documentos.download', $documento) }}" class="text-blue-600 hover:text-blue-800">

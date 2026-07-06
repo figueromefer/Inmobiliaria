@@ -33,11 +33,12 @@ class TicketWebController extends Controller
         return view('tickets.index', compact('tickets','properties'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $properties = Propiedad::orderBy('alias')->get(['pk_propiedad as id','alias']);
         $users = User::orderBy('name')->get(['id','name']);
-        return view('tickets.create', compact('properties','users'));
+        $selectedPropertyId = $request->query('propiedad_id');
+        return view('tickets.create', compact('properties','users','selectedPropertyId'));
     }
 
     public function store(TicketStoreRequest $request)
@@ -71,6 +72,7 @@ class TicketWebController extends Controller
         $ticket->fill($request->validated());
         if ($ticket->status === MaintenanceTicket::STATUS_COMPLETED && !$ticket->closed_at) $ticket->closed_at = Carbon::now();
         if (in_array($ticket->status, [MaintenanceTicket::STATUS_OPEN, MaintenanceTicket::STATUS_IN_PROGRESS])) $ticket->closed_at = null;
+        if ($ticket->status === MaintenanceTicket::STATUS_COMPLETED && $ticket->priority === 'high') $ticket->priority = null;
         $ticket->save();
         return redirect()->route('tickets.show',$ticket)->with('success','Ticket actualizado.');
     }
@@ -127,6 +129,7 @@ class TicketWebController extends Controller
         $request->validate(['status' => 'required|in:open,in_progress,completed,canceled']);
         $ticket->status = $request->status;
         $ticket->closed_at = $request->status === MaintenanceTicket::STATUS_COMPLETED ? Carbon::now() : null;
+        if ($ticket->status === MaintenanceTicket::STATUS_COMPLETED && $ticket->priority === 'high') $ticket->priority = null;
         $ticket->save();
         return back()->with('success','Estatus actualizado.');
     }

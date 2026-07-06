@@ -110,7 +110,7 @@
 
               <td class="px-4 py-2 text-right">
                 @if(in_array($m->concepto, ['deposito','renta']) && $m->approval_status === \App\Models\Movimiento::STATUS_APPROVED)
-                  <a href="{{ route('movimientos.recibo', $m->id) }}" class="text-blue-600 hover:text-blue-800 underline">
+                  <a href="{{ route('movimientos.recibo', $m->id) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">
                     Ver Recibo
                   </a>
                 @elseif(in_array($m->concepto, ['deposito','renta']))

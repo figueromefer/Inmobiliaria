@@ -85,7 +85,9 @@
             @forelse($cliente->propiedades as $p)
                 <div class="border p-3 mb-2 rounded">
                     <div class="flex justify-between items-center">
-                        <span class="font-semibold">{{ $p->alias }}</span>
+                        <a href="{{ route('propiedades.show', $p) }}" class="font-semibold text-gray-900 hover:text-blue-600 hover:underline">
+                            {{ $p->alias }}
+                        </a>
 
                         <span class="px-2 py-1 text-xs rounded text-white
                             @if($p->estatus_informacion == 'pendiente_critico') bg-red-500
@@ -153,7 +155,7 @@
                         @foreach($docs as $d)
                             <div class="flex justify-between items-center p-3">
                                 <span class="font-medium">{{ $d->titulo ?: 'Documento sin título' }}</span>
-                                <a href="{{ route('documentos.view', $d) }}" class="text-blue-600 hover:underline">Ver</a>
+                                <a href="{{ route('documentos.view', $d) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Ver</a>
                             </div>
                         @endforeach
                     </div>

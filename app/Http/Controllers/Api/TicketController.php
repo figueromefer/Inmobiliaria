@@ -57,6 +57,9 @@ class TicketController extends Controller
         if (in_array($ticket->status, [MaintenanceTicket::STATUS_OPEN, MaintenanceTicket::STATUS_IN_PROGRESS]) ) {
             $ticket->closed_at = null;
         }
+        if ($ticket->status === MaintenanceTicket::STATUS_COMPLETED && $ticket->priority === 'high') {
+            $ticket->priority = null;
+        }
 
         $ticket->save();
 
