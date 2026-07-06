@@ -131,6 +131,20 @@ class ContratoController extends Controller
             ->first();
 
         if ($existingPendiente) {
+            if (is_array($existingPendiente->raw_payload)) {
+                $mapped = $service->mapPayload($existingPendiente->raw_payload);
+
+                if ($service->hasComplementariaMappingMismatch($existingPendiente->raw_payload, $mapped)) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['expediente' => 'El mapeo de Justicia Alternativa asignó la Parte Solicitante como Parte Complementaria. Revisa los encabezados del Google Sheet antes de importar.']);
+                }
+
+                if (($existingPendiente->mapped_payload ?? []) !== $mapped) {
+                    $existingPendiente->update(['mapped_payload' => $mapped]);
+                }
+            }
+
             return redirect()
                 ->route('contratos.pendientes.show', $existingPendiente)
                 ->with('success', 'Este expediente ya estaba como pendiente. Continúa con la conciliación.');
@@ -163,6 +177,12 @@ class ContratoController extends Controller
         }
 
         $mapped = $service->mapPayload($row);
+
+        if ($service->hasComplementariaMappingMismatch($row, $mapped)) {
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => 'El mapeo de Justicia Alternativa asignó la Parte Solicitante como Parte Complementaria. Revisa los encabezados del Google Sheet antes de importar.']);
+        }
 
         $pendiente = ContratoPendiente::updateOrCreate(
             [

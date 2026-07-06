@@ -161,6 +161,25 @@ class JusticiaAlternativaImportService
         ];
     }
 
+    public function hasComplementariaMappingMismatch(array $row, array $mapped): bool
+    {
+        $rawComplementaria = $this->getRawNombreComplementaria($row);
+
+        if (blank($rawComplementaria)) {
+            return false;
+        }
+
+        $mappedSolicitante = $mapped['nombre_solicitante'] ?? null;
+        $mappedComplementaria = $mapped['nombre_complementaria'] ?? null;
+
+        if (blank($mappedSolicitante) || blank($mappedComplementaria)) {
+            return false;
+        }
+
+        return $this->normalizeForMatch($mappedComplementaria) === $this->normalizeForMatch($mappedSolicitante)
+            && $this->normalizeForMatch($rawComplementaria) !== $this->normalizeForMatch($mappedSolicitante);
+    }
+
     private function get(array $row, array $needles): ?string
     {
         foreach ($needles as $needle) {
@@ -169,10 +188,25 @@ class JusticiaAlternativaImportService
             foreach ($row as $key => $value) {
                 $keyNorm = $this->normalizeHeader($key);
 
-                if ($keyNorm === $needleNorm || Str::contains($keyNorm, $needleNorm)) {
+                if ($keyNorm === $needleNorm) {
                     $value = is_string($value) ? trim($value) : $value;
                     return blank($value) ? null : (string) $value;
                 }
+            }
+        }
+
+        foreach ($needles as $needle) {
+            $needleNorm = $this->normalizeHeader($needle);
+
+            foreach ($row as $key => $value) {
+                $keyNorm = $this->normalizeHeader($key);
+
+                if (!Str::contains($keyNorm, $needleNorm) || $this->hasPartyConflict($keyNorm, $needleNorm)) {
+                    continue;
+                }
+
+                $value = is_string($value) ? trim($value) : $value;
+                return blank($value) ? null : (string) $value;
             }
         }
 
@@ -193,6 +227,54 @@ class JusticiaAlternativaImportService
         }
 
         return null;
+    }
+
+    private function getRawNombreComplementaria(array $row): ?string
+    {
+        return $this->getExact($row, [
+            'Nombre completo de la Parte Complementaria',
+        ]) ?? $this->get($row, [
+            'Nombre completo de la Parte Complementaria',
+        ]);
+    }
+
+    private function hasPartyConflict(string $keyNorm, string $needleNorm): bool
+    {
+        $parties = [
+            'parte solicitante',
+            'parte complementaria',
+            'tercer interesado',
+            'tercera interesada',
+            'obligado solidario',
+            'fiador',
+        ];
+
+        $needleParties = [];
+        $keyParties = [];
+
+        foreach ($parties as $party) {
+            if (Str::contains($needleNorm, $party)) {
+                $needleParties[] = $party;
+            }
+
+            if (Str::contains($keyNorm, $party)) {
+                $keyParties[] = $party;
+            }
+        }
+
+        return $needleParties !== []
+            && $keyParties !== []
+            && array_intersect($needleParties, $keyParties) === [];
+    }
+
+    private function normalizeForMatch($value): string
+    {
+        return Str::of((string) $value)
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
     }
 
     private function findCliente(array $mapped): ?Cliente

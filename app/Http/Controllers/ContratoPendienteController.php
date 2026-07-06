@@ -8,6 +8,7 @@ use App\Models\ContratoPendiente;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use App\Models\Task;
+use App\Services\JusticiaAlternativaImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,8 +30,10 @@ class ContratoPendienteController extends Controller
         return view('contratos.pendientes.index', compact('pendientes'));
     }
 
-    public function show(ContratoPendiente $pendiente)
+    public function show(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
     {
+        $this->refreshJusticiaAlternativaMapping($pendiente, $service);
+
         $mapped = $pendiente->mapped_payload ?? [];
 
         $clientes = Cliente::orderBy('nombre')->get(['pk_cliente', 'nombre', 'correo', 'rfc']);
@@ -56,7 +59,7 @@ class ContratoPendienteController extends Controller
             ->with('success', 'Contrato pendiente eliminado correctamente.');
     }
 
-    public function resolver(Request $request, ContratoPendiente $pendiente)
+    public function resolver(Request $request, ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
     {
         if ($pendiente->estado !== 'pendiente_match') {
             return redirect()
@@ -72,6 +75,12 @@ class ContratoPendienteController extends Controller
             'inquilino_action' => ['required', 'in:existing,new'],
             'inquilino_id' => ['nullable', 'integer', 'exists:inquilinos,id', 'required_if:inquilino_action,existing'],
         ]);
+
+        $mappingError = $this->refreshJusticiaAlternativaMapping($pendiente, $service);
+
+        if ($mappingError) {
+            return back()->with('error', $mappingError);
+        }
 
         $mapped = $pendiente->mapped_payload ?? [];
 
@@ -156,6 +165,26 @@ class ContratoPendienteController extends Controller
         return redirect()
             ->route('contratos.index')
             ->with('success', 'Contrato pendiente resuelto correctamente. Contrato #'.$contrato->id.'.');
+    }
+
+    private function refreshJusticiaAlternativaMapping(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service): ?string
+    {
+        if ($pendiente->origen !== 'justicia_alternativa' || !is_array($pendiente->raw_payload)) {
+            return null;
+        }
+
+        $mapped = $service->mapPayload($pendiente->raw_payload);
+
+        if ($service->hasComplementariaMappingMismatch($pendiente->raw_payload, $mapped)) {
+            return 'El mapeo de Justicia Alternativa asignó la Parte Solicitante como Parte Complementaria. Revisa los encabezados del Google Sheet antes de importar.';
+        }
+
+        if (($pendiente->mapped_payload ?? []) !== $mapped) {
+            $pendiente->update(['mapped_payload' => $mapped]);
+            $pendiente->refresh();
+        }
+
+        return null;
     }
 
     private function buildSuggestions(array $mapped): array
