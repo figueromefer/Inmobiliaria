@@ -71,14 +71,32 @@ class JusticiaAlternativaImportService
         $correoSolicitante = $this->get($row, ['Correo electrónico de la Parte Solicitante']);
         $telefonoSolicitante = $this->get($row, ['Teléfono de la Parte Solicitante']);
         $domicilioSolicitante = $this->get($row, ['Domicilio completo de la Parte Solicitante']);
-        $tipoComplementaria = $this->get($row, ['La Parte Complementaria']);
-        $nombreComplementaria = $this->get($row, ['Nombre completo de la Parte Complementaria']);
-        $nacionalidadComplementaria = $this->get($row, ['Nacionalidad de la Parte Complementaria']);
-        $domicilioComplementaria = $this->get($row, ['Domicilio completo de la Parte Complementaria']);
-        $correoComplementaria = $this->get($row, ['Correo electrónico de la Parte Complementaria']);
-        $telefonoComplementaria = $this->get($row, ['Teléfono de la Parte Complementaria']);
+        $tipoComplementaria = $this->get($row, [
+            'La Parte Complementaria (Arrendatario) es',
+            'La Parte Complementaria',
+        ]);
+        $nombreComplementaria = $this->get($row, [
+            'Nombre completo de la Parte Complementaria:',
+            'Nombre completo de la Parte Complementaria',
+        ]);
+        $nacionalidadComplementaria = $this->get($row, [
+            'Nacionalidad de la Parte Complementaria:',
+            'Nacionalidad de la Parte Complementaria',
+        ]);
+        $domicilioComplementaria = $this->get($row, [
+            'Domicilio completo de la Parte Complementaria:',
+            'Domicilio completo de la Parte Complementaria',
+        ]);
+        $correoComplementaria = $this->get($row, [
+            'Correo electrónico de la Parte Complementaria:',
+            'Correo electrónico de la Parte Complementaria',
+        ]);
+        $telefonoComplementaria = $this->get($row, [
+            'Teléfono de la Parte Complementaria:',
+            'Teléfono de la Parte Complementaria',
+        ]);
 
-        return [
+        $mapped = [
             'expediente' => $this->get($row, ['Número de expediente']),
             'fecha_firma' => $this->parseDate($this->get($row, ['Fecha de firma de documentación'])),
 
@@ -159,6 +177,8 @@ class JusticiaAlternativaImportService
             'clabe' => $this->get($row, ['CLABE']),
             'lleva_iva' => $this->get($row, ['¿Lleva IVA?']),
         ];
+
+        return $mapped;
     }
 
     public function hasComplementariaMappingMismatch(array $row, array $mapped): bool
@@ -201,7 +221,11 @@ class JusticiaAlternativaImportService
             foreach ($row as $key => $value) {
                 $keyNorm = $this->normalizeHeader($key);
 
-                if (!Str::contains($keyNorm, $needleNorm) || $this->hasPartyConflict($keyNorm, $needleNorm)) {
+                if (
+                    !Str::contains($keyNorm, $needleNorm)
+                    || $this->hasPartyConflict($keyNorm, $needleNorm)
+                    || $this->hasSolicitanteComplementariaConflict($keyNorm, $needleNorm)
+                ) {
                     continue;
                 }
 
@@ -232,8 +256,10 @@ class JusticiaAlternativaImportService
     private function getRawNombreComplementaria(array $row): ?string
     {
         return $this->getExact($row, [
+            'Nombre completo de la Parte Complementaria:',
             'Nombre completo de la Parte Complementaria',
         ]) ?? $this->get($row, [
+            'Nombre completo de la Parte Complementaria:',
             'Nombre completo de la Parte Complementaria',
         ]);
     }
@@ -265,6 +291,17 @@ class JusticiaAlternativaImportService
         return $needleParties !== []
             && $keyParties !== []
             && array_intersect($needleParties, $keyParties) === [];
+    }
+
+    private function hasSolicitanteComplementariaConflict(string $keyNorm, string $needleNorm): bool
+    {
+        return (
+            Str::contains($needleNorm, 'parte complementaria')
+            && Str::contains($keyNorm, 'parte solicitante')
+        ) || (
+            Str::contains($needleNorm, 'parte solicitante')
+            && Str::contains($keyNorm, 'parte complementaria')
+        );
     }
 
     private function normalizeForMatch($value): string
