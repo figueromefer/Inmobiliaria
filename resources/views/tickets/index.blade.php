@@ -70,7 +70,7 @@
                 <form method="GET" class="grid md:grid-cols-5 gap-3">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Propiedad</label>
-                        <select name="property_id" class="w-full border-gray-300 rounded-lg shadow-sm">
+                        <select name="property_id" class="js-searchable-select w-full border-gray-300 rounded-lg shadow-sm">
                             <option value="">Todas</option>
                             @foreach($properties as $p)
                                 <option value="{{ $p->id ?? $p->pk_propiedad }}" @selected(request('property_id')==($p->id ?? $p->pk_propiedad))>

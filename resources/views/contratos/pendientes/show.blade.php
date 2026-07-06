@@ -116,7 +116,7 @@ $confidenceNote = function ($confidence) {
 </label>
 
 <div data-action-panel="cliente" data-visible-when="existing">
-<select name="fk_cliente" id="fk_cliente" class="w-full rounded-lg border-gray-300 shadow-sm">
+<select name="fk_cliente" id="fk_cliente" class="js-searchable-select w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar cliente…</option>
 @foreach($clientes as $cliente)
 <option value="{{ $cliente->pk_cliente }}" @selected($clienteSuggested && $clienteSuggested->pk_cliente === $cliente->pk_cliente)>
@@ -153,7 +153,7 @@ $confidenceNote = function ($confidence) {
 </label>
 
 <div data-action-panel="propiedad" data-visible-when="existing">
-<select name="fk_propiedad" id="fk_propiedad" class="w-full rounded-lg border-gray-300 shadow-sm">
+<select name="fk_propiedad" id="fk_propiedad" class="js-searchable-select w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar propiedad…</option>
 @foreach($propiedades as $propiedad)
 <option value="{{ $propiedad->pk_propiedad }}" data-cliente="{{ $propiedad->fk_cliente }}" @selected($propiedadSuggested && $propiedadSuggested->pk_propiedad === $propiedad->pk_propiedad)>
@@ -190,7 +190,7 @@ $confidenceNote = function ($confidence) {
 </label>
 
 <div data-action-panel="inquilino" data-visible-when="existing">
-<select name="inquilino_id" id="inquilino_id" class="w-full rounded-lg border-gray-300 shadow-sm">
+<select name="inquilino_id" id="inquilino_id" class="js-searchable-select w-full rounded-lg border-gray-300 shadow-sm">
 <option value="">Seleccionar inquilino…</option>
 @foreach($inquilinos as $inquilino)
 <option value="{{ $inquilino->id }}" @selected($inquilinoSuggested && $inquilinoSuggested->id === $inquilino->id)>
@@ -232,19 +232,35 @@ document.addEventListener('DOMContentLoaded', function () {
         propiedadOptions.forEach(function(option) {
             if (!option.value) {
                 option.hidden = false;
+                option.disabled = false;
                 return;
             }
 
-            option.hidden = clienteId && option.dataset.cliente !== clienteId;
+            const hidden = Boolean(clienteId && option.dataset.cliente !== clienteId);
+            option.hidden = hidden;
+            option.disabled = hidden;
+
+            if (propiedadSelect.tomselect) {
+                if (hidden) {
+                    propiedadSelect.tomselect.disableOption(option.value);
+                } else {
+                    propiedadSelect.tomselect.enableOption(option.value);
+                }
+            }
         });
 
         if (keepSelection && currentValue) {
             propiedadSelect.value = currentValue;
+            if (propiedadSelect.tomselect) propiedadSelect.tomselect.setValue(currentValue, true);
         } else if (suggestedPropiedadId) {
             propiedadSelect.value = suggestedPropiedadId;
+            if (propiedadSelect.tomselect) propiedadSelect.tomselect.setValue(suggestedPropiedadId, true);
         } else {
             propiedadSelect.value = '';
+            if (propiedadSelect.tomselect) propiedadSelect.tomselect.clear(true);
         }
+
+        if (propiedadSelect.tomselect) propiedadSelect.tomselect.refreshOptions(false);
     }
 
     function toggleActionPanels(name) {

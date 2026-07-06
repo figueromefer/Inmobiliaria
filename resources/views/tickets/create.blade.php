@@ -11,7 +11,7 @@
 
             <div>
                 <label class="block text-sm mb-1">Propiedad</label>
-                <select name="property_id" class="w-full border rounded-md px-3 py-2" required>
+                <select name="property_id" class="js-searchable-select w-full border rounded-md px-3 py-2" required>
                     <option value="">Selecciona…</option>
                     @foreach($properties as $p)
                         <option value="{{ $p->id ?? $p->pk_propiedad }}" @selected(old('property_id', $selectedPropertyId ?? null)==($p->id ?? $p->pk_propiedad))>
@@ -43,7 +43,7 @@
                 </div>
                 <div>
                     <label class="block text-sm mb-1">Asignar a</label>
-                    <select name="assigned_to" class="w-full border rounded-md px-3 py-2">
+                    <select name="assigned_to" class="js-searchable-select w-full border rounded-md px-3 py-2">
                         <option value="">—</option>
                         @foreach($users as $u)
                             <option value="{{ $u->id }}" @selected(old('assigned_to')==$u->id)>{{ $u->name }}</option>

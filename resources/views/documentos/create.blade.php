@@ -50,7 +50,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="fk_cliente">Asignar a cliente</label>
                             <select name="fk_cliente" id="fk_cliente"
-                                class="form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
+                                class="js-searchable-select form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
                                 <option value="">— Sin cliente —</option>
                                 @foreach($clientes as $cliente)
                                     <option value="{{ $cliente->pk_cliente }}" @selected(old('fk_cliente', $clienteId ?? null) == $cliente->pk_cliente)>
@@ -63,7 +63,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="fk_propiedad">Asignar a propiedad</label>
                             <select name="fk_propiedad" id="fk_propiedad"
-                                class="form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
+                                class="js-searchable-select form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
                                 <option value="">— Sin propiedad —</option>
                                 @foreach($propiedades as $propiedad)
                                     <option value="{{ $propiedad->pk_propiedad }}" @selected(old('fk_propiedad', $propiedadId ?? null) == $propiedad->pk_propiedad)>
@@ -76,7 +76,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="fk_inquilino">Asignar a inquilino</label>
                             <select name="fk_inquilino" id="fk_inquilino"
-                                class="form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
+                                class="js-searchable-select form-select mt-1 block w-full rounded-md shadow-sm border-gray-300">
                                 <option value="">— Sin inquilino —</option>
                                 @foreach(($inquilinos ?? []) as $inquilino)
                                     <option value="{{ $inquilino->id }}" @selected(old('fk_inquilino', $inquilinoId ?? null) == $inquilino->id)>

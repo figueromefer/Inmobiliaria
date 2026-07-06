@@ -24,7 +24,7 @@
             <div class="grid grid-cols-1 gap-6">
                 <div>
                     <label for="fk_cliente" class="block font-medium text-sm text-gray-700">Cliente</label>
-                    <select name="fk_cliente" id="fk_cliente" class="form-select rounded-md shadow-sm mt-1 block w-full">
+                    <select name="fk_cliente" id="fk_cliente" class="js-searchable-select form-select rounded-md shadow-sm mt-1 block w-full">
                         <option value="">Seleccione un cliente</option>
                         @foreach($clientes as $cliente)
                             <option value="{{ $cliente->pk_cliente }}" {{ old('fk_cliente', $propiedad->fk_cliente) == $cliente->pk_cliente ? 'selected' : '' }}>

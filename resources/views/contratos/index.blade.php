@@ -41,7 +41,7 @@
       {{-- Filtro por solicitante (cliente) --}}
         <div class="sm:col-span-2">
             <label for="solicitante" class="block text-sm font-medium">Solicitante (cliente)</label>
-            <select id="solicitante" name="solicitante" class="mt-1 w-full border rounded px-3 py-2">
+            <select id="solicitante" name="solicitante" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
                 <option value="">— Todos —</option>
                 @foreach ($solicitantes as $nombreCliente)
                 <option value="{{ $nombreCliente }}" @selected(($solicitante ?? '') === $nombreCliente)>

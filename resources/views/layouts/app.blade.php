@@ -10,6 +10,7 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <link rel="stylesheet" href="{{ asset('custom.css') }}" />
@@ -62,5 +63,25 @@
                 {{ $slot }}
             </main>
         </div>
+        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (!window.TomSelect) return;
+
+                document.querySelectorAll('select.js-searchable-select').forEach(function (select) {
+                    if (select.tomselect) return;
+
+                    new TomSelect(select, {
+                        allowEmptyOption: true,
+                        create: false,
+                        maxOptions: 500,
+                        sortField: {
+                            field: 'text',
+                            direction: 'asc'
+                        }
+                    });
+                });
+            });
+        </script>
     </body>
 </html>

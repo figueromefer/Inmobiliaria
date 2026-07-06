@@ -23,7 +23,7 @@
 
                 <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Buscar documento..." class="border-gray-300 rounded shadow-sm px-3 py-2">
 
-                <select name="cliente" class="border-gray-300 rounded shadow-sm px-3 py-2">
+                <select name="cliente" class="js-searchable-select border-gray-300 rounded shadow-sm px-3 py-2">
                     <option value="">-- Filtrar por cliente --</option>
                     @foreach($clientes as $cliente)
                         <option value="{{ $cliente->pk_cliente }}" {{ (isset($clienteId) && $clienteId == $cliente->pk_cliente) ? 'selected' : '' }}>
@@ -32,7 +32,7 @@
                     @endforeach
                 </select>
 
-                <select name="propiedad" class="border-gray-300 rounded shadow-sm px-3 py-2">
+                <select name="propiedad" class="js-searchable-select border-gray-300 rounded shadow-sm px-3 py-2">
                     <option value="">-- Filtrar por propiedad --</option>
                     @foreach($propiedades as $propiedad)
                         <option value="{{ $propiedad->pk_propiedad }}" {{ (isset($propiedadId) && $propiedadId == $propiedad->pk_propiedad) ? 'selected' : '' }}>

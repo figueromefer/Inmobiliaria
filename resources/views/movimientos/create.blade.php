@@ -20,7 +20,7 @@
       {{-- Cliente --}}
       <div>
         <label class="block text-sm font-medium">Cliente (con contrato activo)</label>
-        <select id="cliente_id" name="cliente_id" class="mt-1 w-full border rounded px-3 py-2" required>
+        <select id="cliente_id" name="cliente_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2" required>
           <option value="">— Selecciona —</option>
           @foreach ($clientesActivos as $c)
             <option value="{{ $c->id }}" @selected(old('cliente_id', $clienteId ?? '') == $c->id)>{{ $c->nombre }}</option>
@@ -48,7 +48,7 @@
       {{-- Propiedad (depende de cliente) --}}
       <div>
         <label class="block text-sm font-medium">Propiedad</label>
-        <select id="propiedad_id" name="propiedad_id" class="mt-1 w-full border rounded px-3 py-2" required>
+        <select id="propiedad_id" name="propiedad_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2" required>
           <option value="">— Selecciona un cliente primero —</option>
           @foreach ($propiedades as $p)
             <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>{{ $p->alias }}</option>
@@ -115,9 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const selFormaPago = document.querySelector('select[name="forma_pago"]');
 
   async function loadProps(clienteId) {
+    if (selProp.tomselect) {
+      selProp.tomselect.clear(true);
+      selProp.tomselect.clearOptions();
+      selProp.tomselect.addOption({ value: '', text: 'Cargando...' });
+      selProp.tomselect.refreshOptions(false);
+    }
     selProp.innerHTML = '<option value="">Cargando...</option>';
     if (!clienteId) {
       selProp.innerHTML = '<option value="">— Selecciona un cliente primero —</option>';
+      if (selProp.tomselect) {
+        selProp.tomselect.clearOptions();
+        selProp.tomselect.addOption({ value: '', text: '— Selecciona un cliente primero —' });
+        selProp.tomselect.refreshOptions(false);
+      }
       return;
     }
     try {
@@ -127,11 +138,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) {
         selProp.innerHTML = '<option value="">— Sin propiedades para este cliente —</option>';
+        if (selProp.tomselect) {
+          selProp.tomselect.clearOptions();
+          selProp.tomselect.addOption({ value: '', text: '— Sin propiedades para este cliente —' });
+          selProp.tomselect.refreshOptions(false);
+        }
         return;
       }
       selProp.innerHTML = data.map(p => `<option value="${p.id}">${p.alias ?? ('Propiedad #'+p.id)}</option>`).join('');
+      if (selProp.tomselect) {
+        selProp.tomselect.clearOptions();
+        selProp.tomselect.addOptions(data.map(p => ({ value: String(p.id), text: p.alias ?? ('Propiedad #'+p.id) })));
+        selProp.tomselect.refreshOptions(false);
+      }
     } catch (e) {
       selProp.innerHTML = '<option value="">Error cargando propiedades</option>';
+      if (selProp.tomselect) {
+        selProp.tomselect.clearOptions();
+        selProp.tomselect.addOption({ value: '', text: 'Error cargando propiedades' });
+        selProp.tomselect.refreshOptions(false);
+      }
       console.error('propiedades-por-cliente:', e);
     }
   }
@@ -145,8 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (esGastoCliente || esPagoCliente) {
         selProp.value = '';
         selProp.setAttribute('disabled', 'disabled');
+        if (selProp.tomselect) {
+          selProp.tomselect.clear(true);
+          selProp.tomselect.disable();
+        }
     } else {
         selProp.removeAttribute('disabled');
+        if (selProp.tomselect) selProp.tomselect.enable();
     }
 
     // Forma de pago: forzar EFECTIVO solo en gasto / gasto_cliente

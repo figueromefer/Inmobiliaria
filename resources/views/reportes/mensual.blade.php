@@ -10,7 +10,7 @@
     <form method="GET" action="{{ route('reportes.mensual') }}" class="mb-6 grid gap-4 sm:grid-cols-4">
       <div class="sm:col-span-2">
         <label class="block text-sm font-medium">Cliente</label>
-        <select name="cliente_id" class="mt-1 w-full border rounded px-3 py-2" required>
+        <select name="cliente_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2" required>
           <option value="">— Selecciona —</option>
           @foreach ($clientes as $c)
             <option value="{{ $c->id }}" @selected((int)$clienteId === (int)$c->id)>{{ $c->nombre }}</option>
