@@ -10,15 +10,27 @@ return new class extends Migration
     {
         Schema::table('movimientos', function (Blueprint $table) {
             if (! Schema::hasColumn('movimientos', 'approval_status')) {
-                $table->string('approval_status')->default('approved')->after('comprobante');
+                $column = $table->string('approval_status')->default('approved');
+
+                if (Schema::hasColumn('movimientos', 'comprobante')) {
+                    $column->after('comprobante');
+                }
             }
 
             if (! Schema::hasColumn('movimientos', 'approved_by')) {
-                $table->foreignId('approved_by')->nullable()->after('approval_status')->constrained('users')->nullOnDelete();
+                $column = $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+
+                if (Schema::hasColumn('movimientos', 'approval_status')) {
+                    $column->after('approval_status');
+                }
             }
 
             if (! Schema::hasColumn('movimientos', 'approved_at')) {
-                $table->timestamp('approved_at')->nullable()->after('approved_by');
+                $column = $table->timestamp('approved_at')->nullable();
+
+                if (Schema::hasColumn('movimientos', 'approved_by')) {
+                    $column->after('approved_by');
+                }
             }
         });
     }
