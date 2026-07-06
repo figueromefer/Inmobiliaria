@@ -47,7 +47,8 @@
                             <th class="p-2">Acción</th>
                             <th class="p-2">Módulo</th>
                             <th class="p-2">Registro</th>
-                            <th class="p-2">Detalle</th>
+                            <th class="p-2">Mensaje</th>
+                            <th class="p-2">Detalle técnico</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -65,11 +66,13 @@
                                     </span>
                                 </td>
                                 <td class="p-2">{{ $log->module }}</td>
-                                <td class="p-2">#{{ $log->model_id }}</td>
+                                <td class="p-2">{{ $log->record_label }}</td>
+                                <td class="p-2">{{ $log->human_message }}</td>
                                 <td class="p-2 text-xs">
-                                    @if($log->new_values)
-                                        <pre>{{ json_encode($log->new_values, JSON_PRETTY_PRINT) }}</pre>
-                                    @endif
+                                    <details>
+                                        <summary class="cursor-pointer text-blue-600 hover:underline">Ver JSON</summary>
+                                        <pre class="mt-2 max-w-xl overflow-x-auto rounded bg-gray-900 p-3 text-gray-100">{{ $log->technical_detail_json }}</pre>
+                                    </details>
                                 </td>
                             </tr>
                         @endforeach
