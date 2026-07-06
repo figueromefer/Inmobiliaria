@@ -102,6 +102,10 @@
                     <div class="text-xs uppercase text-gray-500 mb-1">Monto</div>
                     <div class="font-medium">{{ $propiedad->mantenimiento_monto ? '$'.number_format($propiedad->mantenimiento_monto, 2) : 'Sin dato' }}</div>
                 </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-xs uppercase text-gray-500 mb-1">Día de pago</div>
+                    <div class="font-medium">{{ $propiedad->mantenimiento_fecha_pago ? 'Día '.$propiedad->mantenimiento_fecha_pago->day.' de cada mes' : '—' }}</div>
+                </div>
             </div>
         </div>
 

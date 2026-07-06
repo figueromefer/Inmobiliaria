@@ -44,6 +44,17 @@ class RecurringTaskService
         return $created;
     }
 
+    public function generateMaintenancePaymentTasksForProperty(Propiedad $propiedad, ?Carbon $today = null): int
+    {
+        $today = ($today ?: now())->startOfDay();
+
+        if (! $propiedad->mantenimiento_fecha_pago) {
+            return 0;
+        }
+
+        return $this->generateMaintenanceForProperty($propiedad, $today);
+    }
+
     public function generatePropertyTaxTasks(?Carbon $today = null): int
     {
         $today = ($today ?: now())->startOfDay();

@@ -80,7 +80,7 @@
               <td class="px-4 py-2">{{ $m->propiedad->alias ?? '—' }}</td>
               <td class="px-4 py-2">{{ $map[$m->concepto] ?? $m->concepto }}</td>
               <td class="px-4 py-2">{{ $m->forma_pago ? ucfirst($m->forma_pago) : '—' }}</td>
-              <td class="px-4 py-2 text-right">{{ number_format($m->importe, 2) }}</td>
+              <td class="px-4 py-2 text-right">${{ number_format((float) $m->importe, 2) }}</td>
 
               <td class="px-4 py-2">
                 <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold {{ $statusMeta['class'] }}">

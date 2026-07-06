@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\Propiedad;
 use App\Models\Task;
+use App\Services\RecurringTaskService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -56,7 +57,7 @@ class PropiedadController extends Controller
     {
         Gate::authorize('manage-records');
 
-        $request->validate([
+        $data = $request->validate([
             'fk_cliente' => 'required|exists:clientes,pk_cliente',
             'alias' => ['required','string','max:255','unique:propiedades,alias'],
             'domicilio' => 'nullable|string|max:255',
@@ -66,7 +67,7 @@ class PropiedadController extends Controller
             'mantenimiento_banco' => 'nullable|string|max:255',
             'mantenimiento_cuenta' => 'nullable|string|max:255',
             'mantenimiento_monto' => 'nullable|numeric',
-            'mantenimiento_fecha_pago' => 'nullable|date',
+            'mantenimiento_fecha_pago' => 'nullable|integer|min:1|max:31',
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
@@ -79,7 +80,9 @@ class PropiedadController extends Controller
             'estado' => 'nullable|string',
         ]);
 
-        $propiedad = Propiedad::create($request->all());
+        $data['mantenimiento_fecha_pago'] = $this->maintenanceDayToStoredDate($data['mantenimiento_fecha_pago'] ?? null);
+
+        $propiedad = Propiedad::create($data);
 
         if ($propiedad->estatus_informacion !== 'completo') {
             Task::create([
@@ -95,18 +98,7 @@ class PropiedadController extends Controller
         }
 
         if ($propiedad->mantenimiento_fecha_pago) {
-            Task::create([
-                'title' => 'Pagar mantenimiento: ' . $propiedad->alias,
-                'description' => 'Pago de mantenimiento programado.',
-                'due_date' => $propiedad->mantenimiento_fecha_pago,
-                'status' => 'pending',
-                'priority' => 'medium',
-                'recurrence' => 'monthly',
-                'next_run_date' => $propiedad->mantenimiento_fecha_pago,
-                'source_type' => Propiedad::class,
-                'source_id' => $propiedad->pk_propiedad,
-                'created_by' => auth()->id(),
-            ]);
+            app(RecurringTaskService::class)->generateMaintenancePaymentTasksForProperty($propiedad);
         }
 
         return redirect()->route('clientes.show', $propiedad->fk_cliente)->with('success', 'Propiedad creada correctamente.');
@@ -129,7 +121,7 @@ class PropiedadController extends Controller
     {
         Gate::authorize('manage-records');
 
-        $request->validate([
+        $data = $request->validate([
             'fk_cliente' => 'required|exists:clientes,pk_cliente',
             'alias' => ['required','string','max:255',Rule::unique('propiedades','alias')->ignore($propiedad->pk_propiedad,'pk_propiedad')],
             'domicilio' => 'nullable|string|max:255',
@@ -139,7 +131,7 @@ class PropiedadController extends Controller
             'mantenimiento_banco' => 'nullable|string|max:255',
             'mantenimiento_cuenta' => 'nullable|string|max:255',
             'mantenimiento_monto' => 'nullable|numeric',
-            'mantenimiento_fecha_pago' => 'nullable|date',
+            'mantenimiento_fecha_pago' => 'nullable|integer|min:1|max:31',
             'latitud' => 'nullable|string|max:255',
             'longitud' => 'nullable|string|max:255',
             'estatus_informacion' => 'required|string',
@@ -152,7 +144,13 @@ class PropiedadController extends Controller
             'estado' => 'nullable|string',
         ]);
 
-        $propiedad->update($request->all());
+        $data['mantenimiento_fecha_pago'] = $this->maintenanceDayToStoredDate($data['mantenimiento_fecha_pago'] ?? null);
+
+        $propiedad->update($data);
+
+        if ($propiedad->mantenimiento_fecha_pago) {
+            app(RecurringTaskService::class)->generateMaintenancePaymentTasksForProperty($propiedad);
+        }
 
         return redirect()->route('propiedades.index')->with('success', 'Propiedad actualizada correctamente.');
     }
@@ -168,5 +166,14 @@ class PropiedadController extends Controller
     {
         $propiedades = Propiedad::select('alias', 'latitud', 'longitud', 'domicilio')->get();
         return view('propiedades.mapa', compact('propiedades'));
+    }
+
+    private function maintenanceDayToStoredDate($day): ?string
+    {
+        if ($day === null || $day === '') {
+            return null;
+        }
+
+        return sprintf('2000-01-%02d', (int) $day);
     }
 }

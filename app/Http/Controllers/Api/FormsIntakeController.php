@@ -78,7 +78,7 @@ class FormsIntakeController extends Controller
             'nombre_complementaria' => ['nullable', 'string'],
             'nacionalidad_complementaria' => ['nullable', 'string'],
             'domicilio_complementaria' => ['nullable', 'string'],
-            'telefono_complementaria' => ['nullable', 'string'],
+            'telefono_complementaria' => ['nullable', 'string', 'regex:/^\+?[0-9 ]+$/'],
             'correo_complementaria' => ['nullable', 'email'],
         ]);
 

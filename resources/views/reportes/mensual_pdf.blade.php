@@ -112,7 +112,7 @@
                     <tr>
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
                         <td>{{ $m->propiedad->alias ?? '—' }}</td>
-                        <td class="text-right">{{ number_format($m->importe, 2) }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                         <td>{{ ucfirst($m->forma_pago) }}</td>
                         <td>{{ $m->notas ?? '—' }}</td>
                     </tr>
@@ -141,7 +141,7 @@
                         <td>{{ optional($m->created_at)->format('d/m/Y H:i') }}</td>
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
                         <td>{{ $m->propiedad->alias ?? '—' }}</td>
-                        <td class="text-right">{{ number_format($m->importe, 2) }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -169,7 +169,7 @@
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
                         <td>{{ ucfirst($m->concepto) }}</td>
                         <td>{{ $m->propiedad->alias ?? '—' }}</td>
-                        <td class="text-right">{{ number_format($m->importe, 2) }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                         <td>{{ $m->notas ?? '—' }}</td>
                     </tr>
                 @endforeach
@@ -212,7 +212,7 @@
                     <tr>
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
                         <td>{{ $m->notas ?? '—' }}</td>
-                        <td class="text-right">{{ number_format($m->importe, 2) }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -239,7 +239,7 @@
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
                         <td>{{ $m->propiedad->alias ?? '—' }}</td>
                         <td>{{ $m->notas ?? '—' }}</td>
-                        <td class="text-right">{{ number_format($m->importe, 2) }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -264,7 +264,7 @@
                 @foreach($pagosCliente as $m)
                     <tr>
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
-                        <td class="text-right">{{ number_format($m->importe, 2) }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                         <td>{{ ucfirst($m->forma_pago) }}</td>
                         <td>{{ $m->notas ?? '—' }}</td>
                     </tr>
@@ -280,17 +280,17 @@
         <h3>Resumen</h3>
         <table class="summary-table">
             <tbody>
-                <tr><td>INGRESOS EFECTIVO</td><td class="text-right">{{ number_format($resumen['ingresos_efectivo'] ?? 0, 2) }}</td></tr>
-                <tr><td>TOTAL DEPOSITOS</td><td class="text-right">{{ number_format($resumen['total_depositos'] ?? 0, 2) }}</td></tr>
-                <tr><td>GASTOS EFECTIVO</td><td class="text-right">{{ number_format($resumen['gastos_efectivo'] ?? 0, 2) }}</td></tr>
-                <tr><td>TOTAL DESPUÉS DE GASTOS</td><td class="text-right">{{ number_format($resumen['total_despues_gastos'] ?? 0, 2) }}</td></tr>
-                <tr><td>IGUALA</td><td class="text-right">{{ number_format($resumen['iguala'] ?? 0, 2) }}</td></tr>
-                <tr><td>PAGOS AL CLIENTE (MES)</td><td class="text-right">{{ number_format($resumen['pagos_cliente_mes'] ?? 0, 2) }}</td></tr>
+                <tr><td>INGRESOS EFECTIVO</td><td class="text-right">${{ number_format((float) ($resumen['ingresos_efectivo'] ?? 0), 2) }}</td></tr>
+                <tr><td>TOTAL DEPOSITOS</td><td class="text-right">${{ number_format((float) ($resumen['total_depositos'] ?? 0), 2) }}</td></tr>
+                <tr><td>GASTOS EFECTIVO</td><td class="text-right">${{ number_format((float) ($resumen['gastos_efectivo'] ?? 0), 2) }}</td></tr>
+                <tr><td>TOTAL DESPUÉS DE GASTOS</td><td class="text-right">${{ number_format((float) ($resumen['total_despues_gastos'] ?? 0), 2) }}</td></tr>
+                <tr><td>IGUALA</td><td class="text-right">${{ number_format((float) ($resumen['iguala'] ?? 0), 2) }}</td></tr>
+                <tr><td>PAGOS AL CLIENTE (MES)</td><td class="text-right">${{ number_format((float) ($resumen['pagos_cliente_mes'] ?? 0), 2) }}</td></tr>
                 @if(($resumen['saldo_anterior'] ?? 0) > 0)
-                    <tr><td>SALDO DE MESES ANTERIORES</td><td class="text-right">{{ number_format($resumen['saldo_anterior'], 2) }}</td></tr>
+                    <tr><td>SALDO DE MESES ANTERIORES</td><td class="text-right">${{ number_format((float) $resumen['saldo_anterior'], 2) }}</td></tr>
                 @endif
-                <tr><td>TOTAL A PAGAR DEL MES</td><td class="text-right">{{ number_format($resumen['total_mes'] ?? 0, 2) }}</td></tr>
-                <tr><td>TOTAL A PAGAR (INCLUYE SALDOS)</td><td class="text-right">{{ number_format($resumen['total_incluye_saldos'] ?? 0, 2) }}</td></tr>
+                <tr><td>TOTAL A PAGAR DEL MES</td><td class="text-right">${{ number_format((float) ($resumen['total_mes'] ?? 0), 2) }}</td></tr>
+                <tr><td>TOTAL A PAGAR (INCLUYE SALDOS)</td><td class="text-right">${{ number_format((float) ($resumen['total_incluye_saldos'] ?? 0), 2) }}</td></tr>
             </tbody>
         </table>
     </div>

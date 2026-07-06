@@ -64,8 +64,8 @@
                     <input type="text" name="mantenimiento_cuenta" placeholder="Cuenta" value="{{ old('mantenimiento_cuenta') }}" class="form-input mb-2 w-full" />
                     <input type="number" step="0.01" name="mantenimiento_monto" placeholder="Monto" value="{{ old('mantenimiento_monto') }}" class="form-input mb-2 w-full" />
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Fecha de pago</label>
-                        <input type="date" name="mantenimiento_fecha_pago" value="{{ old('mantenimiento_fecha_pago') }}" class="form-input w-full" />
+                        <label class="block text-sm font-medium text-gray-700">Día de pago de mantenimiento</label>
+                        <input type="number" name="mantenimiento_fecha_pago" min="1" max="31" step="1" placeholder="Ej. 5" value="{{ old('mantenimiento_fecha_pago') }}" class="form-input w-full" />
                     </div>
                 </div>
 

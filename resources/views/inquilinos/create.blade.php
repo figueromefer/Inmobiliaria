@@ -36,6 +36,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="telefono">Teléfono</label>
                             <input type="text" name="telefono" id="telefono" value="{{ old('telefono') }}"
+                                inputmode="tel" pattern="[+0-9 ]+" placeholder="+52 3312345678"
                                 class="form-input mt-1 block w-full rounded-md shadow-sm border-gray-300" />
                         </div>
 

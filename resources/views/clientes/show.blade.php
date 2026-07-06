@@ -112,7 +112,14 @@
         </div>
 
         <div class="bg-white p-6 rounded shadow">
-            <h3 class="font-bold mb-3">Contratos</h3>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold">Contratos</h3>
+                @can('manage-records')
+                    <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" rel="noopener noreferrer" class="bg-gray-800 text-white px-3 py-1 rounded">
+                        Crear contrato
+                    </a>
+                @endcan
+            </div>
 
             @forelse($cliente->contratos as $c)
                 <div class="border p-3 mb-2 rounded">

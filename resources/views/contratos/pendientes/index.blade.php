@@ -33,14 +33,15 @@
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="text-left px-4 py-3">ID</th>
-                        <th class="text-left px-4 py-3">Origen</th>
-                        <th class="text-left px-4 py-3">Expediente / ID externo</th>
-                        <th class="text-left px-4 py-3">Cliente recibido</th>
-                        <th class="text-left px-4 py-3">Propiedad recibida</th>
-                        <th class="text-left px-4 py-3">Estado</th>
-                        <th class="text-left px-4 py-3">Recibido</th>
-                        <th class="text-left px-4 py-3">Acciones</th>
+                        <th class="text-left px-4 py-3 whitespace-nowrap">ID</th>
+                        <th class="text-left px-4 py-3 whitespace-nowrap">Origen</th>
+                        <th class="text-left px-4 py-3 whitespace-nowrap">Expediente</th>
+                        <th class="text-left px-4 py-3 min-w-48">Cliente recibido</th>
+                        <th class="text-left px-4 py-3 min-w-48">Arrendatario recibido</th>
+                        <th class="text-left px-4 py-3 min-w-64">Propiedad recibida</th>
+                        <th class="text-left px-4 py-3 whitespace-nowrap">Estado</th>
+                        <th class="text-left px-4 py-3 whitespace-nowrap">Recibido</th>
+                        <th class="text-right px-4 py-3 sticky right-0 bg-gray-50 z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)] whitespace-nowrap">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,6 +76,9 @@
                             <td class="px-4 py-3">
                                 {{ $mapped['nombre_solicitante'] ?? '—' }}
                             </td>
+                            <td class="px-4 py-3">
+                                {{ $mapped['nombre_complementaria'] ?? '—' }}
+                            </td>
                             <td class="px-4 py-3 max-w-xs truncate">
                                 {{ $mapped['domicilio_inmueble_arrendamiento'] ?? '—' }}
                             </td>
@@ -92,16 +96,16 @@
                             <td class="px-4 py-3">
                                 {{ $pendiente->created_at ? $pendiente->created_at->format('Y-m-d H:i') : '—' }}
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-3">
-                                    <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="text-blue-600 hover:underline font-semibold">
+                            <td class="px-4 py-3 sticky right-0 bg-white z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]">
+                                <div class="flex items-center justify-end gap-3 whitespace-nowrap">
+                                    <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="inline-flex items-center rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5">
                                         Resolver
                                     </a>
 
                                     <form action="{{ route('contratos.pendientes.destroy', $pendiente) }}" method="POST" onsubmit="return confirm('¿Eliminar este contrato pendiente? Esta acción solo elimina el registro temporal y no elimina contratos, clientes, propiedades ni inquilinos.');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:underline font-semibold">
+                                        <button type="submit" class="inline-flex items-center rounded border border-red-200 text-red-700 hover:bg-red-50 font-semibold px-3 py-1.5">
                                             Eliminar
                                         </button>
                                     </form>
@@ -110,7 +114,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-10 text-center text-gray-500">
+                            <td colspan="9" class="px-4 py-10 text-center text-gray-500">
                                 No hay contratos pendientes de match.
                             </td>
                         </tr>

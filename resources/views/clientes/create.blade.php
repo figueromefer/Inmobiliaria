@@ -50,12 +50,14 @@
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="fijo">Teléfono fijo</label>
                             <input name="fijo" id="fijo" type="text" value="{{ old('fijo') }}"
+                                inputmode="tel" pattern="[+0-9 ]+" placeholder="+52 3312345678"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="celular">Celular</label>
                             <input name="celular" id="celular" type="text" value="{{ old('celular') }}"
+                                inputmode="tel" pattern="[+0-9 ]+" placeholder="+52 3312345678"
                                 class="form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
