@@ -87,11 +87,14 @@
         </script>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                function sanitizePhone(value) {
-                    let cleaned = String(value || '').replace(/[^+0-9 ]+/g, '');
-                    const startsWithPlus = cleaned.startsWith('+');
-                    cleaned = cleaned.replace(/\+/g, '');
-                    return startsWithPlus ? '+' + cleaned : cleaned;
+                function sanitizePhoneValue(value) {
+                    let cleaned = String(value || '').replace(/[^0-9+ ]+/g, '');
+
+                    cleaned = cleaned.replace(/\+/g, function (match, offset) {
+                        return offset === 0 ? '+' : '';
+                    });
+
+                    return cleaned;
                 }
 
                 function cleanMoney(value) {
@@ -129,11 +132,16 @@
                 }
 
                 document.querySelectorAll('.js-phone-input').forEach(function (input) {
-                    input.value = sanitizePhone(input.value);
+                    input.value = sanitizePhoneValue(input.value);
+
                     input.addEventListener('input', function () {
-                        const cursorAtEnd = input.selectionStart === input.value.length;
-                        input.value = sanitizePhone(input.value);
-                        if (cursorAtEnd) input.setSelectionRange(input.value.length, input.value.length);
+                        input.value = sanitizePhoneValue(input.value);
+                    });
+
+                    input.addEventListener('paste', function () {
+                        setTimeout(function () {
+                            input.value = sanitizePhoneValue(input.value);
+                        }, 0);
                     });
                 });
 

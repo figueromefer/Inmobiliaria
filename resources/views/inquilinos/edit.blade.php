@@ -11,7 +11,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div><label>Nombre</label><input type="text" name="nombre" value="{{ old('nombre',$inquilino->nombre) }}" class="w-full rounded border-gray-300"></div>
 <div><label>Nacionalidad</label><input type="text" name="nacionalidad" value="{{ old('nacionalidad',$inquilino->nacionalidad) }}" class="w-full rounded border-gray-300"></div>
-<div><label>Teléfono</label><input type="text" name="telefono" value="{{ old('telefono',$inquilino->telefono) }}" inputmode="tel" pattern="[+0-9 ]+" placeholder="+52 3312345678" class="js-phone-input w-full rounded border-gray-300"></div>
+<div><label>Teléfono</label><input type="text" name="telefono" value="{{ old('telefono',$inquilino->telefono) }}" inputmode="tel" autocomplete="tel" pattern="[+0-9 ]*" placeholder="+52 3312345678" class="js-phone-input w-full rounded border-gray-300"></div>
 <div><label>Correo</label><input type="email" name="correo" value="{{ old('correo',$inquilino->correo) }}" class="w-full rounded border-gray-300"></div>
 <div class="md:col-span-2"><label>Domicilio</label><textarea name="domicilio" rows="3" class="w-full rounded border-gray-300">{{ old('domicilio',$inquilino->domicilio) }}</textarea></div>
 </div>
