@@ -34,11 +34,10 @@
             </div>
 
             <form
+                id="justicia-alternativa-form"
                 method="POST"
                 action="{{ route('contratos.justicia-alternativa.preview') }}"
                 class="space-y-4"
-                x-data="{ submitting: false }"
-                x-on:submit="submitting = true"
             >
                 @csrf
 
@@ -66,15 +65,44 @@
                         Cancelar
                     </a>
                     <button
+                        id="justicia-alternativa-submit"
                         type="submit"
                         class="bg-gray-800 hover:bg-gray-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg"
-                        x-bind:disabled="submitting"
                     >
-                        <span x-show="!submitting">Consultar expediente</span>
-                        <span x-show="submitting" style="display: none;">Consultando expediente...</span>
+                        <span data-default-label>Consultar expediente</span>
+                        <span data-loading-label class="hidden inline-flex items-center gap-2">
+                            <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                            Consultando expediente...
+                        </span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('justicia-alternativa-form');
+            const button = document.getElementById('justicia-alternativa-submit');
+
+            if (!form || !button) return;
+
+            let submitted = false;
+            const defaultLabel = button.querySelector('[data-default-label]');
+            const loadingLabel = button.querySelector('[data-loading-label]');
+
+            form.addEventListener('submit', function (event) {
+                if (submitted) {
+                    event.preventDefault();
+                    return;
+                }
+
+                submitted = true;
+                button.disabled = true;
+
+                if (defaultLabel) defaultLabel.classList.add('hidden');
+                if (loadingLabel) loadingLabel.classList.remove('hidden');
+            });
+        });
+    </script>
 </x-app-layout>

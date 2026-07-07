@@ -29,60 +29,33 @@
             </div>
         @endif
 
-        <div class="overflow-x-auto bg-white border rounded-lg">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50 border-b">
-                    <tr>
-                        <th class="text-left px-4 py-3 whitespace-nowrap">ID</th>
-                        <th class="text-left px-4 py-3 whitespace-nowrap">Origen</th>
-                        <th class="text-left px-4 py-3 whitespace-nowrap">Expediente</th>
-                        <th class="text-left px-4 py-3 min-w-48">Cliente recibido</th>
-                        <th class="text-left px-4 py-3 min-w-48">Arrendatario recibido</th>
-                        <th class="text-left px-4 py-3 min-w-64">Propiedad recibida</th>
-                        <th class="text-left px-4 py-3 whitespace-nowrap">Estado</th>
-                        <th class="text-left px-4 py-3 whitespace-nowrap">Recibido</th>
-                        <th class="text-right px-4 py-3 sticky right-0 bg-gray-50 z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)] whitespace-nowrap">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($pendientes as $pendiente)
-                        @php
-                            $mapped = $pendiente->mapped_payload ?? [];
-                            $origenLabel = match ($pendiente->origen) {
-                                'justicia_alternativa' => 'JA',
-                                'privado' => 'PRIVADO',
-                                default => strtoupper(str_replace('_', ' ', $pendiente->origen)),
-                            };
-                            $origenTitle = match ($pendiente->origen) {
-                                'justicia_alternativa' => 'Justicia Alternativa',
-                                'privado' => 'Contrato privado',
-                                default => str_replace('_', ' ', $pendiente->origen),
-                            };
-                            $origenClass = $pendiente->origen === 'justicia_alternativa'
-                                ? 'bg-gray-800 text-white'
-                                : 'bg-gray-500 text-white';
-                        @endphp
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-4 py-3">{{ $pendiente->id }}</td>
-                            <td class="px-4 py-3">
+        <div class="space-y-4">
+            @forelse ($pendientes as $pendiente)
+                @php
+                    $mapped = $pendiente->mapped_payload ?? [];
+                    $origenLabel = match ($pendiente->origen) {
+                        'justicia_alternativa' => 'JA',
+                        'privado' => 'PRIVADO',
+                        default => strtoupper(str_replace('_', ' ', $pendiente->origen)),
+                    };
+                    $origenTitle = match ($pendiente->origen) {
+                        'justicia_alternativa' => 'Justicia Alternativa',
+                        'privado' => 'Contrato privado',
+                        default => str_replace('_', ' ', $pendiente->origen),
+                    };
+                    $origenClass = $pendiente->origen === 'justicia_alternativa'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-gray-500 text-white';
+                @endphp
+
+                <div class="rounded-lg border bg-white p-4 shadow-sm">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0 flex-1 space-y-3">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {{ $origenClass }}" title="{{ $origenTitle }}">
                                     {{ $origenLabel }}
                                 </span>
-                                <div class="text-xs text-gray-500 mt-1">{{ $origenTitle }}</div>
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ $pendiente->expediente ?: ($pendiente->external_id ?: '—') }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ $mapped['nombre_solicitante'] ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ $mapped['nombre_complementaria'] ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3 max-w-xs truncate">
-                                {{ $mapped['domicilio_inmueble_arrendamiento'] ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3">
+
                                 @if($pendiente->estado === 'pendiente_match')
                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-800 text-white">
                                         Pendiente match
@@ -92,35 +65,56 @@
                                         {{ $pendiente->estado }}
                                     </span>
                                 @endif
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ $pendiente->created_at ? $pendiente->created_at->format('Y-m-d H:i') : '—' }}
-                            </td>
-                            <td class="px-4 py-3 sticky right-0 bg-white z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]">
-                                <div class="flex items-center justify-end gap-3 whitespace-nowrap">
-                                    <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="inline-flex items-center rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5">
-                                        Resolver
-                                    </a>
 
-                                    <form action="{{ route('contratos.pendientes.destroy', $pendiente) }}" method="POST" onsubmit="return confirm('¿Eliminar este contrato pendiente? Esta acción solo elimina el registro temporal y no elimina contratos, clientes, propiedades ni inquilinos.');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="inline-flex items-center rounded border border-red-200 text-red-700 hover:bg-red-50 font-semibold px-3 py-1.5">
-                                            Eliminar
-                                        </button>
-                                    </form>
+                                <span class="text-xs text-gray-500">#{{ $pendiente->id }} · {{ $origenTitle }}</span>
+                            </div>
+
+                            <div>
+                                <div class="text-xs uppercase text-gray-500">Expediente / ID externo</div>
+                                <div class="font-semibold text-gray-900">{{ $pendiente->expediente ?: ($pendiente->external_id ?: '—') }}</div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                <div>
+                                    <div class="text-xs uppercase text-gray-500">Cliente recibido</div>
+                                    <div class="font-medium text-gray-900">{{ $mapped['nombre_solicitante'] ?? '—' }}</div>
                                 </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="9" class="px-4 py-10 text-center text-gray-500">
-                                No hay contratos pendientes de match.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                <div>
+                                    <div class="text-xs uppercase text-gray-500">Arrendatario recibido</div>
+                                    <div class="font-medium text-gray-900">{{ $mapped['nombre_complementaria'] ?? '—' }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs uppercase text-gray-500">Recibido</div>
+                                    <div class="font-medium text-gray-900">{{ $pendiente->created_at ? $pendiente->created_at->format('Y-m-d H:i') : '—' }}</div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-xs uppercase text-gray-500">Propiedad recibida</div>
+                                <div class="line-clamp-2 text-gray-900">{{ $mapped['domicilio_inmueble_arrendamiento'] ?? '—' }}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+                            <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="inline-flex items-center justify-center rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2">
+                                Resolver
+                            </a>
+
+                            <form action="{{ route('contratos.pendientes.destroy', $pendiente) }}" method="POST" onsubmit="return confirm('¿Eliminar este contrato pendiente? Esta acción solo elimina el registro temporal y no elimina contratos, clientes, propiedades ni inquilinos.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded border border-red-200 text-red-700 hover:bg-red-50 font-semibold px-4 py-2">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="rounded-lg border bg-white px-4 py-10 text-center text-gray-500">
+                    No hay contratos pendientes de match.
+                </div>
+            @endforelse
         </div>
 
         <div class="mt-4">
