@@ -9,32 +9,39 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <div class="bg-white shadow-sm rounded p-4 mb-4">
-                <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-3">
+                    <input type="text" name="q" value="{{ $q }}" class="border rounded p-2 md:col-span-2" placeholder="Buscar en bitácora">
+
                     <select name="user_id" class="border rounded p-2">
                         <option value="">Usuario</option>
                         @foreach($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            <option value="{{ $user->id }}" @selected((string) request('user_id') === (string) $user->id)>{{ $user->name }}</option>
                         @endforeach
                     </select>
 
                     <select name="action" class="border rounded p-2">
                         <option value="">Acción</option>
                         @foreach($actions as $action)
-                            <option value="{{ $action }}">{{ $action }}</option>
+                            <option value="{{ $action }}" @selected(request('action') === $action)>{{ $action }}</option>
                         @endforeach
                     </select>
 
                     <select name="module" class="border rounded p-2">
                         <option value="">Módulo</option>
                         @foreach($modules as $module)
-                            <option value="{{ $module }}">{{ $module }}</option>
+                            <option value="{{ $module }}" @selected(request('module') === $module)>{{ $module }}</option>
                         @endforeach
                     </select>
 
-                    <input type="date" name="from" class="border rounded p-2">
-                    <input type="date" name="to" class="border rounded p-2">
+                    <input type="date" name="from" value="{{ request('from') }}" class="border rounded p-2">
+                    <input type="date" name="to" value="{{ request('to') }}" class="border rounded p-2">
 
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded">Filtrar</button>
+                    <div class="flex gap-2 md:col-span-2">
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded">Buscar</button>
+                        @if($q !== '' || request()->filled('user_id') || request()->filled('action') || request()->filled('module') || request()->filled('from') || request()->filled('to'))
+                            <a href="{{ route('bitacora.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded">Limpiar</a>
+                        @endif
+                    </div>
                 </form>
             </div>
 

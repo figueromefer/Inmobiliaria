@@ -67,7 +67,7 @@
       {{-- Importe --}}
       <div>
         <label class="block text-sm font-medium">Importe</label>
-        <input type="number" step="0.01" min="0" name="importe" value="{{ old('importe') }}" class="mt-1 w-full border rounded px-3 py-2" required>
+        <input type="text" inputmode="decimal" name="importe" value="{{ old('importe') }}" class="js-money-input mt-1 w-full border rounded px-3 py-2" required>
       </div>
 
       {{-- Forma de pago --}}

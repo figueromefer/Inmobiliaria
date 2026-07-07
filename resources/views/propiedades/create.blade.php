@@ -62,10 +62,10 @@
                     <h3 class="font-semibold mb-2">Datos para mantenimiento</h3>
                     <input type="text" name="mantenimiento_banco" placeholder="Banco" value="{{ old('mantenimiento_banco') }}" class="form-input mb-2 w-full" />
                     <input type="text" name="mantenimiento_cuenta" placeholder="Cuenta" value="{{ old('mantenimiento_cuenta') }}" class="form-input mb-2 w-full" />
-                    <input type="number" step="0.01" name="mantenimiento_monto" placeholder="Monto" value="{{ old('mantenimiento_monto') }}" class="form-input mb-2 w-full" />
+                    <input type="text" name="mantenimiento_monto" inputmode="decimal" placeholder="Monto" value="{{ old('mantenimiento_monto') }}" class="js-money-input form-input mb-2 w-full" />
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Día de pago de mantenimiento</label>
-                        <input type="number" name="mantenimiento_fecha_pago" min="1" max="31" step="1" placeholder="Ej. 5" value="{{ old('mantenimiento_fecha_pago') }}" class="form-input w-full" />
+                        <input type="number" name="mantenimiento_fecha_pago" min="1" max="31" step="1" placeholder="Ej. 5" value="{{ old('mantenimiento_fecha_pago') }}" class="js-day-of-month-input form-input w-full" />
                     </div>
                 </div>
 

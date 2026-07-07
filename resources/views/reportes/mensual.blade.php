@@ -27,6 +27,12 @@
     </form>
 
     @if ($clienteId && $mes)
+      <div class="mb-6 flex justify-end">
+        <a href="{{ route('reportes.mensual.pdf', ['cliente_id' => $clienteId, 'mes' => $mes]) }}" target="_blank" rel="noopener noreferrer" class="rounded bg-gray-800 px-4 py-2 font-semibold text-white hover:bg-gray-700">
+          Exportar PDF
+        </a>
+      </div>
+
       {{-- 1) Rentas recabadas --}}
       <h3 class="text-lg font-semibold mb-2">Rentas recabadas</h3>
       <div class="overflow-x-auto bg-white border rounded mb-6">

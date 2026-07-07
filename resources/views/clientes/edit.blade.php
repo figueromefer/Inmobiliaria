@@ -27,13 +27,13 @@
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="nombre">Nombre</label>
                             <input name="nombre" id="nombre" type="text" value="{{ old('nombre', $cliente->nombre) }}" required
-                                class="form-input rounded-md shadow-sm mt-1 block w-full" />
+                                class="js-phone-input form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
                         <div>
                             <label class="block font-medium text-sm text-gray-700" for="rfc">RFC</label>
                             <input name="rfc" id="rfc" type="text" value="{{ old('rfc', $cliente->rfc) }}" required
-                                class="form-input rounded-md shadow-sm mt-1 block w-full" />
+                                class="js-phone-input form-input rounded-md shadow-sm mt-1 block w-full" />
                         </div>
 
                         <div class="md:col-span-2">

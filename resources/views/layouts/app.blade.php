@@ -85,5 +85,89 @@
                 document.dispatchEvent(new CustomEvent('searchable-selects:ready'));
             });
         </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                function sanitizePhone(value) {
+                    let cleaned = String(value || '').replace(/[^+0-9 ]+/g, '');
+                    const startsWithPlus = cleaned.startsWith('+');
+                    cleaned = cleaned.replace(/\+/g, '');
+                    return startsWithPlus ? '+' + cleaned : cleaned;
+                }
+
+                function cleanMoney(value) {
+                    let cleaned = String(value || '')
+                        .replace(/[$,\s]/g, '')
+                        .replace(/[^0-9.]/g, '');
+
+                    const firstDot = cleaned.indexOf('.');
+                    if (firstDot !== -1) {
+                        cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+                    }
+
+                    const parts = cleaned.split('.');
+                    if (parts.length > 1) {
+                        cleaned = parts[0] + '.' + parts[1].slice(0, 2);
+                    }
+
+                    return cleaned;
+                }
+
+                function formatMoney(value) {
+                    const cleaned = cleanMoney(value);
+                    if (cleaned === '' || cleaned === '.') return '';
+
+                    const hasDecimal = cleaned.includes('.');
+                    const parts = cleaned.split('.');
+                    const integerPart = parts[0] === '' ? '0' : parts[0];
+                    const formattedInteger = Number(integerPart).toLocaleString('en-US', {
+                        maximumFractionDigits: 0
+                    });
+
+                    if (!hasDecimal) return '$' + formattedInteger;
+
+                    return '$' + formattedInteger + '.' + (parts[1] ?? '');
+                }
+
+                document.querySelectorAll('.js-phone-input').forEach(function (input) {
+                    input.value = sanitizePhone(input.value);
+                    input.addEventListener('input', function () {
+                        const cursorAtEnd = input.selectionStart === input.value.length;
+                        input.value = sanitizePhone(input.value);
+                        if (cursorAtEnd) input.setSelectionRange(input.value.length, input.value.length);
+                    });
+                });
+
+                document.querySelectorAll('.js-money-input').forEach(function (input) {
+                    input.value = formatMoney(input.value);
+                    input.addEventListener('input', function () {
+                        input.value = formatMoney(input.value);
+                        input.setSelectionRange(input.value.length, input.value.length);
+                    });
+                });
+
+                document.querySelectorAll('.js-day-of-month-input').forEach(function (input) {
+                    function normalizeDay() {
+                        if (input.value === '') return;
+
+                        const day = parseInt(input.value, 10);
+                        if (!Number.isFinite(day) || day < 1) {
+                            input.value = '';
+                            return;
+                        }
+
+                        if (day > 31) input.value = '31';
+                    }
+
+                    input.addEventListener('input', normalizeDay);
+                    input.addEventListener('blur', normalizeDay);
+                });
+
+                document.addEventListener('submit', function (event) {
+                    event.target.querySelectorAll('.js-money-input').forEach(function (input) {
+                        input.value = cleanMoney(input.value);
+                    });
+                }, true);
+            });
+        </script>
     </body>
 </html>
