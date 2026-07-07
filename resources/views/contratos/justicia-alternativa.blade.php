@@ -80,10 +80,21 @@
         </div>
     </div>
 
+    <div id="justicia-alternativa-loading-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/70 px-4" aria-live="polite" aria-hidden="true">
+        <div class="w-full max-w-md rounded-xl bg-white p-6 text-center shadow-2xl" role="status">
+            <div class="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-gray-800"></div>
+            <h3 class="text-lg font-bold text-gray-900">Consultando expediente...</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+                Estamos consultando Justicia Alternativa. Esto puede tardar unos segundos. No cierres ni recargues esta ventana.
+            </p>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('justicia-alternativa-form');
             const button = document.getElementById('justicia-alternativa-submit');
+            const overlay = document.getElementById('justicia-alternativa-loading-overlay');
 
             if (!form || !button) return;
 
@@ -102,6 +113,11 @@
 
                 if (defaultLabel) defaultLabel.classList.add('hidden');
                 if (loadingLabel) loadingLabel.classList.remove('hidden');
+                if (overlay) {
+                    overlay.classList.remove('hidden');
+                    overlay.classList.add('flex');
+                    overlay.setAttribute('aria-hidden', 'false');
+                }
             });
         });
     </script>
