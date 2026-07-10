@@ -18,6 +18,7 @@ use App\Http\Controllers\PagoCalendarController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReporteGananciasClientesController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\ArchivadoController;
 use App\Services\RecurringTaskService;
 
 Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
@@ -54,6 +55,15 @@ Route::middleware('auth')->group(function () {
     })->middleware('can:manage-records')->name('tasks.generate-maintenance');
 
     Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('bitacora.index');
+    Route::get('/archivados', [ArchivadoController::class, 'index'])
+        ->middleware('can:delete-anything')
+        ->name('archivados.index');
+    Route::patch('/archivados/clientes/{cliente}/restore', [ArchivadoController::class, 'restoreCliente'])
+        ->middleware('can:delete-anything')
+        ->name('archivados.clientes.restore');
+    Route::patch('/archivados/contratos/{contrato}/restore', [ArchivadoController::class, 'restoreContrato'])
+        ->middleware('can:delete-anything')
+        ->name('archivados.contratos.restore');
     Route::resource('clientes', ClienteCtl::class);
 
     Route::get('/propiedades/mapa', [PropiedadController::class, 'mapa'])->name('propiedades.mapa');

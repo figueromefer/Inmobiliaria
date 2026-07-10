@@ -247,7 +247,36 @@
     </div>
 @endif
 
-{{-- 7) Pagos al cliente --}}
+{{-- 7) Igualas / comisiones de administración --}}
+@if(isset($igualas) && $igualas->isNotEmpty())
+    <div class="section">
+        <h3>Igualas / Comisiones de administración</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Folio</th>
+                    <th>Propiedad</th>
+                    <th>Notas</th>
+                    <th class="text-right">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($igualas as $m)
+                    <tr>
+                        <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
+                        <td>{{ $m->folio ?? '—' }}</td>
+                        <td>{{ $m->propiedad->alias ?? '—' }}</td>
+                        <td>{{ $m->notas ?? '—' }}</td>
+                        <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+@endif
+
+{{-- 8) Pagos al cliente --}}
 @if(isset($pagosCliente) && $pagosCliente->isNotEmpty())
     <div class="section">
         <h3>Pagos al cliente</h3>
@@ -274,23 +303,27 @@
     </div>
 @endif
 
-{{-- 8) Resumen --}}
+{{-- 9) Resumen --}}
 @if(isset($resumen))
     <div class="section">
         <h3>Resumen</h3>
         <table class="summary-table">
             <tbody>
-                <tr><td>INGRESOS EFECTIVO</td><td class="text-right">${{ number_format((float) ($resumen['ingresos_efectivo'] ?? 0), 2) }}</td></tr>
+                <tr><td>INGRESOS DEL PERIODO</td><td class="text-right">${{ number_format((float) ($resumen['ingresos_efectivo'] ?? 0), 2) }}</td></tr>
                 <tr><td>TOTAL DEPOSITOS</td><td class="text-right">${{ number_format((float) ($resumen['total_depositos'] ?? 0), 2) }}</td></tr>
-                <tr><td>GASTOS EFECTIVO</td><td class="text-right">${{ number_format((float) ($resumen['gastos_efectivo'] ?? 0), 2) }}</td></tr>
+                <tr><td>EGRESOS DEL PERIODO</td><td class="text-right">${{ number_format((float) ($resumen['gastos_efectivo'] ?? 0), 2) }}</td></tr>
                 <tr><td>TOTAL DESPUÉS DE GASTOS</td><td class="text-right">${{ number_format((float) ($resumen['total_despues_gastos'] ?? 0), 2) }}</td></tr>
-                <tr><td>IGUALA</td><td class="text-right">${{ number_format((float) ($resumen['iguala'] ?? 0), 2) }}</td></tr>
+                <tr><td>IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)</td><td class="text-right">${{ number_format((float) ($resumen['iguala'] ?? 0), 2) }}</td></tr>
                 <tr><td>PAGOS AL CLIENTE (MES)</td><td class="text-right">${{ number_format((float) ($resumen['pagos_cliente_mes'] ?? 0), 2) }}</td></tr>
-                @if(($resumen['saldo_anterior'] ?? 0) > 0)
-                    <tr><td>SALDO DE MESES ANTERIORES</td><td class="text-right">${{ number_format((float) $resumen['saldo_anterior'], 2) }}</td></tr>
-                @endif
+                <tr><td>SALDO DE MESES ANTERIORES</td><td class="text-right">${{ number_format((float) ($resumen['saldo_anterior'] ?? 0), 2) }}</td></tr>
+                <tr><td>SALDO ANTERIOR CONTABLE</td><td class="text-right">${{ number_format((float) ($resumen['saldo_anterior_contable'] ?? 0), 2) }}</td></tr>
+                <tr><td>SALDO ANTERIOR LIQUIDADO</td><td class="text-right">${{ number_format((float) ($resumen['saldo_anterior_liquidado'] ?? 0), 2) }}</td></tr>
+                <tr><td>PENDIENTE POR COBRAR</td><td class="text-right">${{ number_format((float) ($resumen['pendiente_por_cobrar'] ?? 0), 2) }}</td></tr>
+                <tr><td>PENDIENTE POR PAGAR / LIQUIDAR</td><td class="text-right">${{ number_format((float) ($resumen['pendiente_por_pagar_o_liquidar'] ?? 0), 2) }}</td></tr>
                 <tr><td>TOTAL A PAGAR DEL MES</td><td class="text-right">${{ number_format((float) ($resumen['total_mes'] ?? 0), 2) }}</td></tr>
-                <tr><td>TOTAL A PAGAR (INCLUYE SALDOS)</td><td class="text-right">${{ number_format((float) ($resumen['total_incluye_saldos'] ?? 0), 2) }}</td></tr>
+                <tr><td>SALDO PERIODO LIQUIDADO</td><td class="text-right">${{ number_format((float) ($resumen['saldo_periodo_liquidado'] ?? 0), 2) }}</td></tr>
+                <tr><td>SALDO CONTABLE FINAL</td><td class="text-right">${{ number_format((float) ($resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0), 2) }}</td></tr>
+                <tr><td>SALDO LIQUIDADO / DISPONIBLE</td><td class="text-right">${{ number_format((float) ($resumen['saldo_liquidado'] ?? 0), 2) }}</td></tr>
             </tbody>
         </table>
     </div>

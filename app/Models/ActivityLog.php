@@ -6,6 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class ActivityLog extends Model
 {
+    private const SENSITIVE_FIELD_PATTERNS = [
+        'password',
+        'remember_token',
+        'token',
+        'api_key',
+        'apikey',
+        'secret',
+        'cookie',
+    ];
+
     protected $fillable = [
         'user_id',
         'action',
@@ -34,6 +44,8 @@ class ActivityLog extends Model
             'created' => 'Se creó',
             'updated' => 'Se actualizó',
             'deleted' => 'Se eliminó',
+            'archived' => 'Se archivó',
+            'restored' => 'Se restauró',
             default => 'Se registró',
         };
 
@@ -54,6 +66,7 @@ class ActivityLog extends Model
             'propiedad' => ['alias', 'domicilio'],
             'inquilino' => ['nombre'],
             'documento' => ['titulo', 'nombre', 'nombre_archivo', 'archivo'],
+            'movimiento' => ['folio', 'concepto'],
             'contrato' => ['expediente_justicia_alternativa', 'expediente', 'domicilio_inmueble'],
             'maintenanceticket', 'ticket' => ['title', 'titulo', 'asunto'],
             default => ['nombre', 'name', 'titulo', 'title', 'alias', 'descripcion', 'description'],
@@ -79,6 +92,53 @@ class ActivityLog extends Model
     public function getTechnicalDetailJsonAttribute(): string
     {
         return json_encode($this->technical_detail, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    public static function sanitizeValues($values): ?array
+    {
+        if ($values === null) {
+            return null;
+        }
+
+        if ($values instanceof Model) {
+            $values = $values->toArray();
+        }
+
+        if (! is_array($values)) {
+            return null;
+        }
+
+        return self::sanitizeArray($values);
+    }
+
+    private static function sanitizeArray(array $values): array
+    {
+        $sanitized = [];
+
+        foreach ($values as $key => $value) {
+            if (self::isSensitiveKey((string) $key)) {
+                continue;
+            }
+
+            $sanitized[$key] = is_array($value)
+                ? self::sanitizeArray($value)
+                : $value;
+        }
+
+        return $sanitized;
+    }
+
+    private static function isSensitiveKey(string $key): bool
+    {
+        $key = strtolower($key);
+
+        foreach (self::SENSITIVE_FIELD_PATTERNS as $pattern) {
+            if (str_contains($key, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function moduleLabel(): string

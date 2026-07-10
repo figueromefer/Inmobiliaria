@@ -15,8 +15,8 @@ class ActivityObserver
             'model_type' => get_class($model),
             'model_id' => $model->getKey(),
             'module' => class_basename($model),
-            'old_values' => $old,
-            'new_values' => $new,
+            'old_values' => ActivityLog::sanitizeValues($old),
+            'new_values' => ActivityLog::sanitizeValues($new),
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
         ]);
@@ -29,11 +29,25 @@ class ActivityObserver
 
     public function updated($model)
     {
-        $this->log($model, 'updated', $model->getOriginal(), $model->getChanges());
+        $changes = $model->getChanges();
+        unset($changes['updated_at']);
+
+        if ($changes === []) {
+            return;
+        }
+
+        $oldValues = array_intersect_key($model->getOriginal(), $changes);
+
+        $this->log($model, 'updated', $oldValues, $changes);
     }
 
     public function deleted($model)
     {
         $this->log($model, 'deleted', $model->toArray(), null);
+    }
+
+    public function restored($model)
+    {
+        $this->log($model, 'restored', ['deleted_at' => $model->getOriginal('deleted_at')], $model->toArray());
     }
 }

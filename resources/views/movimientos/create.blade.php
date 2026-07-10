@@ -17,12 +17,24 @@
     <form method="POST" action="{{ route('movimientos.store') }}" enctype="multipart/form-data" class="grid gap-4">
       @csrf
 
-      {{-- Cliente --}}
+      @php($asignadoOld = old('asignado_a_tipo', 'cliente'))
+
+      {{-- Tipo de asignación --}}
       <div>
-        <label class="block text-sm font-medium">Cliente (con contrato activo)</label>
-        <select id="cliente_id" name="cliente_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2" required>
+        <label class="block text-sm font-medium">Asignar movimiento a</label>
+        <select id="asignado_a_tipo" name="asignado_a_tipo" class="mt-1 w-full border rounded px-3 py-2" required>
+          <option value="cliente" @selected($asignadoOld === 'cliente')>Cliente</option>
+          <option value="propiedad" @selected($asignadoOld === 'propiedad')>Propiedad</option>
+          <option value="inquilino" @selected($asignadoOld === 'inquilino')>Inquilino</option>
+        </select>
+      </div>
+
+      {{-- Cliente --}}
+      <div data-assignment-panel="cliente">
+        <label class="block text-sm font-medium">Cliente</label>
+        <select id="cliente_id" name="cliente_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
           <option value="">— Selecciona —</option>
-          @foreach ($clientesActivos as $c)
+          @foreach ($clientes as $c)
             <option value="{{ $c->id }}" @selected(old('cliente_id', $clienteId ?? '') == $c->id)>{{ $c->nombre }}</option>
           @endforeach
         </select>
@@ -40,29 +52,67 @@
           <option value="renta"    @selected($conceptoOld==='renta')>Pago de renta</option>
           <option value="gasto"    @selected($conceptoOld==='gasto')>Gasto de la propiedad</option>
           <option value="gasto_cliente" @selected(old('concepto')==='gasto_cliente')>Gastos del cliente</option>
+          <option value="iguala" @selected(old('concepto')==='iguala')>Iguala / Comisión de administración</option>
           <option value="pago_cliente" @selected(old('concepto')==='pago_cliente')>Pago al cliente</option>
 
         </select>
       </div>
 
-      {{-- Propiedad (depende de cliente) --}}
-      <div>
+      {{-- Propiedad --}}
+      <div data-assignment-panel="propiedad">
         <label class="block text-sm font-medium">Propiedad</label>
-        <select id="propiedad_id" name="propiedad_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2" required>
-          <option value="">— Selecciona un cliente primero —</option>
+        <select id="propiedad_id" name="propiedad_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
+          <option value="">— Selecciona —</option>
           @foreach ($propiedades as $p)
-            <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>{{ $p->alias }}</option>
+            <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>
+              {{ $p->alias ?: $p->domicilio ?: 'Propiedad #'.$p->id }}{{ $p->cliente ? ' — '.$p->cliente->nombre : '' }}
+            </option>
           @endforeach
         </select>
       </div>
 
-      
+      {{-- Inquilino --}}
+      <div data-assignment-panel="inquilino">
+        <label class="block text-sm font-medium">Inquilino</label>
+        <select id="inquilino_id" name="inquilino_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
+          <option value="">— Selecciona —</option>
+          @foreach ($inquilinos as $inquilino)
+            <option value="{{ $inquilino->id }}" @selected(old('inquilino_id') == $inquilino->id)>
+              {{ $inquilino->nombre }}{{ $inquilino->correo ? ' — '.$inquilino->correo : '' }}{{ $inquilino->telefono ? ' — '.$inquilino->telefono : '' }}
+            </option>
+          @endforeach
+        </select>
+        <p class="text-xs text-gray-500 mt-1">El sistema resolverá propiedad y cliente desde el contrato del inquilino.</p>
+      </div>
 
       {{-- Fecha --}}
       <div>
         <label class="block text-sm font-medium">Fecha</label>
         <input type="date" name="fecha" value="{{ old('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
       </div>
+
+      {{-- Estado financiero --}}
+      <div>
+        <label class="block text-sm font-medium">Estado de pago</label>
+        <select id="estado_pago" name="estado_pago" class="mt-1 w-full border rounded px-3 py-2" required>
+          @php($estadoPagoOld = old('estado_pago', 'liquidado'))
+          <option value="pendiente" @selected($estadoPagoOld === 'pendiente')>Pendiente</option>
+          <option value="liquidado" @selected($estadoPagoOld === 'liquidado')>Liquidado</option>
+          <option value="cancelado" @selected($estadoPagoOld === 'cancelado')>Cancelado</option>
+        </select>
+      </div>
+
+      <div id="fecha_liquidacion_wrap">
+        <label class="block text-sm font-medium">Fecha de liquidación</label>
+        <input id="fecha_liquidacion" type="date" name="fecha_liquidacion" value="{{ old('fecha_liquidacion') }}" class="mt-1 w-full border rounded px-3 py-2">
+        <p class="text-xs text-gray-500 mt-1">Si se deja vacía en estado liquidado, se usará la fecha del movimiento.</p>
+      </div>
+
+      <label class="inline-flex items-center gap-2">
+        <input type="hidden" name="afecta_saldo_cliente" value="0">
+        <input type="checkbox" name="afecta_saldo_cliente" value="1" class="rounded border-gray-300" @checked(old('afecta_saldo_cliente', '1'))>
+        <span class="text-sm font-medium">Afecta saldo del cliente</span>
+      </label>
 
       {{-- Importe --}}
       <div>
@@ -109,79 +159,46 @@
 
   <script>
 document.addEventListener('DOMContentLoaded', () => {
+  const selAsignado  = document.getElementById('asignado_a_tipo');
   const selCliente   = document.getElementById('cliente_id');
   const selProp      = document.getElementById('propiedad_id');
+  const selInquilino = document.getElementById('inquilino_id');
   const selConcepto  = document.querySelector('select[name="concepto"]');
   const selFormaPago = document.querySelector('select[name="forma_pago"]');
+  const selEstadoPago = document.getElementById('estado_pago');
+  const fechaLiquidacionWrap = document.getElementById('fecha_liquidacion_wrap');
+  const fechaLiquidacion = document.getElementById('fecha_liquidacion');
 
-  async function loadProps(clienteId) {
-    if (selProp.tomselect) {
-      selProp.tomselect.clear(true);
-      selProp.tomselect.clearOptions();
-      selProp.tomselect.addOption({ value: '', text: 'Cargando...' });
-      selProp.tomselect.refreshOptions(false);
-    }
-    selProp.innerHTML = '<option value="">Cargando...</option>';
-    if (!clienteId) {
-      selProp.innerHTML = '<option value="">— Selecciona un cliente primero —</option>';
-      if (selProp.tomselect) {
-        selProp.tomselect.clearOptions();
-        selProp.tomselect.addOption({ value: '', text: '— Selecciona un cliente primero —' });
-        selProp.tomselect.refreshOptions(false);
-      }
-      return;
-    }
-    try {
-      const url = "{{ route('movimientos.propiedadesPorCliente', ['cliente' => 'ID_PLACEHOLDER']) }}".replace('ID_PLACEHOLDER', clienteId);
-      const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) {
-        selProp.innerHTML = '<option value="">— Sin propiedades para este cliente —</option>';
-        if (selProp.tomselect) {
-          selProp.tomselect.clearOptions();
-          selProp.tomselect.addOption({ value: '', text: '— Sin propiedades para este cliente —' });
-          selProp.tomselect.refreshOptions(false);
-        }
-        return;
-      }
-      selProp.innerHTML = data.map(p => `<option value="${p.id}">${p.alias ?? ('Propiedad #'+p.id)}</option>`).join('');
-      if (selProp.tomselect) {
-        selProp.tomselect.clearOptions();
-        selProp.tomselect.addOptions(data.map(p => ({ value: String(p.id), text: p.alias ?? ('Propiedad #'+p.id) })));
-        selProp.tomselect.refreshOptions(false);
-      }
-    } catch (e) {
-      selProp.innerHTML = '<option value="">Error cargando propiedades</option>';
-      if (selProp.tomselect) {
-        selProp.tomselect.clearOptions();
-        selProp.tomselect.addOption({ value: '', text: 'Error cargando propiedades' });
-        selProp.tomselect.refreshOptions(false);
-      }
-      console.error('propiedades-por-cliente:', e);
+  function setSelectEnabled(select, enabled) {
+    if (!select) return;
+
+    if (enabled) {
+      select.removeAttribute('disabled');
+      if (select.tomselect) select.tomselect.enable();
+    } else {
+      select.setAttribute('disabled', 'disabled');
+      if (select.tomselect) select.tomselect.disable();
     }
   }
 
+  function toggleAssignmentPanels() {
+    const selected = selAsignado.value || 'cliente';
+
+    document.querySelectorAll('[data-assignment-panel]').forEach(panel => {
+      const visible = panel.dataset.assignmentPanel === selected;
+      panel.classList.toggle('hidden', !visible);
+    });
+
+    setSelectEnabled(selCliente, selected === 'cliente');
+    setSelectEnabled(selProp, selected === 'propiedad');
+    setSelectEnabled(selInquilino, selected === 'inquilino');
+  }
+
   function toggleFieldsByConcept(value) {
-    const esGastoCliente = (value === 'gasto_cliente');
-    const esPagoCliente  = (value === 'pago_cliente');
     const esGastoProp    = (value === 'gasto');
 
-    // Propiedad: deshabilitar en gasto_cliente y pago_cliente
-    if (esGastoCliente || esPagoCliente) {
-        selProp.value = '';
-        selProp.setAttribute('disabled', 'disabled');
-        if (selProp.tomselect) {
-          selProp.tomselect.clear(true);
-          selProp.tomselect.disable();
-        }
-    } else {
-        selProp.removeAttribute('disabled');
-        if (selProp.tomselect) selProp.tomselect.enable();
-    }
-
-    // Forma de pago: forzar EFECTIVO solo en gasto / gasto_cliente
-    if (esGastoProp || esGastoCliente) {
+    // Forma de pago: forzar EFECTIVO solo en gasto / gasto_cliente / iguala
+    if (esGastoProp || value === 'gasto_cliente' || value === 'iguala') {
         if (selFormaPago) {
         selFormaPago.value = 'efectivo';
         selFormaPago.setAttribute('disabled', 'disabled');
@@ -192,23 +209,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-  selCliente.addEventListener('change', e => {
-    if (selConcepto.value !== 'gasto_cliente') {
-      loadProps(e.target.value);
-    }
-  });
+  selAsignado.addEventListener('change', toggleAssignmentPanels);
 
   selConcepto.addEventListener('change', e => {
     toggleFieldsByConcept(e.target.value);
-    if (e.target.value !== 'gasto_cliente' && selCliente.value) {
-      loadProps(selCliente.value);
-    }
   });
 
+  function togglePaymentFields() {
+    const liquidado = selEstadoPago.value === 'liquidado';
+    fechaLiquidacionWrap.classList.toggle('hidden', !liquidado);
+
+    if (liquidado) {
+      fechaLiquidacion.removeAttribute('disabled');
+    } else {
+      fechaLiquidacion.value = '';
+      fechaLiquidacion.setAttribute('disabled', 'disabled');
+    }
+  }
+
+  selEstadoPago.addEventListener('change', togglePaymentFields);
+
   // Estado inicial
+  toggleAssignmentPanels();
   toggleFieldsByConcept(selConcepto.value);
-  const pre = "{{ $clienteId ?? '' }}";
-  if (pre && selConcepto.value !== 'gasto_cliente') loadProps(pre);
+  togglePaymentFields();
 });
 </script>
 

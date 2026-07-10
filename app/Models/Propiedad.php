@@ -31,6 +31,8 @@ class Propiedad extends Model
         'predial',
         'mantenimiento_banco',
         'mantenimiento_cuenta',
+        'referencia',
+        'clabe',
         'mantenimiento_monto',
         'mantenimiento_fecha_pago',
         'latitud',

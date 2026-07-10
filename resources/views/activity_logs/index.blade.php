@@ -78,7 +78,16 @@
                                 <td class="p-2 text-xs">
                                     <details>
                                         <summary class="cursor-pointer text-blue-600 hover:underline">Ver JSON</summary>
-                                        <pre class="mt-2 max-w-xl overflow-x-auto rounded bg-gray-900 p-3 text-gray-100">{{ $log->technical_detail_json }}</pre>
+                                        <div class="mt-2 grid gap-3">
+                                            <div>
+                                                <div class="mb-1 font-semibold text-gray-700">JSON previo</div>
+                                                <pre class="max-w-xl overflow-x-auto rounded bg-gray-900 p-3 text-gray-100">{{ json_encode($log->old_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: 'null' }}</pre>
+                                            </div>
+                                            <div>
+                                                <div class="mb-1 font-semibold text-gray-700">JSON nuevo</div>
+                                                <pre class="max-w-xl overflow-x-auto rounded bg-gray-900 p-3 text-gray-100">{{ json_encode($log->new_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: 'null' }}</pre>
+                                            </div>
+                                        </div>
                                     </details>
                                 </td>
                             </tr>

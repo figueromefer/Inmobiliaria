@@ -351,8 +351,15 @@ class JusticiaAlternativaImportService
             if ($inquilino) return $inquilino;
         }
 
+        if (!empty($mapped['telefono_complementaria'])) {
+            $telefono = $this->normalizePhone($mapped['telefono_complementaria']);
+            $inquilino = Inquilino::all()->first(fn ($inquilino) => $telefono !== '' && $this->normalizePhone($inquilino->telefono) === $telefono);
+            if ($inquilino) return $inquilino;
+        }
+
         if (!empty($mapped['nombre_complementaria'])) {
-            return Inquilino::where('nombre', 'like', '%'.$mapped['nombre_complementaria'].'%')->first();
+            $nombre = $this->normalizeForMatch($mapped['nombre_complementaria']);
+            return Inquilino::all()->first(fn ($inquilino) => $this->normalizeForMatch($inquilino->nombre) === $nombre);
         }
 
         return null;
@@ -485,6 +492,11 @@ class JusticiaAlternativaImportService
         }
 
         return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
+    }
+
+    private function normalizePhone($value): string
+    {
+        return preg_replace('/\D+/', '', (string) $value) ?: '';
     }
 
     private function normalizeHeader($value): string

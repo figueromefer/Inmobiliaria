@@ -14,15 +14,20 @@ class ActivityLogController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         if ($q !== '') {
-            $query->where(function ($where) use ($q) {
-                $where->where('action', 'like', "%{$q}%")
-                    ->orWhere('module', 'like', "%{$q}%")
-                    ->orWhere('model_id', 'like', "%{$q}%")
-                    ->orWhere('old_values', 'like', "%{$q}%")
-                    ->orWhere('new_values', 'like', "%{$q}%")
+            $needle = '%' . mb_strtolower($q) . '%';
+
+            $query->where(function ($where) use ($needle) {
+                $where->whereRaw('LOWER(COALESCE(action, "")) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(COALESCE(module, "")) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(COALESCE(model_type, "")) LIKE ?', [$needle])
+                    ->orWhereRaw('CAST(model_id AS CHAR) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(COALESCE(CAST(old_values AS CHAR), "")) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(COALESCE(CAST(new_values AS CHAR), "")) LIKE ?', [$needle])
                     ->orWhereHas('user', function ($userQuery) use ($q) {
-                        $userQuery->where('name', 'like', "%{$q}%")
-                            ->orWhere('email', 'like', "%{$q}%");
+                        $needle = '%' . mb_strtolower($q) . '%';
+
+                        $userQuery->whereRaw('LOWER(COALESCE(name, "")) LIKE ?', [$needle])
+                            ->orWhereRaw('LOWER(COALESCE(email, "")) LIKE ?', [$needle]);
                     });
             });
         }

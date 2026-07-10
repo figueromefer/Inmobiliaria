@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Cliente;
+use App\Models\Contrato;
+use App\Services\PerfilMovimientosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +75,7 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
 
-    public function show($id)
+    public function show($id, Request $request, PerfilMovimientosService $movimientosService)
     {
         $cliente = Cliente::with([
             'propiedades.contratos.inquilino',
@@ -80,8 +83,9 @@ class ClienteController extends Controller
             'contratos.inquilino',
             'documentos',
         ])->findOrFail($id);
+        $movimientosPerfil = $movimientosService->forCliente($cliente->pk_cliente, $request);
 
-        return view('clientes.show', compact('cliente'));
+        return view('clientes.show', compact('cliente', 'movimientosPerfil'));
     }
 
     public function edit($id)
@@ -136,8 +140,13 @@ class ClienteController extends Controller
                 ->with('error', 'El cliente tiene contratos asociados. Confirma que deseas archivar también sus contratos.');
         }
 
-        DB::transaction(function () use ($cliente) {
+        DB::transaction(function () use ($cliente, $request) {
             $now = now();
+            $contratos = Contrato::query()
+                ->where('fk_cliente', $cliente->pk_cliente)
+                ->whereNull('deleted_at')
+                ->get();
+            $clienteOldValues = $cliente->toArray();
 
             DB::table('contratos')
                 ->where('fk_cliente', $cliente->pk_cliente)
@@ -148,8 +157,33 @@ class ClienteController extends Controller
                 ->where('pk_cliente', $cliente->pk_cliente)
                 ->whereNull('deleted_at')
                 ->update(['deleted_at' => $now, 'updated_at' => $now]);
+
+            foreach ($contratos as $contrato) {
+                $this->logArchive($request, $contrato, $contrato->toArray(), [
+                    'deleted_at' => $now->toDateTimeString(),
+                ]);
+            }
+
+            $this->logArchive($request, $cliente, $clienteOldValues, [
+                'deleted_at' => $now->toDateTimeString(),
+            ]);
         });
 
         return redirect()->route('clientes.index')->with('success', 'Cliente y contratos asociados archivados correctamente.');
+    }
+
+    private function logArchive(Request $request, $model, array $oldValues, array $newValues): void
+    {
+        ActivityLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'archived',
+            'model_type' => get_class($model),
+            'model_id' => $model->getKey(),
+            'module' => class_basename($model),
+            'old_values' => ActivityLog::sanitizeValues($oldValues),
+            'new_values' => ActivityLog::sanitizeValues($newValues),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
     }
 }

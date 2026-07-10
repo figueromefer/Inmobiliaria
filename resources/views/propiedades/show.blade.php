@@ -99,6 +99,14 @@
                     <div class="font-medium">{{ $propiedad->mantenimiento_cuenta ?: 'Sin dato' }}</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-xs uppercase text-gray-500 mb-1">Referencia</div>
+                    <div class="font-medium">{{ $propiedad->referencia ?: 'Sin dato' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-xs uppercase text-gray-500 mb-1">CLABE</div>
+                    <div class="font-medium">{{ $propiedad->clabe ?: 'Sin dato' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
                     <div class="text-xs uppercase text-gray-500 mb-1">Monto</div>
                     <div class="font-medium">{{ $propiedad->mantenimiento_monto ? '$'.number_format($propiedad->mantenimiento_monto, 2) : 'Sin dato' }}</div>
                 </div>
@@ -224,5 +232,7 @@
                 <div class="text-gray-500 bg-gray-50 rounded-lg p-4">Sin tickets registrados para esta propiedad.</div>
             @endforelse
         </div>
+
+        @include('movimientos._perfil-section', ['movimientosPerfil' => $movimientosPerfil])
     </div>
 </x-app-layout>

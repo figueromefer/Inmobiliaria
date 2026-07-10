@@ -6,6 +6,17 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <div class="py-6 max-w-3xl mx-auto sm:px-6 lg:px-8">
+        @if ($errors->any())
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+                <p class="font-semibold mb-2">No se pudo guardar la propiedad. Revisa estos campos:</p>
+                <ul class="list-disc pl-5 text-sm">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('propiedades.store') }}">
             @csrf
 
@@ -30,17 +41,17 @@
 
                 <div class="bg-gray-50 p-4 rounded">
                     <h3 class="font-semibold mb-3">Domicilio</h3>
-                    <input type="text" name="calle" placeholder="Calle" class="form-input mb-2 w-full" />
+                    <input type="text" name="calle" placeholder="Calle" class="js-address-field form-input mb-2 w-full" />
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="text" name="numero_exterior" placeholder="No. Exterior" class="form-input w-full" />
-                        <input type="text" name="numero_interior" placeholder="No. Interior" class="form-input w-full" />
+                        <input type="text" name="numero_exterior" placeholder="No. Exterior" class="js-address-field form-input w-full" />
+                        <input type="text" name="numero_interior" placeholder="No. Interior" class="js-address-field form-input w-full" />
                     </div>
-                    <input type="text" name="colonia" placeholder="Colonia" class="form-input mt-2 w-full" />
+                    <input type="text" name="colonia" placeholder="Colonia" class="js-address-field form-input mt-2 w-full" />
                     <div class="grid grid-cols-2 gap-2 mt-2">
-                        <input type="text" name="codigo_postal" placeholder="Código Postal" class="form-input w-full" />
-                        <input type="text" name="municipio" placeholder="Municipio" class="form-input w-full" />
+                        <input type="text" name="codigo_postal" placeholder="Código Postal" class="js-address-field form-input w-full" />
+                        <input type="text" name="municipio" placeholder="Municipio" class="js-address-field form-input w-full" />
                     </div>
-                    <input type="text" name="estado" placeholder="Estado" class="form-input mt-2 w-full" />
+                    <input type="text" name="estado" placeholder="Estado" class="js-address-field form-input mt-2 w-full" />
                 </div>
 
                 <div>
@@ -62,6 +73,13 @@
                     <h3 class="font-semibold mb-2">Datos para mantenimiento</h3>
                     <input type="text" name="mantenimiento_banco" placeholder="Banco" value="{{ old('mantenimiento_banco') }}" class="form-input mb-2 w-full" />
                     <input type="text" name="mantenimiento_cuenta" placeholder="Cuenta" value="{{ old('mantenimiento_cuenta') }}" class="form-input mb-2 w-full" />
+                    <input type="text" name="referencia" placeholder="Referencia" value="{{ old('referencia') }}" class="form-input mb-2 w-full" />
+                    @error('referencia') <p class="text-red-600 text-sm mb-2">{{ $message }}</p> @enderror
+                    <div class="mb-2">
+                        <input type="text" name="clabe" placeholder="CLABE" value="{{ old('clabe') }}" inputmode="numeric" maxlength="23" pattern="[0-9 ]*" class="form-input w-full" />
+                        <p class="text-xs text-gray-500 mt-1">18 dígitos.</p>
+                        @error('clabe') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                    </div>
                     <input type="text" name="mantenimiento_monto" inputmode="decimal" placeholder="Monto" value="{{ old('mantenimiento_monto') }}" class="js-money-input form-input mb-2 w-full" />
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Día de pago de mantenimiento</label>
@@ -71,7 +89,12 @@
 
                 <div class="bg-gray-50 p-4 rounded">
                     <h3 class="font-semibold mb-2">Ubicación</h3>
-                    <p class="text-sm text-gray-500 mb-3">Haz clic en el mapa o arrastra el pin para guardar las coordenadas.</p>
+                    <p class="text-sm text-gray-500 mb-3">Actualiza desde el domicilio para proponer el pin. También puedes hacer clic en el mapa o arrastrar el pin para ajustar manualmente.</p>
+                    <input type="hidden" name="coordenadas_manual" id="coordenadas_manual" value="{{ old('coordenadas_manual', '0') }}">
+                    <div class="mb-3 flex flex-wrap items-center gap-3">
+                        <button type="button" id="geocode-address" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm">Actualizar ubicación desde domicilio</button>
+                        <span id="geocode-status" class="text-sm text-gray-500"></span>
+                    </div>
                     <div id="property-map" class="w-full rounded border" style="height: 360px;"></div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div>
@@ -104,28 +127,100 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form');
             const latInput = document.getElementById('latitud');
             const lngInput = document.getElementById('longitud');
-            const defaultLat = parseFloat(latInput.value) || 20.6597;
-            const defaultLng = parseFloat(lngInput.value) || -103.3496;
+            const manualInput = document.getElementById('coordenadas_manual');
+            const geocodeButton = document.getElementById('geocode-address');
+            const geocodeStatus = document.getElementById('geocode-status');
+            const hasInitialCoordinates = latInput.value !== '' && lngInput.value !== '';
+            const defaultLat = hasInitialCoordinates ? parseFloat(latInput.value) : 20.6597;
+            const defaultLng = hasInitialCoordinates ? parseFloat(lngInput.value) : -103.3496;
             const map = L.map('property-map').setView([defaultLat, defaultLng], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
             const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
-            function setCoordinates(lat, lng) {
+            function setCoordinates(lat, lng, manual) {
                 latInput.value = lat.toFixed(6);
                 lngInput.value = lng.toFixed(6);
                 marker.setLatLng([lat, lng]);
+                map.setView([lat, lng], Math.max(map.getZoom(), 15));
+                if (manual) {
+                    manualInput.value = '1';
+                }
             }
-            setCoordinates(defaultLat, defaultLng);
             map.on('click', function (event) {
-                setCoordinates(event.latlng.lat, event.latlng.lng);
+                setCoordinates(event.latlng.lat, event.latlng.lng, true);
             });
             marker.on('dragend', function () {
                 const position = marker.getLatLng();
-                setCoordinates(position.lat, position.lng);
+                setCoordinates(position.lat, position.lng, true);
+            });
+
+            function addressValue(name) {
+                return (form.querySelector('[name="' + name + '"]')?.value || '').trim();
+            }
+
+            function buildAddress() {
+                const street = [
+                    addressValue('calle'),
+                    addressValue('numero_exterior'),
+                    addressValue('numero_interior') ? 'Int. ' + addressValue('numero_interior') : ''
+                ].filter(Boolean).join(' ');
+
+                return [
+                    street,
+                    addressValue('colonia') ? 'Col. ' + addressValue('colonia') : '',
+                    addressValue('codigo_postal') ? 'CP ' + addressValue('codigo_postal') : '',
+                    addressValue('municipio'),
+                    addressValue('estado')
+                ].filter(Boolean).join(', ');
+            }
+
+            function geocodingQuery(address) {
+                const normalized = address.toLowerCase();
+                return normalized.includes('jalisco') || normalized.includes('mexico')
+                    ? address
+                    : address + ', Jalisco, México';
+            }
+
+            geocodeButton.addEventListener('click', async function () {
+                const address = buildAddress();
+
+                if (!address) {
+                    geocodeStatus.textContent = 'Captura el domicilio antes de buscar.';
+                    return;
+                }
+
+                geocodeButton.disabled = true;
+                geocodeStatus.textContent = 'Buscando ubicación...';
+
+                try {
+                    const params = new URLSearchParams({
+                        q: geocodingQuery(address),
+                        format: 'jsonv2',
+                        limit: '1',
+                        addressdetails: '0'
+                    });
+                    const response = await fetch('https://nominatim.openstreetmap.org/search?' + params.toString());
+                    const results = await response.json();
+                    const result = results[0];
+
+                    if (!result || !result.lat || !result.lon) {
+                        geocodeStatus.textContent = 'No se encontró ubicación para ese domicilio.';
+                        return;
+                    }
+
+                    setCoordinates(parseFloat(result.lat), parseFloat(result.lon), false);
+                    manualInput.value = '0';
+                    geocodeStatus.textContent = 'Ubicación actualizada desde domicilio.';
+                } catch (error) {
+                    geocodeStatus.textContent = 'No se pudo consultar la ubicación.';
+                } finally {
+                    geocodeButton.disabled = false;
+                }
             });
         });
     </script>

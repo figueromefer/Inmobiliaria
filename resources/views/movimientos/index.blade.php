@@ -22,7 +22,7 @@
       <form method="GET" action="{{ route('movimientos.index') }}" class="flex gap-2">
         <div>
           <label class="block text-sm font-medium">Buscar</label>
-          <input type="text" name="q" value="{{ $q }}" class="mt-1 border rounded px-3 py-2" placeholder="Cliente, propiedad, concepto, estatus">
+          <input type="text" name="q" value="{{ $q }}" class="mt-1 border rounded px-3 py-2" placeholder="Folio, cliente, propiedad, concepto, estatus">
         </div>
         <div>
           <label class="block text-sm font-medium">Por página</label>
@@ -44,12 +44,15 @@
         <thead class="bg-gray-50 border-b">
           <tr>
             <th class="text-left px-4 py-2">Fecha</th>
+            <th class="text-left px-4 py-2">Folio</th>
             <th class="text-left px-4 py-2">Cliente</th>
             <th class="text-left px-4 py-2">Propiedad</th>
+            <th class="text-left px-4 py-2">Asignado a</th>
             <th class="text-left px-4 py-2">Concepto</th>
             <th class="text-left px-4 py-2">Forma de pago</th>
             <th class="text-right px-4 py-2">Importe</th>
             <th class="text-left px-4 py-2">Estatus</th>
+            <th class="text-left px-4 py-2">Estado de pago</th>
             <th class="text-right px-4 py-2">Comprobante</th>
             <th class="text-right px-4 py-2">Recibo</th>
             <th class="text-right px-4 py-2">Acciones</th>
@@ -63,6 +66,7 @@
                 'renta' => 'Pago de renta',
                 'gasto' => 'Gasto de la propiedad',
                 'gasto_cliente' => 'Gastos del cliente',
+                'iguala' => 'Iguala / Comisión de administración',
                 'pago_cliente' => 'Pago al cliente',
               ];
 
@@ -72,12 +76,32 @@
                 \App\Models\Movimiento::STATUS_REJECTED => ['label' => 'Rechazado', 'class' => 'bg-red-100 text-red-800 border-red-200', 'icon' => '🔴'],
                 default => ['label' => 'Aprobado', 'class' => 'bg-green-100 text-green-800 border-green-200', 'icon' => '🟢'],
               };
+
+              $assignmentType = $m->asignado_a_tipo ?? ($m->propiedad_id ? 'propiedad' : 'cliente');
+              $assignmentLabel = match($assignmentType) {
+                'propiedad' => 'Propiedad',
+                'inquilino' => 'Inquilino',
+                default => 'Cliente',
+              };
+              $assignmentName = $m->asignado_nombre;
+
+              $paymentStatus = $m->estado_pago ?? \App\Models\Movimiento::PAYMENT_LIQUIDATED;
+              $paymentMeta = match($paymentStatus) {
+                \App\Models\Movimiento::PAYMENT_PENDING => ['label' => 'Pendiente', 'class' => 'bg-yellow-50 text-yellow-800 border-yellow-200'],
+                \App\Models\Movimiento::PAYMENT_CANCELED => ['label' => 'Cancelado', 'class' => 'bg-red-50 text-red-800 border-red-200'],
+                default => ['label' => 'Liquidado', 'class' => 'bg-green-50 text-green-800 border-green-200'],
+              };
             @endphp
 
             <tr class="border-b hover:bg-gray-50">
               <td class="px-4 py-2">{{ optional($m->fecha)->format('Y-m-d') }}</td>
+              <td class="px-4 py-2 font-semibold text-gray-700">{{ $m->folio ?? '—' }}</td>
               <td class="px-4 py-2">{{ $m->cliente->nombre ?? '—' }}</td>
               <td class="px-4 py-2">{{ $m->propiedad->alias ?? '—' }}</td>
+              <td class="px-4 py-2">
+                <span class="inline-flex items-center rounded-full border bg-gray-50 px-2.5 py-1 text-xs font-bold text-gray-700">{{ $assignmentLabel }}</span>
+                <div class="text-xs text-gray-500 mt-1">{{ $assignmentName }}</div>
+              </td>
               <td class="px-4 py-2">{{ $map[$m->concepto] ?? $m->concepto }}</td>
               <td class="px-4 py-2">{{ $m->forma_pago ? ucfirst($m->forma_pago) : '—' }}</td>
               <td class="px-4 py-2 text-right">${{ number_format((float) $m->importe, 2) }}</td>
@@ -95,6 +119,15 @@
                       <br>{{ $m->approved_at->format('d/m/Y H:i') }}
                     @endif
                   </div>
+                @endif
+              </td>
+
+              <td class="px-4 py-2">
+                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold {{ $paymentMeta['class'] }}">
+                  {{ $paymentMeta['label'] }}
+                </span>
+                @if($m->fecha_liquidacion)
+                  <div class="text-xs text-gray-500 mt-1">{{ $m->fecha_liquidacion->format('Y-m-d') }}</div>
                 @endif
               </td>
 
@@ -135,7 +168,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>
+            <tr><td colspan="13" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>
           @endforelse
         </tbody>
       </table>

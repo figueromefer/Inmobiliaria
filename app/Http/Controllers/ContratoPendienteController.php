@@ -90,7 +90,7 @@ class ContratoPendienteController extends Controller
             $geocodedCoordinates = $geocodingService->geocode($mapped['domicilio_inmueble_arrendamiento'] ?? null);
         }
 
-        $contrato = DB::transaction(function () use ($validated, $mapped, $pendiente, $geocodedCoordinates) {
+        [$contrato, $inquilinoWarning] = DB::transaction(function () use ($validated, $mapped, $pendiente, $geocodedCoordinates) {
             if ($validated['cliente_action'] === 'existing') {
                 $cliente = Cliente::findOrFail($validated['fk_cliente']);
             } else {
@@ -128,18 +128,16 @@ class ContratoPendienteController extends Controller
                 $this->crearTareaCompletarInformacion('propiedad', $propiedad->pk_propiedad, 'Completar información de la propiedad: '.($propiedad->alias ?: 'Propiedad #'.$propiedad->pk_propiedad), $pendiente->id);
             }
 
+            $inquilinoWarning = null;
+
             if ($validated['inquilino_action'] === 'existing') {
                 $inquilino = Inquilino::findOrFail($validated['inquilino_id']);
+                $this->updateInquilinoMissingData($inquilino, $mapped);
             } else {
-                $inquilino = null;
-                if (!empty($mapped['nombre_complementaria'])) {
-                    $inquilino = Inquilino::create([
-                        'nombre' => $mapped['nombre_complementaria'],
-                        'nacionalidad' => $mapped['nacionalidad_complementaria'] ?? null,
-                        'domicilio' => $mapped['domicilio_complementaria'] ?? null,
-                        'telefono' => $mapped['telefono_complementaria'] ?? null,
-                        'correo' => $mapped['correo_complementaria'] ?? null,
-                    ]);
+                [$inquilino, $inquilinoWarning] = $this->resolveImportedInquilino($mapped);
+
+                if ($inquilino) {
+                    $this->updateInquilinoMissingData($inquilino, $mapped);
                 }
             }
 
@@ -172,12 +170,95 @@ class ContratoPendienteController extends Controller
                 'processed_at' => now(),
             ]);
 
-            return $contrato;
+            return [$contrato, $inquilinoWarning];
         });
 
-        return redirect()
+        $redirect = redirect()
             ->route('contratos.index')
             ->with('success', 'Contrato pendiente resuelto correctamente. Contrato #'.$contrato->id.'.');
+
+        if (!empty($inquilinoWarning)) {
+            $redirect->with('warning', $inquilinoWarning);
+        }
+
+        return $redirect;
+    }
+
+    private function resolveImportedInquilino(array $mapped): array
+    {
+        if (empty($mapped['nombre_complementaria']) && empty($mapped['correo_complementaria']) && empty($mapped['telefono_complementaria'])) {
+            return [null, 'El contrato se importó sin inquilino porque Justicia Alternativa no envió datos de la Parte Complementaria.'];
+        }
+
+        $existing = $this->findReusableInquilino($mapped);
+
+        if ($existing) {
+            return [$existing, null];
+        }
+
+        if (empty($mapped['nombre_complementaria'])) {
+            return [null, 'El contrato se importó sin crear inquilino porque la Parte Complementaria no tiene nombre.'];
+        }
+
+        return [Inquilino::create([
+            'nombre' => $mapped['nombre_complementaria'],
+            'nacionalidad' => $mapped['nacionalidad_complementaria'] ?? null,
+            'domicilio' => $mapped['domicilio_complementaria'] ?? null,
+            'telefono' => $mapped['telefono_complementaria'] ?? null,
+            'correo' => $mapped['correo_complementaria'] ?? null,
+        ]), null];
+    }
+
+    private function findReusableInquilino(array $mapped): ?Inquilino
+    {
+        $correo = $this->normalizeEmail($mapped['correo_complementaria'] ?? null);
+
+        if ($correo !== '') {
+            $inquilino = Inquilino::all()->first(fn ($inquilino) => $this->normalizeEmail($inquilino->correo) === $correo);
+
+            if ($inquilino) {
+                return $inquilino;
+            }
+        }
+
+        $telefono = $this->normalizePhone($mapped['telefono_complementaria'] ?? null);
+
+        if ($telefono !== '') {
+            $inquilino = Inquilino::all()->first(fn ($inquilino) => $this->normalizePhone($inquilino->telefono) === $telefono);
+
+            if ($inquilino) {
+                return $inquilino;
+            }
+        }
+
+        $nombre = $this->normalizeForMatch($mapped['nombre_complementaria'] ?? null);
+
+        if ($nombre !== '') {
+            return Inquilino::all()->first(fn ($inquilino) => $this->normalizeForMatch($inquilino->nombre) === $nombre);
+        }
+
+        return null;
+    }
+
+    private function updateInquilinoMissingData(Inquilino $inquilino, array $mapped): void
+    {
+        $updates = [];
+        $fieldMap = [
+            'nacionalidad' => 'nacionalidad_complementaria',
+            'domicilio' => 'domicilio_complementaria',
+            'telefono' => 'telefono_complementaria',
+            'correo' => 'correo_complementaria',
+        ];
+
+        foreach ($fieldMap as $field => $mappedKey) {
+            if (blank($inquilino->{$field}) && !blank($mapped[$mappedKey] ?? null)) {
+                $updates[$field] = $mapped[$mappedKey];
+            }
+        }
+
+        if ($updates) {
+            $inquilino->update($updates);
+        }
     }
 
     private function refreshJusticiaAlternativaMapping(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service): ?string

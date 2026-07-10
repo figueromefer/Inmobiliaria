@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Models\Inquilino;
+use App\Models\Movimiento;
 use App\Models\Propiedad;
 use App\Observers\ActivityObserver;
 
@@ -30,5 +31,6 @@ class AppServiceProvider extends ServiceProvider
         Propiedad::observe(ActivityObserver::class);
         Contrato::observe(ActivityObserver::class);
         Inquilino::observe(ActivityObserver::class);
+        Movimiento::observe(ActivityObserver::class);
     }
 }

@@ -181,5 +181,7 @@
                 <p class="text-sm text-gray-500">Sin documentos registrados.</p>
             @endforelse
         </div>
+
+        @include('movimientos._perfil-section', ['movimientosPerfil' => $movimientosPerfil])
     </div>
 </x-app-layout>

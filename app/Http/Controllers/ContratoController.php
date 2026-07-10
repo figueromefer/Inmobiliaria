@@ -8,6 +8,7 @@ use App\Models\ContratoPendiente;
 use App\Services\JusticiaAlternativaImportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class ContratoController extends Controller
 {
@@ -31,7 +32,11 @@ class ContratoController extends Controller
             'comision_renta','comision_mensual','monto_mensual','created_at','cliente'
         ];
 
-        $query = Contrato::query()->with(['inquilino','cliente','propiedad']);
+        $query = Contrato::query()
+            ->with(['inquilino','cliente','propiedad'])
+            ->when(Schema::hasColumn('contratos', 'deleted_at'), function ($query) {
+                $query->whereNull('contratos.deleted_at');
+            });
 
         if ($q !== '') {
             $query->where(function ($w) use ($q) {
