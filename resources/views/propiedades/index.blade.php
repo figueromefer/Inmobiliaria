@@ -5,10 +5,15 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-6 relative">
-            @can('manage-records')
-            <a href="{{ route('propiedades.create') }}" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">+ Nueva propiedad</a>
-            @endcan
-            <a href="{{ route('propiedades.mapa') }}" class="bg-gray-500 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded right-0 absolute mr-4">Mapa de propiedades</a>
+            <div class="flex flex-wrap items-center gap-2">
+                @can('manage-records')
+                <a href="{{ route('propiedades.create') }}" class="bg-gray-800 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">+ Nueva propiedad</a>
+                @endcan
+                <a href="{{ route('propiedades.mapa') }}" class="bg-gray-500 hover:bg-gold-700 text-white font-bold py-2 px-4 rounded">Mapa de propiedades</a>
+                @can('delete-anything')
+                <a href="{{ route('archivados.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Ver archivados de clientes/contratos</a>
+                @endcan
+            </div>
 
             <form method="GET" action="{{ route('propiedades.index') }}" class="mt-6 flex flex-wrap items-end gap-2">
                 <div>

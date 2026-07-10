@@ -22,6 +22,12 @@
              class="{{ ($pendientesCount ?? 0) > 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-700' }} text-white font-bold py-2 px-4 rounded-lg">
             {{ $pendientesCount ?? 0 }} Contratos pendientes
           </a>
+
+          @can('delete-anything')
+            <a href="{{ route('archivados.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+              Ver archivados
+            </a>
+          @endcan
         </div>
       @endcan
     </div>

@@ -21,9 +21,14 @@
             @endif
 
             <div class="mb-4 flex justify-between items-center">
-                @can('manage-records')
-                <a href="{{ route('clientes.create') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">+ Nuevo Cliente</a>
-                @endcan
+                <div class="flex flex-wrap gap-2">
+                    @can('manage-records')
+                    <a href="{{ route('clientes.create') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">+ Nuevo Cliente</a>
+                    @endcan
+                    @can('delete-anything')
+                    <a href="{{ route('archivados.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Ver archivados</a>
+                    @endcan
+                </div>
                 <form method="GET" class="flex gap-2">
                     <input
                         type="text"
