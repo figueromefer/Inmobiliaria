@@ -140,7 +140,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const form = document.querySelector('form');
             const latInput = document.getElementById('latitud');
             const lngInput = document.getElementById('longitud');
             const manualInput = document.getElementById('coordenadas_manual');
@@ -172,23 +171,39 @@
                 setCoordinates(position.lat, position.lng, true);
             });
 
-            function addressValue(name) {
-                return (form.querySelector('[name="' + name + '"]')?.value || '').trim();
+            function getInputValue(name) {
+                const input = document.querySelector('[name="' + name + '"]');
+                return input && input.value ? input.value.trim() : '';
             }
 
-            function buildAddress() {
-                const street = [
-                    addressValue('calle'),
-                    addressValue('numero_exterior'),
-                    addressValue('numero_interior') ? 'Int. ' + addressValue('numero_interior') : ''
+            function buildAddressFromForm() {
+                const domicilio = getInputValue('domicilio');
+
+                if (domicilio) {
+                    return domicilio;
+                }
+
+                const calle = getInputValue('calle');
+                const numeroExterior = getInputValue('numero_exterior');
+                const numeroInterior = getInputValue('numero_interior');
+                const colonia = getInputValue('colonia');
+                const codigoPostal = getInputValue('codigo_postal');
+                const municipio = getInputValue('municipio');
+                const estado = getInputValue('estado');
+
+                const calleNumero = [
+                    calle,
+                    numeroExterior,
+                    numeroInterior ? 'Int. ' + numeroInterior : ''
                 ].filter(Boolean).join(' ');
 
                 return [
-                    street,
-                    addressValue('colonia') ? 'Col. ' + addressValue('colonia') : '',
-                    addressValue('codigo_postal') ? 'CP ' + addressValue('codigo_postal') : '',
-                    addressValue('municipio'),
-                    addressValue('estado')
+                    calleNumero,
+                    colonia,
+                    codigoPostal,
+                    municipio,
+                    estado,
+                    'México'
                 ].filter(Boolean).join(', ');
             }
 
@@ -200,7 +215,7 @@
             }
 
             geocodeButton.addEventListener('click', async function () {
-                const address = buildAddress();
+                const address = buildAddressFromForm();
 
                 if (!address) {
                     geocodeStatus.textContent = 'Captura el domicilio antes de buscar.';

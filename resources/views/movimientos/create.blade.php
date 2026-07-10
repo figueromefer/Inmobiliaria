@@ -44,16 +44,13 @@
       <div>
         <label class="block text-sm font-medium">Concepto</label>
         <select name="concepto" class="mt-1 w-full border rounded px-3 py-2" required>
-          @php
-            $conceptoOld = old('concepto');
-          @endphp
           <option value="">— Selecciona —</option>
-          <option value="deposito" @selected($conceptoOld==='deposito')>Depósito en garantía</option>
-          <option value="renta"    @selected($conceptoOld==='renta')>Pago de renta</option>
-          <option value="gasto"    @selected($conceptoOld==='gasto')>Gasto de la propiedad</option>
-          <option value="gasto_cliente" @selected(old('concepto')==='gasto_cliente')>Gastos del cliente</option>
-          <option value="iguala" @selected(old('concepto')==='iguala')>Iguala / Comisión de administración</option>
-          <option value="pago_cliente" @selected(old('concepto')==='pago_cliente')>Pago al cliente</option>
+          <option value="deposito" @selected(old('concepto') === 'deposito')>Depósito</option>
+          <option value="renta" @selected(old('concepto') === 'renta')>Pago de renta</option>
+          <option value="gasto" @selected(old('concepto') === 'gasto')>Gasto</option>
+          <option value="gasto_cliente" @selected(old('concepto') === 'gasto_cliente')>Gasto cliente</option>
+          <option value="pago_cliente" @selected(old('concepto') === 'pago_cliente')>Pago al cliente</option>
+          <option value="iguala" @selected(old('concepto') === 'iguala')>Iguala / Comisión de administración</option>
 
         </select>
       </div>
