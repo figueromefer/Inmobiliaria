@@ -17,15 +17,13 @@
     <form method="POST" action="{{ route('movimientos.store') }}" enctype="multipart/form-data" class="grid gap-4">
       @csrf
 
-      @php($asignadoOld = old('asignado_a_tipo', 'cliente'))
-
       {{-- Tipo de asignación --}}
       <div>
         <label class="block text-sm font-medium">Asignar movimiento a</label>
         <select id="asignado_a_tipo" name="asignado_a_tipo" class="mt-1 w-full border rounded px-3 py-2" required>
-          <option value="cliente" @selected($asignadoOld === 'cliente')>Cliente</option>
-          <option value="propiedad" @selected($asignadoOld === 'propiedad')>Propiedad</option>
-          <option value="inquilino" @selected($asignadoOld === 'inquilino')>Inquilino</option>
+          <option value="cliente" @selected(old('asignado_a_tipo', 'cliente') === 'cliente')>Cliente</option>
+          <option value="propiedad" @selected(old('asignado_a_tipo', 'cliente') === 'propiedad')>Propiedad</option>
+          <option value="inquilino" @selected(old('asignado_a_tipo', 'cliente') === 'inquilino')>Inquilino</option>
         </select>
       </div>
 
@@ -92,10 +90,9 @@
       <div>
         <label class="block text-sm font-medium">Estado de pago</label>
         <select id="estado_pago" name="estado_pago" class="mt-1 w-full border rounded px-3 py-2" required>
-          @php($estadoPagoOld = old('estado_pago', 'liquidado'))
-          <option value="pendiente" @selected($estadoPagoOld === 'pendiente')>Pendiente</option>
-          <option value="liquidado" @selected($estadoPagoOld === 'liquidado')>Liquidado</option>
-          <option value="cancelado" @selected($estadoPagoOld === 'cancelado')>Cancelado</option>
+          <option value="pendiente" @selected(old('estado_pago', 'liquidado') === 'pendiente')>Pendiente</option>
+          <option value="liquidado" @selected(old('estado_pago', 'liquidado') === 'liquidado')>Liquidado</option>
+          <option value="cancelado" @selected(old('estado_pago', 'liquidado') === 'cancelado')>Cancelado</option>
         </select>
       </div>
 
@@ -121,10 +118,9 @@
       <div>
         <label class="block text-sm font-medium">Forma de pago</label>
         <select name="forma_pago" class="mt-1 w-full border rounded px-3 py-2" required>
-          @php $fpOld = old('forma_pago'); @endphp
           <option value="">— Selecciona —</option>
-          <option value="efectivo"     @selected($fpOld==='efectivo')>Efectivo</option>
-          <option value="transferencia"@selected($fpOld==='transferencia')>Transferencia</option>
+          <option value="efectivo" @selected(old('forma_pago') === 'efectivo')>Efectivo</option>
+          <option value="transferencia" @selected(old('forma_pago') === 'transferencia')>Transferencia</option>
         </select>
       </div>
 
