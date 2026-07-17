@@ -23,9 +23,7 @@ class ActivityLogController extends Controller
                     ->orWhereRaw('CAST(model_id AS CHAR) LIKE ?', [$needle])
                     ->orWhereRaw('LOWER(COALESCE(CAST(old_values AS CHAR), "")) LIKE ?', [$needle])
                     ->orWhereRaw('LOWER(COALESCE(CAST(new_values AS CHAR), "")) LIKE ?', [$needle])
-                    ->orWhereHas('user', function ($userQuery) use ($q) {
-                        $needle = '%' . mb_strtolower($q) . '%';
-
+                    ->orWhereHas('user', function ($userQuery) use ($needle) {
                         $userQuery->whereRaw('LOWER(COALESCE(name, "")) LIKE ?', [$needle])
                             ->orWhereRaw('LOWER(COALESCE(email, "")) LIKE ?', [$needle]);
                     });
