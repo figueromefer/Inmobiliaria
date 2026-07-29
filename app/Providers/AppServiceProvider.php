@@ -25,6 +25,14 @@ class AppServiceProvider extends ServiceProvider
             in_array($user->role, ['admin', 'agent'])
         );
 
+        Gate::define('create-private-contracts', fn($user) =>
+            in_array($user->role, ['admin', 'agent'], true)
+        );
+
+        Gate::define('import-justice-alternative-contracts', fn($user) =>
+            in_array($user->role, ['admin', 'agent'], true)
+        );
+
         Gate::define('delete-anything', fn($user) => $user->role === 'admin');
 
         Cliente::observe(ActivityObserver::class);

@@ -96,7 +96,7 @@
                         </div>
 
                         <div class="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
-                            <a href="{{ route('contratos.pendientes.show', $pendiente) }}" class="inline-flex items-center justify-center rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2">
+                            <a href="{{ route('contratos.pendientes.resolver.form', $pendiente) }}" class="inline-flex items-center justify-center rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2">
                                 Resolver
                             </a>
 

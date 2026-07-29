@@ -52,7 +52,7 @@ class Movimiento extends Model
 
     public function propiedad()
     {
-        return $this->belongsTo(Propiedad::class, 'propiedad_id', 'pk_propiedad');
+        return $this->belongsTo(Propiedad::class, 'propiedad_id', 'pk_propiedad')->withTrashed();
     }
 
     public function inquilino()

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Propiedad extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'propiedades';
     protected $primaryKey = 'pk_propiedad';
@@ -42,6 +43,7 @@ class Propiedad extends Model
 
     protected $casts = [
         'mantenimiento_fecha_pago' => 'date',
+        'deleted_at' => 'datetime',
     ];
 
     public function cliente()
@@ -57,6 +59,11 @@ class Propiedad extends Model
     public function documentos()
     {
         return $this->hasMany(Documento::class, 'fk_propiedad', 'pk_propiedad');
+    }
+
+    public function movimientos()
+    {
+        return $this->hasMany(Movimiento::class, 'propiedad_id', 'pk_propiedad');
     }
 
     public function tickets()

@@ -64,6 +64,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/archivados/contratos/{contrato}/restore', [ArchivadoController::class, 'restoreContrato'])
         ->middleware('can:delete-anything')
         ->name('archivados.contratos.restore');
+    Route::patch('/archivados/propiedades/{propiedad}/restore', [ArchivadoController::class, 'restorePropiedad'])
+        ->middleware('can:delete-anything')
+        ->name('archivados.propiedades.restore');
     Route::resource('clientes', ClienteCtl::class);
 
     Route::get('/propiedades/mapa', [PropiedadController::class, 'mapa'])->name('propiedades.mapa');
@@ -77,6 +80,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/contratos/pendientes/{pendiente}', [ContratoPendienteController::class, 'show'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.show');
+    Route::get('/contratos/pendientes/{pendiente}/resolver', [ContratoPendienteController::class, 'showResolveForm'])
+        ->middleware('can:manage-records')
+        ->name('contratos.pendientes.resolver.form');
     Route::delete('/contratos/pendientes/{pendiente}', [ContratoPendienteController::class, 'destroy'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.destroy');
@@ -84,13 +90,13 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.resolver');
     Route::get('/contratos/justicia-alternativa', [ContratoController::class, 'showImportJusticiaAlternativaForm'])
-        ->middleware('can:manage-records')
+        ->middleware('can:import-justice-alternative-contracts')
         ->name('contratos.justicia-alternativa');
     Route::post('/contratos/justicia-alternativa/preview', [ContratoController::class, 'previewJusticiaAlternativa'])
-        ->middleware('can:manage-records')
+        ->middleware('can:import-justice-alternative-contracts')
         ->name('contratos.justicia-alternativa.preview');
     Route::post('/contratos/justicia-alternativa/importar', [ContratoController::class, 'storeJusticiaAlternativa'])
-        ->middleware('can:manage-records')
+        ->middleware('can:import-justice-alternative-contracts')
         ->name('contratos.justicia-alternativa.importar');
     Route::get('/calendario', [ContratoCalendarController::class, 'index'])->name('calendario.index');
 

@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\ActivityLog;
+use App\Models\Propiedad;
 use Illuminate\Support\Facades\Auth;
 
 class ActivityObserver
@@ -43,7 +44,11 @@ class ActivityObserver
 
     public function deleted($model)
     {
-        $this->log($model, 'deleted', $model->toArray(), null);
+        $action = $model instanceof Propiedad && $model->trashed()
+            ? 'archived'
+            : 'deleted';
+
+        $this->log($model, $action, $model->toArray(), null);
     }
 
     public function restored($model)

@@ -25,7 +25,7 @@ class MaintenanceTicket extends Model
     public const STATUS_CANCELED = 'canceled';
 
     public function property() {
-        return $this->belongsTo(Propiedad::class, 'property_id', 'pk_propiedad');
+        return $this->belongsTo(Propiedad::class, 'property_id', 'pk_propiedad')->withTrashed();
     }
 
     public function creator() {

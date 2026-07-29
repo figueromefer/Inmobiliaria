@@ -11,6 +11,7 @@ use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class MovimientoController extends Controller
@@ -78,7 +79,7 @@ class MovimientoController extends Controller
         $rules = [
             'asignado_a_tipo' => ['required','in:cliente,propiedad,inquilino'],
             'cliente_id' => ['nullable','integer','exists:clientes,pk_cliente'],
-            'propiedad_id' => ['nullable','integer','exists:propiedades,pk_propiedad'],
+            'propiedad_id' => ['nullable','integer', Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at')],
             'inquilino_id' => ['nullable','integer','exists:inquilinos,id'],
             'concepto' => ['required','in:deposito,renta,gasto,gasto_cliente,iguala,pago_cliente'],
             'fecha' => ['required','date'],

@@ -77,6 +77,66 @@
 
         <section class="bg-white rounded shadow p-5">
             <div class="mb-4">
+                <h3 class="text-lg font-bold">Propiedades archivadas</h3>
+                <p class="text-sm text-gray-500">Una propiedad archivada deja de aparecer en selectores operativos nuevos, pero se conserva en contratos e históricos.</p>
+            </div>
+
+            <div class="overflow-x-auto border rounded">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="text-left px-3 py-2">ID</th>
+                            <th class="text-left px-3 py-2">Alias</th>
+                            <th class="text-left px-3 py-2">Cliente</th>
+                            <th class="text-left px-3 py-2">Domicilio</th>
+                            <th class="text-left px-3 py-2">Contratos</th>
+                            <th class="text-left px-3 py-2">Archivada</th>
+                            <th class="text-right px-3 py-2">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($propiedadesArchivadas as $propiedad)
+                            @php($clienteArchivado = $propiedad->cliente && !blank($propiedad->cliente->deleted_at))
+                            <tr class="border-b">
+                                <td class="px-3 py-2">{{ $propiedad->pk_propiedad }}</td>
+                                <td class="px-3 py-2 font-semibold">{{ $propiedad->alias ?: '—' }}</td>
+                                <td class="px-3 py-2">
+                                    {{ $propiedad->cliente?->nombre ?? '—' }}
+                                    @if($clienteArchivado)
+                                        <span class="ml-1 rounded bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">Cliente archivado</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2">{{ $propiedad->domicilio ?: '—' }}</td>
+                                <td class="px-3 py-2">{{ $propiedad->contratos_count }}</td>
+                                <td class="px-3 py-2">{{ $propiedad->deleted_at ? $propiedad->deleted_at->format('Y-m-d H:i') : '—' }}</td>
+                                <td class="px-3 py-2 text-right">
+                                    @if($clienteArchivado)
+                                        <span class="text-xs text-gray-500">Desarchiva primero el cliente</span>
+                                    @else
+                                        <form action="{{ route('archivados.propiedades.restore', $propiedad->pk_propiedad) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas desarchivar esta propiedad?');">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button class="rounded bg-green-600 px-3 py-1 text-xs font-bold text-white hover:bg-green-700">Desarchivar</button>
+                                        </form>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-3 py-6 text-center text-gray-500">No hay propiedades archivadas.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                {{ $propiedadesArchivadas->links() }}
+            </div>
+        </section>
+
+        <section class="bg-white rounded shadow p-5">
+            <div class="mb-4">
                 <h3 class="text-lg font-bold">Contratos archivados</h3>
                 <p class="text-sm text-gray-500">Un contrato solo puede desarchivarse si su cliente está activo.</p>
             </div>
