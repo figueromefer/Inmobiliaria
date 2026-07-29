@@ -8,20 +8,24 @@
         <p class="text-sm text-gray-500 mt-1">Contratos privados y futuras integraciones con Justicia Alternativa.</p>
       </div>
 
-      @can('manage-users')
+      @if(auth()->user()?->can('create-private-contracts') || auth()->user()?->can('import-justice-alternative-contracts') || auth()->user()?->can('delete-anything'))
         <div class="flex flex-wrap items-center gap-2">
-          <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
-            + Nuevo contrato privado
-          </a>
+          @can('create-private-contracts')
+            <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" rel="noopener noreferrer" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+              + Nuevo contrato privado
+            </a>
+          @endcan
 
-          <a href="{{ route('contratos.justicia-alternativa') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
-            Traer contrato de justicia alternativa
-          </a>
+          @can('import-justice-alternative-contracts')
+            <a href="{{ route('contratos.justicia-alternativa') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+              Traer contrato de justicia alternativa
+            </a>
 
-          <a href="{{ route('contratos.pendientes.index') }}"
-             class="{{ ($pendientesCount ?? 0) > 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-700' }} text-white font-bold py-2 px-4 rounded-lg">
-            {{ $pendientesCount ?? 0 }} Contratos pendientes
-          </a>
+            <a href="{{ route('contratos.pendientes.index') }}"
+               class="{{ ($pendientesCount ?? 0) > 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-700' }} text-white font-bold py-2 px-4 rounded-lg">
+              {{ $pendientesCount ?? 0 }} Contratos pendientes
+            </a>
+          @endcan
 
           @can('delete-anything')
             <a href="{{ route('archivados.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
@@ -29,7 +33,7 @@
             </a>
           @endcan
         </div>
-      @endcan
+      @endif
     </div>
   </x-slot>
 

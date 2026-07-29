@@ -18,13 +18,17 @@ class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
 </x-slot>
 
 @php
-$mapped = $pendiente->mapped_payload ?? [];
+$mapped = $mapped ?? ($pendiente->mapped_payload ?? []);
 $clienteSuggestion = $suggestions['cliente'] ?? ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
 $propiedadSuggestion = $suggestions['propiedad'] ?? ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
 $inquilinoSuggestion = $suggestions['inquilino'] ?? ['model' => null, 'confidence' => 'ninguna', 'reason' => 'Sin coincidencia'];
 $clienteSuggested = $clienteSuggestion['model'] ?? null;
 $propiedadSuggested = $propiedadSuggestion['model'] ?? null;
 $inquilinoSuggested = $inquilinoSuggestion['model'] ?? null;
+$aliasSugerido = old('propiedad_alias', $mapped['propiedad_alias'] ?? '');
+if (\Illuminate\Support\Str::of($aliasSugerido)->squish()->lower()->toString() === \Illuminate\Support\Str::of($mapped['domicilio_inmueble_arrendamiento'] ?? '')->squish()->lower()->toString()) {
+    $aliasSugerido = '';
+}
 $badgeClass = function ($confidence) {
     return match ($confidence) {
         'alta' => 'bg-green-100 text-green-800 border-green-200',
@@ -151,6 +155,23 @@ $confidenceNote = function ($confidence) {
 <input type="radio" name="propiedad_action" value="new" @checked(!$propiedadSuggested)>
 <span>Crear propiedad nueva</span>
 </label>
+
+<div data-action-panel="propiedad" data-visible-when="new" class="space-y-2">
+<label for="propiedad_alias" class="block text-sm font-medium text-gray-700">Alias para la propiedad nueva</label>
+<input
+type="text"
+name="propiedad_alias"
+id="propiedad_alias"
+value="{{ $aliasSugerido }}"
+maxlength="255"
+placeholder="Ej. Casa López"
+class="w-full rounded-lg border-gray-300 shadow-sm"
+>
+@error('propiedad_alias')
+<p class="text-sm text-red-600">{{ $message }}</p>
+@enderror
+<p class="text-xs text-gray-500">Domicilio detectado: {{ $mapped['domicilio_inmueble_arrendamiento'] ?? '—' }}</p>
+</div>
 
 <div data-action-panel="propiedad" data-visible-when="existing">
 <select name="fk_propiedad" id="fk_propiedad" class="js-searchable-select w-full rounded-lg border-gray-300 shadow-sm">

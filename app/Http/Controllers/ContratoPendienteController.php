@@ -13,9 +13,12 @@ use App\Services\JusticiaAlternativaImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ContratoPendienteController extends Controller
 {
+    private const MAX_DOMICILIO_LENGTH = 2000;
+
     public function index()
     {
         $pendientes = ContratoPendiente::pendientes()
@@ -33,16 +36,19 @@ class ContratoPendienteController extends Controller
 
     public function show(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
     {
-        $this->refreshJusticiaAlternativaMapping($pendiente, $service);
+        return $this->showResolveForm($pendiente, $service);
+    }
 
-        $mapped = $pendiente->mapped_payload ?? [];
+    public function showResolveForm(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
+    {
+        $mapped = $this->previewJusticiaAlternativaMapping($pendiente, $service);
 
-        $clientes = Cliente::orderBy('nombre')->get(['pk_cliente', 'nombre', 'correo', 'rfc']);
+        $clientes = Cliente::whereNull('deleted_at')->orderBy('nombre')->get(['pk_cliente', 'nombre', 'correo', 'rfc']);
         $propiedades = Propiedad::orderBy('alias')->orderBy('domicilio')->get(['pk_propiedad', 'fk_cliente', 'alias', 'domicilio']);
         $inquilinos = Inquilino::orderBy('nombre')->get(['id', 'nombre', 'correo', 'telefono']);
         $suggestions = $this->buildSuggestions($mapped);
 
-        return view('contratos.pendientes.show', compact('pendiente', 'clientes', 'propiedades', 'inquilinos', 'suggestions'));
+        return view('contratos.pendientes.show', compact('pendiente', 'mapped', 'clientes', 'propiedades', 'inquilinos', 'suggestions'));
     }
 
     public function destroy(ContratoPendiente $pendiente)
@@ -70,9 +76,20 @@ class ContratoPendienteController extends Controller
 
         $validated = $request->validate([
             'cliente_action' => ['required', 'in:existing,new'],
-            'fk_cliente' => ['nullable', 'integer', 'exists:clientes,pk_cliente', 'required_if:cliente_action,existing'],
+            'fk_cliente' => [
+                'nullable',
+                'integer',
+                Rule::exists('clientes', 'pk_cliente')->whereNull('deleted_at'),
+                'required_if:cliente_action,existing',
+            ],
             'propiedad_action' => ['required', 'in:existing,new'],
-            'fk_propiedad' => ['nullable', 'integer', 'exists:propiedades,pk_propiedad', 'required_if:propiedad_action,existing'],
+            'fk_propiedad' => [
+                'nullable',
+                'integer',
+                Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at'),
+                'required_if:propiedad_action,existing',
+            ],
+            'propiedad_alias' => ['nullable', 'string', 'max:255', Rule::unique('propiedades', 'alias'), 'required_if:propiedad_action,new'],
             'inquilino_action' => ['required', 'in:existing,new'],
             'inquilino_id' => ['nullable', 'integer', 'exists:inquilinos,id', 'required_if:inquilino_action,existing'],
         ]);
@@ -84,6 +101,15 @@ class ContratoPendienteController extends Controller
         }
 
         $mapped = $pendiente->mapped_payload ?? [];
+
+        if ($this->domicilioImportadoExceedsLimit($mapped)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'domicilio_inmueble_arrendamiento' => 'El domicilio del inmueble no puede exceder '.self::MAX_DOMICILIO_LENGTH.' caracteres.',
+                ]);
+        }
+
         $geocodedCoordinates = null;
 
         if ($validated['propiedad_action'] === 'new' && $pendiente->origen === 'justicia_alternativa') {
@@ -92,7 +118,7 @@ class ContratoPendienteController extends Controller
 
         [$contrato, $inquilinoWarning] = DB::transaction(function () use ($validated, $mapped, $pendiente, $geocodedCoordinates) {
             if ($validated['cliente_action'] === 'existing') {
-                $cliente = Cliente::findOrFail($validated['fk_cliente']);
+                $cliente = Cliente::whereNull('deleted_at')->findOrFail($validated['fk_cliente']);
             } else {
                 $cliente = Cliente::create([
                     'nombre' => $mapped['nombre_solicitante'] ?? 'Cliente sin nombre',
@@ -111,10 +137,11 @@ class ContratoPendienteController extends Controller
                     ->where('fk_cliente', $cliente->pk_cliente)
                     ->firstOrFail();
             } else {
+                $domicilioPropiedad = $mapped['propiedad_domicilio'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? '';
                 $propiedadData = [
                     'fk_cliente' => $cliente->pk_cliente,
-                    'alias' => $mapped['propiedad_alias'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? 'Propiedad pendiente',
-                    'domicilio' => $mapped['propiedad_domicilio'] ?? $mapped['domicilio_inmueble_arrendamiento'] ?? '',
+                    'alias' => $validated['propiedad_alias'],
+                    'domicilio' => $domicilioPropiedad,
                     'estatus_informacion' => 'pendiente_completar',
                 ];
 
@@ -125,7 +152,12 @@ class ContratoPendienteController extends Controller
 
                 $propiedad = Propiedad::create($propiedadData);
 
-                $this->crearTareaCompletarInformacion('propiedad', $propiedad->pk_propiedad, 'Completar información de la propiedad: '.($propiedad->alias ?: 'Propiedad #'.$propiedad->pk_propiedad), $pendiente->id);
+                $this->crearTareaCompletarInformacion(
+                    'propiedad',
+                    $propiedad->pk_propiedad,
+                    'Propiedad: '.($propiedad->alias ?: 'Propiedad #'.$propiedad->pk_propiedad).'. Domicilio: '.($domicilioPropiedad ?: 'sin domicilio'),
+                    $pendiente->id
+                );
             }
 
             $inquilinoWarning = null;
@@ -182,6 +214,22 @@ class ContratoPendienteController extends Controller
         }
 
         return $redirect;
+    }
+
+    private function domicilioImportadoExceedsLimit(array $mapped): bool
+    {
+        $domicilios = [
+            $mapped['domicilio_inmueble_arrendamiento'] ?? null,
+            $mapped['propiedad_domicilio'] ?? null,
+        ];
+
+        foreach ($domicilios as $domicilio) {
+            if ($domicilio !== null && mb_strlen((string) $domicilio) > self::MAX_DOMICILIO_LENGTH) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveImportedInquilino(array $mapped): array
@@ -281,6 +329,21 @@ class ContratoPendienteController extends Controller
         return null;
     }
 
+    private function previewJusticiaAlternativaMapping(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service): array
+    {
+        if ($pendiente->origen !== 'justicia_alternativa' || !is_array($pendiente->raw_payload)) {
+            return $pendiente->mapped_payload ?? [];
+        }
+
+        $mapped = $service->mapPayload($pendiente->raw_payload);
+
+        if ($service->hasComplementariaMappingMismatch($pendiente->raw_payload, $mapped)) {
+            return $pendiente->mapped_payload ?? [];
+        }
+
+        return $mapped;
+    }
+
     private function buildSuggestions(array $mapped): array
     {
         $cliente = $this->suggestCliente($mapped);
@@ -294,18 +357,18 @@ class ContratoPendienteController extends Controller
     {
         if (!empty($mapped['rfc_solicitante'])) {
             $rfc = $this->normalizeCode($mapped['rfc_solicitante']);
-            $cliente = Cliente::all()->first(fn ($cliente) => $rfc !== '' && $this->normalizeCode($cliente->rfc) === $rfc);
+            $cliente = Cliente::whereNull('deleted_at')->get()->first(fn ($cliente) => $rfc !== '' && $this->normalizeCode($cliente->rfc) === $rfc);
             if ($cliente) return $this->suggestion($cliente, 'alta', 'RFC exacto', 100);
         }
 
         $correo = $this->normalizeEmail($mapped['correo_solicitante'] ?? null);
         if ($correo !== '') {
-            $cliente = Cliente::all()->first(fn ($cliente) => $this->normalizeEmail($cliente->correo) === $correo);
+            $cliente = Cliente::whereNull('deleted_at')->get()->first(fn ($cliente) => $this->normalizeEmail($cliente->correo) === $correo);
             if ($cliente) return $this->suggestion($cliente, 'alta', 'Correo exacto', 100);
         }
 
         $candidate = $this->bestTextMatch(
-            Cliente::all(),
+            Cliente::whereNull('deleted_at')->get(),
             $mapped['nombre_solicitante'] ?? null,
             fn ($cliente) => [$cliente->nombre]
         );
@@ -466,9 +529,16 @@ class ContratoPendienteController extends Controller
 
     private function crearTareaCompletarInformacion(string $sourceType, int $sourceId, string $title, int $pendienteId): void
     {
+        $label = match ($sourceType) {
+            'cliente' => 'cliente',
+            'propiedad' => 'propiedad',
+            default => 'registro',
+        };
+        $taskTitle = Str::limit('Revisar '.$label.' de contrato pendiente #'.$pendienteId, 255, '');
+
         Task::create([
-            'title' => $title,
-            'description' => 'Registro creado desde contrato pendiente #'.$pendienteId.'. Completar y validar la información faltante.',
+            'title' => $taskTitle,
+            'description' => 'Registro creado desde contrato pendiente #'.$pendienteId.'. Completar y validar la información faltante. '.$title,
             'due_date' => now()->addDays(3)->toDateString(),
             'status' => 'pending',
             'priority' => 'medium',

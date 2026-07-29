@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Cliente;
 use App\Models\Contrato;
+use App\Models\Propiedad;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +18,7 @@ class ArchivadoController extends Controller
             return view('archivados.index', [
                 'clientesArchivados' => collect(),
                 'contratosArchivados' => collect(),
+                'propiedadesArchivadas' => collect(),
                 'q' => trim((string) $request->query('q', '')),
                 'missingArchiveColumns' => true,
             ]);
@@ -59,7 +61,21 @@ class ArchivadoController extends Controller
             ->paginate(10, ['*'], 'contratos_page')
             ->withQueryString();
 
-        return view('archivados.index', compact('clientesArchivados', 'contratosArchivados', 'q') + [
+        $propiedadesArchivadas = Propiedad::onlyTrashed()
+            ->with('cliente')
+            ->withCount('contratos')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($w) use ($q) {
+                    $w->where('alias', 'like', "%{$q}%")
+                        ->orWhere('domicilio', 'like', "%{$q}%")
+                        ->orWhereHas('cliente', fn ($cliente) => $cliente->where('nombre', 'like', "%{$q}%"));
+                });
+            })
+            ->orderByDesc('deleted_at')
+            ->paginate(10, ['*'], 'propiedades_page')
+            ->withQueryString();
+
+        return view('archivados.index', compact('clientesArchivados', 'contratosArchivados', 'propiedadesArchivadas', 'q') + [
             'missingArchiveColumns' => false,
         ]);
     }
@@ -122,10 +138,36 @@ class ArchivadoController extends Controller
             ->with('success', 'Contrato desarchivado correctamente.');
     }
 
+    public function restorePropiedad(Request $request, $propiedad)
+    {
+        if (! Schema::hasColumn('propiedades', 'deleted_at')) {
+            return back()->with('error', 'La tabla propiedades no tiene columna deleted_at.');
+        }
+
+        $propiedad = Propiedad::withTrashed()->with('cliente')->findOrFail($propiedad);
+
+        if (! $propiedad->trashed()) {
+            return back()->with('info', 'La propiedad ya estaba activa.');
+        }
+
+        $clienteArchivado = $propiedad->cliente && ! blank($propiedad->cliente->deleted_at);
+
+        if ($clienteArchivado) {
+            return back()->with('error', 'No se puede desarchivar la propiedad porque su cliente sigue archivado. Desarchiva primero el cliente.');
+        }
+
+        $propiedad->restore();
+
+        return redirect()
+            ->route('archivados.index')
+            ->with('success', 'Propiedad desarchivada correctamente.');
+    }
+
     private function archiveColumnsExist(): bool
     {
         return Schema::hasColumn('clientes', 'deleted_at')
-            && Schema::hasColumn('contratos', 'deleted_at');
+            && Schema::hasColumn('contratos', 'deleted_at')
+            && Schema::hasColumn('propiedades', 'deleted_at');
     }
 
     private function logRestored(Request $request, $model, array $oldValues, array $newValues): void

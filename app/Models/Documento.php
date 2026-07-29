@@ -30,7 +30,7 @@ class Documento extends Model
 
     public function propiedad()
     {
-        return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad');
+        return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad')->withTrashed();
     }
 
     public function inquilino()

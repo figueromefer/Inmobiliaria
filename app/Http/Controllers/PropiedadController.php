@@ -9,11 +9,17 @@ use App\Services\GeocodingService;
 use App\Services\PerfilMovimientosService;
 use App\Services\RecurringTaskService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PropiedadController extends Controller
 {
+    private const MAX_DOMICILIO_LENGTH = 2000;
+
     public function index(Request $request)
     {
         $q = trim((string) $request->query('q', $request->get('search', '')));
@@ -54,7 +60,7 @@ class PropiedadController extends Controller
     {
         Gate::authorize('manage-records');
 
-        $clientes = Cliente::orderBy('nombre')->get();
+        $clientes = $this->activeClientesQuery()->orderBy('nombre')->get();
         $clientePreseleccionado = $request->get('cliente_id');
 
         return view('propiedades.create', compact('clientes', 'clientePreseleccionado'));
@@ -69,9 +75,9 @@ class PropiedadController extends Controller
         ]);
 
         $data = $request->validate([
-            'fk_cliente' => 'required|exists:clientes,pk_cliente',
+            'fk_cliente' => ['required', Rule::exists('clientes', 'pk_cliente')->whereNull('deleted_at')],
             'alias' => ['required','string','max:255','unique:propiedades,alias'],
-            'domicilio' => 'nullable|string|max:255',
+            'domicilio' => 'nullable|string|max:'.self::MAX_DOMICILIO_LENGTH,
             'siapa' => 'nullable|string|max:255',
             'cfe' => 'nullable|string|max:255',
             'predial' => 'nullable|string|max:255',
@@ -104,6 +110,8 @@ class PropiedadController extends Controller
             $data['domicilio'] = $address;
         }
 
+        $this->validateDomicilioLength($data['domicilio'] ?? null);
+
         if (! $coordenadasManual && (empty($data['latitud']) || empty($data['longitud'])) && $address !== '') {
             $coordinates = $geocodingService->geocode($address);
 
@@ -117,8 +125,8 @@ class PropiedadController extends Controller
 
         if ($propiedad->estatus_informacion !== 'completo') {
             Task::create([
-                'title' => 'Completar información de propiedad: ' . $propiedad->alias,
-                'description' => 'Revisar y completar información crítica de la propiedad.',
+                'title' => Str::limit('Completar propiedad: ' . ($propiedad->alias ?: 'Propiedad #'.$propiedad->pk_propiedad), 255, ''),
+                'description' => 'Revisar y completar información crítica de la propiedad. Alias: '.($propiedad->alias ?: '—').'. Domicilio: '.($propiedad->domicilio ?: '—').'.',
                 'due_date' => now()->addDays(3)->toDateString(),
                 'status' => 'pending',
                 'priority' => $propiedad->estatus_informacion === 'pendiente_critico' ? 'high' : 'medium',
@@ -146,7 +154,7 @@ class PropiedadController extends Controller
     public function edit(Propiedad $propiedad)
     {
         Gate::authorize('manage-records');
-        $clientes = Cliente::orderBy('nombre')->get();
+        $clientes = $this->activeClientesQuery()->orderBy('nombre')->get();
         return view('propiedades.edit', compact('propiedad', 'clientes'));
     }
 
@@ -159,9 +167,9 @@ class PropiedadController extends Controller
         ]);
 
         $data = $request->validate([
-            'fk_cliente' => 'required|exists:clientes,pk_cliente',
+            'fk_cliente' => ['required', Rule::exists('clientes', 'pk_cliente')->whereNull('deleted_at')],
             'alias' => ['required','string','max:255',Rule::unique('propiedades','alias')->ignore($propiedad->pk_propiedad,'pk_propiedad')],
-            'domicilio' => 'nullable|string|max:255',
+            'domicilio' => 'nullable|string|max:'.self::MAX_DOMICILIO_LENGTH,
             'siapa' => 'nullable|string|max:255',
             'cfe' => 'nullable|string|max:255',
             'predial' => 'nullable|string|max:255',
@@ -195,6 +203,8 @@ class PropiedadController extends Controller
             $data['domicilio'] = $address;
         }
 
+        $this->validateDomicilioLength($data['domicilio'] ?? null);
+
         $addressChanged = $this->normalizeAddressForCompare($address) !== $this->normalizeAddressForCompare($originalAddress);
 
         if (! $coordenadasManual && $address !== '' && ($addressChanged || empty($propiedad->latitud) || empty($propiedad->longitud))) {
@@ -218,8 +228,25 @@ class PropiedadController extends Controller
     public function destroy(Propiedad $propiedad)
     {
         Gate::authorize('delete-anything');
-        $propiedad->delete();
-        return redirect()->route('propiedades.index')->with('success', 'Propiedad eliminada correctamente.');
+
+        if (! Schema::hasColumn('propiedades', 'deleted_at')) {
+            return redirect()
+                ->route('propiedades.index')
+                ->with('error', 'No es posible archivar propiedades hasta ejecutar la migración de archivado.');
+        }
+
+        $dependencies = $this->propertyDependencyCounts($propiedad);
+
+        DB::transaction(function () use ($propiedad) {
+            $propiedad->delete();
+        });
+
+        $hasHistory = collect($dependencies)->sum() > 0;
+        $message = $hasHistory
+            ? 'La propiedad fue archivada porque tiene información histórica relacionada. No se borraron contratos, movimientos, documentos, tickets ni tareas.'
+            : 'Propiedad archivada correctamente.';
+
+        return redirect()->route('propiedades.index')->with('success', $message);
     }
 
     public function mapa()
@@ -274,5 +301,42 @@ class PropiedadController extends Controller
     private function normalizeAddressForCompare(string $address): string
     {
         return preg_replace('/\s+/', ' ', mb_strtolower(trim($address))) ?? '';
+    }
+
+    private function validateDomicilioLength(?string $domicilio): void
+    {
+        if ($domicilio !== null && mb_strlen($domicilio) > self::MAX_DOMICILIO_LENGTH) {
+            throw ValidationException::withMessages([
+                'domicilio' => 'El domicilio no puede exceder '.self::MAX_DOMICILIO_LENGTH.' caracteres.',
+            ]);
+        }
+    }
+
+    private function propertyDependencyCounts(Propiedad $propiedad): array
+    {
+        return [
+            'contratos' => $propiedad->contratos()->count(),
+            'movimientos' => $propiedad->movimientos()->count(),
+            'documentos' => $propiedad->documentos()->count(),
+            'tickets' => $propiedad->tickets()->withTrashed()->count(),
+            'contratos_pendientes' => DB::table('contratos_pendientes')
+                ->where('matched_propiedad_id', $propiedad->pk_propiedad)
+                ->count(),
+            'tareas' => Task::query()
+                ->where(function ($query) {
+                    $query->where('source_type', Propiedad::class)
+                        ->orWhere('source_type', 'propiedad');
+                })
+                ->where('source_id', $propiedad->pk_propiedad)
+                ->count(),
+        ];
+    }
+
+    private function activeClientesQuery()
+    {
+        return Cliente::query()
+            ->when(Schema::hasColumn('clientes', 'deleted_at'), function ($query) {
+                $query->whereNull('deleted_at');
+            });
     }
 }

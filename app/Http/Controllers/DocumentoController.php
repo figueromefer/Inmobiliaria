@@ -8,6 +8,7 @@ use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class DocumentoController extends Controller
 {
@@ -88,7 +89,7 @@ class DocumentoController extends Controller
             'tipo' => 'required|string|in:' . implode(',', array_keys(self::$tipos)),
             'archivo' => 'required|file|max:10240',
             'fk_cliente' => 'nullable|exists:clientes,pk_cliente',
-            'fk_propiedad' => 'nullable|exists:propiedades,pk_propiedad',
+            'fk_propiedad' => ['nullable', Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at')],
             'fk_inquilino' => 'nullable|exists:inquilinos,id',
         ]);
 

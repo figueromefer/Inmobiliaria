@@ -9,8 +9,10 @@ use App\Models\ContratoPendiente;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class FormsIntakeController extends Controller
 {
@@ -59,7 +61,7 @@ class FormsIntakeController extends Controller
     {
         $validator = Validator::make($payload, [
             'fk_cliente' => ['nullable', 'integer', 'exists:clientes,pk_cliente'],
-            'fk_propiedad' => ['nullable', 'integer', 'exists:propiedades,pk_propiedad'],
+            'fk_propiedad' => ['nullable', 'integer', Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at')],
             'tipo_solicitante' => ['nullable', 'string'],
             'tipo_complementaria' => ['nullable', 'string'],
             'tipo_tercero' => ['nullable', 'string'],
@@ -74,7 +76,7 @@ class FormsIntakeController extends Controller
             'editUrl' => ['nullable', 'url'],
             'urldoc' => ['nullable', 'url'],
             'nombre_solicitante' => ['nullable', 'string'],
-            'domicilio_inmueble_arrendamiento' => ['nullable', 'string'],
+            'domicilio_inmueble_arrendamiento' => ['nullable', 'string', 'max:2000'],
             'nombre_complementaria' => ['nullable', 'string'],
             'nacionalidad_complementaria' => ['nullable', 'string'],
             'domicilio_complementaria' => ['nullable', 'string'],
@@ -142,7 +144,14 @@ class FormsIntakeController extends Controller
                 'origen' => 'privado',
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+            Log::error('Error al crear contrato privado desde intake directo.', [
+                'exception' => $e,
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'error' => 'No se pudo crear el contrato. Revisa los datos e intenta nuevamente.',
+            ], 500);
         }
 
         return response()->json([

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Propiedad;
+use Illuminate\Validation\Rule;
 
 class ContratoRequest extends FormRequest
 {
@@ -17,7 +18,7 @@ class ContratoRequest extends FormRequest
         return [
             // FKs requeridas
             'fk_cliente'   => ['required','integer','exists:clientes,pk_cliente'],
-            'fk_propiedad' => ['required','integer','exists:propiedades,pk_propiedad'],
+            'fk_propiedad' => ['required', 'integer', Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at')],
 
             // Resto de tus campos (ajusta según los nombres en tu payload)
             'tipo_solicitante'     => ['nullable','string'],
