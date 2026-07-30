@@ -11,6 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class ReporteMensualController extends Controller
 {
@@ -49,7 +50,14 @@ class ReporteMensualController extends Controller
             return back()->with('error', 'Cliente no encontrado.');
         }
 
-        return Pdf::loadView('reportes.mensual_pdf', $data)->stream('reporte_mensual.pdf');
+        $clienteNombre = Str::slug((string) $data['cliente']->nombre, '_');
+        $nombreArchivo = sprintf(
+            'reporte_mensual_%s_%s.pdf',
+            $clienteNombre !== '' ? $clienteNombre : 'cliente',
+            $mes
+        );
+
+        return Pdf::loadView('reportes.mensual_pdf', $data)->stream($nombreArchivo);
     }
 
     private function buildReportData(ReporteFinancieroService $reportes, Collection $clientes, int $clienteId, string $mes): ?array
@@ -76,6 +84,7 @@ class ReporteMensualController extends Controller
 
         return [
             'clientes' => $clientes,
+            'cliente' => $cliente,
             'clienteId' => $clienteId,
             'mes' => $mes,
             'reporteFinanciero' => $reporteFinanciero,
