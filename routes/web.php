@@ -107,6 +107,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
     Route::get('/movimientos/crear', [MovimientoController::class, 'create'])->name('movimientos.create');
     Route::post('/movimientos', [MovimientoController::class, 'store'])->name('movimientos.store');
+    Route::get('/movimientos/{movimiento}/editar', [MovimientoController::class, 'edit'])
+        ->middleware('can:manage-records')
+        ->name('movimientos.edit');
+    Route::put('/movimientos/{movimiento}', [MovimientoController::class, 'update'])
+        ->middleware('can:manage-records')
+        ->name('movimientos.update');
+    Route::delete('/movimientos/{movimiento}', [MovimientoController::class, 'destroy'])
+        ->middleware('can:delete-anything')
+        ->name('movimientos.destroy');
     Route::patch('/movimientos/{movimiento}/aprobar', [MovimientoController::class, 'approve'])->name('movimientos.approve');
     Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
     Route::get('/movimientos/{movimiento}/recibo', [MovimientoController::class, 'recibo'])->name('movimientos.recibo');

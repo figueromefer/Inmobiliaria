@@ -10,7 +10,9 @@ use App\Models\Contrato;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -47,6 +49,28 @@ class MovimientoController extends Controller
 
     public function create(Request $request)
     {
+        $clienteId = (int) $request->query('cliente_id', 0);
+
+        return view('movimientos.create', array_merge(
+            $this->formOptions(),
+            compact('clienteId')
+        ));
+    }
+
+    public function edit(Movimiento $movimiento)
+    {
+        Gate::authorize('manage-records');
+
+        $movimiento->loadMissing(['cliente', 'propiedad', 'inquilino']);
+
+        return view('movimientos.create', array_merge(
+            $this->formOptions(),
+            compact('movimiento')
+        ));
+    }
+
+    private function formOptions(): array
+    {
         $clientes = Cliente::query()
             ->select('clientes.pk_cliente as id', 'clientes.nombre')
             ->when(Schema::hasColumn('clientes', 'deleted_at'), function ($query) {
@@ -69,12 +93,76 @@ class MovimientoController extends Controller
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'correo', 'telefono']);
 
-        $clienteId = (int) $request->query('cliente_id', 0);
-
-        return view('movimientos.create', compact('clientes','propiedades','inquilinos','clienteId'));
+        return compact('clientes', 'propiedades', 'inquilinos');
     }
 
     public function store(Request $request)
+    {
+        $data = $this->validatedMovimientoData($request);
+
+        if ($request->hasFile('comprobante')) {
+            $data['comprobante'] = $request->file('comprobante')->store('comprobantes', 'public');
+        }
+
+        [$data, $message] = $this->applyApprovalState($request, $data, 'registrado');
+
+        $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
+        $movimiento->ensureFolio();
+        $this->logMovimientoCreated($request, $movimiento->fresh());
+
+        return redirect()->route('movimientos.index')->with('ok', $message);
+    }
+
+    public function update(Request $request, Movimiento $movimiento)
+    {
+        Gate::authorize('manage-records');
+
+        $data = $this->validatedMovimientoData($request);
+        $oldComprobante = $movimiento->comprobante;
+        $newComprobante = null;
+
+        if ($request->hasFile('comprobante')) {
+            $newComprobante = $request->file('comprobante')->store('comprobantes', 'public');
+            $data['comprobante'] = $newComprobante;
+        }
+
+        [$data, $message] = $this->applyApprovalState($request, $data, 'actualizado');
+
+        try {
+            $movimiento->update($data);
+        } catch (\Throwable $exception) {
+            if ($newComprobante) {
+                Storage::disk('public')->delete($newComprobante);
+            }
+
+            throw $exception;
+        }
+
+        if ($newComprobante && $oldComprobante && $oldComprobante !== $newComprobante) {
+            Storage::disk('public')->delete($oldComprobante);
+        }
+
+        return redirect()->route('movimientos.index')->with('ok', $message);
+    }
+
+    public function destroy(Movimiento $movimiento)
+    {
+        Gate::authorize('delete-anything');
+
+        $folio = $movimiento->folio ?: Movimiento::formatFolio($movimiento->id);
+        $comprobante = $movimiento->comprobante;
+
+        $movimiento->delete();
+
+        if ($comprobante) {
+            Storage::disk('public')->delete($comprobante);
+        }
+
+        return redirect()->route('movimientos.index')
+            ->with('ok', "Movimiento {$folio} eliminado correctamente.");
+    }
+
+    private function validatedMovimientoData(Request $request): array
     {
         $rules = [
             'asignado_a_tipo' => ['required','in:cliente,propiedad,inquilino'],
@@ -101,31 +189,30 @@ class MovimientoController extends Controller
             $data['forma_pago'] = 'efectivo';
         } else {
             if (!$request->filled('forma_pago')) {
-                return back()->withInput()->withErrors(['forma_pago' => 'Selecciona la forma de pago.']);
+                throw ValidationException::withMessages(['forma_pago' => 'Selecciona la forma de pago.']);
             }
         }
 
-        if ($request->hasFile('comprobante')) {
-            $data['comprobante'] = $request->file('comprobante')->store('comprobantes', 'public');
-        }
+        unset($data['comprobante']);
 
+        return $data;
+    }
+
+    private function applyApprovalState(Request $request, array $data, string $action): array
+    {
         if ($request->user()?->role === 'admin') {
             $data['approval_status'] = Movimiento::STATUS_APPROVED;
             $data['approved_by'] = $request->user()->id;
             $data['approved_at'] = now();
-            $message = 'Movimiento registrado y aprobado.';
+            $message = "Movimiento {$action} y aprobado.";
         } else {
             $data['approval_status'] = Movimiento::STATUS_PENDING;
             $data['approved_by'] = null;
             $data['approved_at'] = null;
-            $message = 'Movimiento registrado y pendiente de aprobación.';
+            $message = "Movimiento {$action} y pendiente de aprobación.";
         }
 
-        $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
-        $movimiento->ensureFolio();
-        $this->logMovimientoCreated($request, $movimiento->fresh());
-
-        return redirect()->route('movimientos.index')->with('ok', $message);
+        return [$data, $message];
     }
 
     public function approve(Request $request, Movimiento $movimiento)

@@ -1,7 +1,12 @@
+@php
+  $editing = isset($movimiento);
+  $field = fn (string $name, $default = null) => old($name, $editing ? data_get($movimiento, $name) : $default);
+@endphp
+
 <x-app-layout>
   <x-slot name="header">
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-      {{ __('Nuevo movimiento') }}
+      {{ $editing ? __('Editar movimiento').' '.($movimiento->folio ?? '') : __('Nuevo movimiento') }}
     </h2>
   </x-slot>
 
@@ -14,16 +19,19 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ route('movimientos.store') }}" enctype="multipart/form-data" class="grid gap-4">
+    <form method="POST" action="{{ $editing ? route('movimientos.update', $movimiento) : route('movimientos.store') }}" enctype="multipart/form-data" class="grid gap-4">
       @csrf
+      @if($editing)
+        @method('PUT')
+      @endif
 
       {{-- Tipo de asignación --}}
       <div>
         <label class="block text-sm font-medium">Asignar movimiento a</label>
         <select id="asignado_a_tipo" name="asignado_a_tipo" class="mt-1 w-full border rounded px-3 py-2" required>
-          <option value="cliente" @selected(old('asignado_a_tipo', 'cliente') === 'cliente')>Cliente</option>
-          <option value="propiedad" @selected(old('asignado_a_tipo', 'cliente') === 'propiedad')>Propiedad</option>
-          <option value="inquilino" @selected(old('asignado_a_tipo', 'cliente') === 'inquilino')>Inquilino</option>
+          <option value="cliente" @selected($field('asignado_a_tipo', 'cliente') === 'cliente')>Cliente</option>
+          <option value="propiedad" @selected($field('asignado_a_tipo', 'cliente') === 'propiedad')>Propiedad</option>
+          <option value="inquilino" @selected($field('asignado_a_tipo', 'cliente') === 'inquilino')>Inquilino</option>
         </select>
       </div>
 
@@ -33,7 +41,7 @@
         <select id="cliente_id" name="cliente_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
           <option value="">— Selecciona —</option>
           @foreach ($clientes as $c)
-            <option value="{{ $c->id }}" @selected(old('cliente_id', $clienteId ?? '') == $c->id)>{{ $c->nombre }}</option>
+            <option value="{{ $c->id }}" @selected($field('cliente_id', $clienteId ?? '') == $c->id)>{{ $c->nombre }}</option>
           @endforeach
         </select>
       </div>
@@ -43,12 +51,12 @@
         <label class="block text-sm font-medium">Concepto</label>
         <select name="concepto" class="mt-1 w-full border rounded px-3 py-2" required>
           <option value="">— Selecciona —</option>
-          <option value="deposito" @selected(old('concepto') === 'deposito')>Depósito</option>
-          <option value="renta" @selected(old('concepto') === 'renta')>Pago de renta</option>
-          <option value="gasto" @selected(old('concepto') === 'gasto')>Gasto</option>
-          <option value="gasto_cliente" @selected(old('concepto') === 'gasto_cliente')>Gasto cliente</option>
-          <option value="pago_cliente" @selected(old('concepto') === 'pago_cliente')>Pago al cliente</option>
-          <option value="iguala" @selected(old('concepto') === 'iguala')>Iguala / Comisión de administración</option>
+          <option value="deposito" @selected($field('concepto') === 'deposito')>Depósito</option>
+          <option value="renta" @selected($field('concepto') === 'renta')>Pago de renta</option>
+          <option value="gasto" @selected($field('concepto') === 'gasto')>Gasto</option>
+          <option value="gasto_cliente" @selected($field('concepto') === 'gasto_cliente')>Gasto cliente</option>
+          <option value="pago_cliente" @selected($field('concepto') === 'pago_cliente')>Pago al cliente</option>
+          <option value="iguala" @selected($field('concepto') === 'iguala')>Iguala / Comisión de administración</option>
 
         </select>
       </div>
@@ -59,7 +67,7 @@
         <select id="propiedad_id" name="propiedad_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
           <option value="">— Selecciona —</option>
           @foreach ($propiedades as $p)
-            <option value="{{ $p->id }}" @selected(old('propiedad_id') == $p->id)>
+            <option value="{{ $p->id }}" @selected($field('propiedad_id') == $p->id)>
               {{ $p->alias ?: $p->domicilio ?: 'Propiedad #'.$p->id }}{{ $p->cliente ? ' — '.$p->cliente->nombre : '' }}
             </option>
           @endforeach
@@ -72,7 +80,7 @@
         <select id="inquilino_id" name="inquilino_id" class="js-searchable-select mt-1 w-full border rounded px-3 py-2">
           <option value="">— Selecciona —</option>
           @foreach ($inquilinos as $inquilino)
-            <option value="{{ $inquilino->id }}" @selected(old('inquilino_id') == $inquilino->id)>
+            <option value="{{ $inquilino->id }}" @selected($field('inquilino_id') == $inquilino->id)>
               {{ $inquilino->nombre }}{{ $inquilino->correo ? ' — '.$inquilino->correo : '' }}{{ $inquilino->telefono ? ' — '.$inquilino->telefono : '' }}
             </option>
           @endforeach
@@ -83,35 +91,35 @@
       {{-- Fecha --}}
       <div>
         <label class="block text-sm font-medium">Fecha</label>
-        <input type="date" name="fecha" value="{{ old('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
+        <input type="date" name="fecha" value="{{ $field('fecha', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('fecha')->toDateString() : $field('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
       </div>
 
       {{-- Estado financiero --}}
       <div>
         <label class="block text-sm font-medium">Estado de pago</label>
         <select id="estado_pago" name="estado_pago" class="mt-1 w-full border rounded px-3 py-2" required>
-          <option value="pendiente" @selected(old('estado_pago', 'liquidado') === 'pendiente')>Pendiente</option>
-          <option value="liquidado" @selected(old('estado_pago', 'liquidado') === 'liquidado')>Liquidado</option>
-          <option value="cancelado" @selected(old('estado_pago', 'liquidado') === 'cancelado')>Cancelado</option>
+          <option value="pendiente" @selected($field('estado_pago', 'liquidado') === 'pendiente')>Pendiente</option>
+          <option value="liquidado" @selected($field('estado_pago', 'liquidado') === 'liquidado')>Liquidado</option>
+          <option value="cancelado" @selected($field('estado_pago', 'liquidado') === 'cancelado')>Cancelado</option>
         </select>
       </div>
 
       <div id="fecha_liquidacion_wrap">
         <label class="block text-sm font-medium">Fecha de liquidación</label>
-        <input id="fecha_liquidacion" type="date" name="fecha_liquidacion" value="{{ old('fecha_liquidacion') }}" class="mt-1 w-full border rounded px-3 py-2">
+        <input id="fecha_liquidacion" type="date" name="fecha_liquidacion" value="{{ $field('fecha_liquidacion') instanceof \Carbon\CarbonInterface ? $field('fecha_liquidacion')->toDateString() : $field('fecha_liquidacion') }}" class="mt-1 w-full border rounded px-3 py-2">
         <p class="text-xs text-gray-500 mt-1">Si se deja vacía en estado liquidado, se usará la fecha del movimiento.</p>
       </div>
 
       <label class="inline-flex items-center gap-2">
         <input type="hidden" name="afecta_saldo_cliente" value="0">
-        <input type="checkbox" name="afecta_saldo_cliente" value="1" class="rounded border-gray-300" @checked(old('afecta_saldo_cliente', '1'))>
+        <input type="checkbox" name="afecta_saldo_cliente" value="1" class="rounded border-gray-300" @checked((bool) $field('afecta_saldo_cliente', true))>
         <span class="text-sm font-medium">Afecta saldo del cliente</span>
       </label>
 
       {{-- Importe --}}
       <div>
         <label class="block text-sm font-medium">Importe</label>
-        <input type="text" inputmode="decimal" name="importe" value="{{ old('importe') }}" class="js-money-input mt-1 w-full border rounded px-3 py-2" required>
+        <input type="text" inputmode="decimal" name="importe" value="{{ $field('importe') }}" class="js-money-input mt-1 w-full border rounded px-3 py-2" required>
       </div>
 
       {{-- Forma de pago --}}
@@ -119,15 +127,15 @@
         <label class="block text-sm font-medium">Forma de pago</label>
         <select name="forma_pago" class="mt-1 w-full border rounded px-3 py-2" required>
           <option value="">— Selecciona —</option>
-          <option value="efectivo" @selected(old('forma_pago') === 'efectivo')>Efectivo</option>
-          <option value="transferencia" @selected(old('forma_pago') === 'transferencia')>Transferencia</option>
+          <option value="efectivo" @selected($field('forma_pago') === 'efectivo')>Efectivo</option>
+          <option value="transferencia" @selected($field('forma_pago') === 'transferencia')>Transferencia</option>
         </select>
       </div>
 
       {{-- Notas --}}
       <div>
         <label class="block text-sm font-medium">Notas</label>
-        <textarea name="notas" rows="3" class="mt-1 w-full border rounded px-3 py-2">{{ old('notas') }}</textarea>
+        <textarea name="notas" rows="3" class="mt-1 w-full border rounded px-3 py-2">{{ $field('notas') }}</textarea>
       </div>
 
       {{-- Comprobante --}}
@@ -143,8 +151,16 @@
         @enderror
     </div>
 
+      @if($editing && $movimiento->comprobante)
+        <p class="text-sm text-gray-600 -mt-3">
+          Comprobante actual:
+          <a href="{{ asset('storage/'.$movimiento->comprobante) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">ver archivo</a>.
+          Déjalo vacío para conservarlo.
+        </p>
+      @endif
+
       <div class="flex gap-2">
-        <button class="border rounded px-4 py-2">Guardar</button>
+        <button class="border rounded px-4 py-2">{{ $editing ? 'Guardar cambios' : 'Guardar' }}</button>
         <a href="{{ route('movimientos.index') }}" class="border rounded px-4 py-2">Cancelar</a>
       </div>
     </form>

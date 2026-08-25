@@ -154,17 +154,33 @@
               </td>
 
               <td class="px-4 py-2 text-right">
-                @if(auth()->user()?->role === 'admin' && $m->approval_status === \App\Models\Movimiento::STATUS_PENDING)
-                  <form action="{{ route('movimientos.approve', $m) }}" method="POST" onsubmit="return confirm('¿Aprobar este movimiento?');">
-                    @csrf
-                    @method('PATCH')
-                    <button class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1 rounded">
-                      Aprobar
-                    </button>
-                  </form>
-                @else
-                  —
-                @endif
+                <div class="inline-flex flex-col items-end gap-2">
+                  @can('manage-records')
+                    <a href="{{ route('movimientos.edit', $m) }}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1 rounded">
+                      Editar
+                    </a>
+                  @endcan
+
+                  @if(auth()->user()?->role === 'admin' && $m->approval_status === \App\Models\Movimiento::STATUS_PENDING)
+                    <form action="{{ route('movimientos.approve', $m) }}" method="POST" onsubmit="return confirm('¿Aprobar este movimiento?');">
+                      @csrf
+                      @method('PATCH')
+                      <button class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1 rounded">
+                        Aprobar
+                      </button>
+                    </form>
+                  @endif
+
+                  @can('delete-anything')
+                    <form action="{{ route('movimientos.destroy', $m) }}" method="POST" onsubmit="return confirm('¿Eliminar definitivamente el movimiento {{ $m->folio ?? $m->id }}? Esta acción no se puede deshacer.');">
+                      @csrf
+                      @method('DELETE')
+                      <button class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1 rounded">
+                        Eliminar
+                      </button>
+                    </form>
+                  @endcan
+                </div>
               </td>
             </tr>
           @empty
