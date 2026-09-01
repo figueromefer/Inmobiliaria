@@ -464,7 +464,7 @@ class MovimientoController extends Controller
         $path = 'movimientos/comprobantes/'.now()->format('Y/m').'/'.Str::uuid().'.'.$extension;
 
         try {
-            $storedPath = Storage::disk($diskName)->putFileAs(dirname($path), $file, basename($path), ['visibility' => 'private']);
+            $storedPath = Storage::disk($diskName)->putFileAs(dirname($path), $file, basename($path));
 
             if (! $storedPath) {
                 throw new \RuntimeException('El disco no confirmó el almacenamiento del comprobante.');

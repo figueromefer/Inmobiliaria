@@ -68,7 +68,7 @@ return [
             'bucket' => env('R2_BUCKET'),
             'endpoint' => env('R2_ENDPOINT'),
             'use_path_style_endpoint' => env('R2_USE_PATH_STYLE_ENDPOINT', false),
-            'visibility' => 'private',
+            // R2 controls privacy at the bucket level and does not support object ACLs.
             'throw' => true,
             'report' => false,
         ],
