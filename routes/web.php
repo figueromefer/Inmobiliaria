@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:delete-anything')
         ->name('movimientos.destroy');
     Route::patch('/movimientos/{movimiento}/aprobar', [MovimientoController::class, 'approve'])->name('movimientos.approve');
+    Route::get('/movimientos/{movimiento}/comprobante', [MovimientoController::class, 'comprobante'])->name('movimientos.comprobante');
     Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
     Route::get('/movimientos/{movimiento}/recibo', [MovimientoController::class, 'recibo'])->name('movimientos.recibo');
 

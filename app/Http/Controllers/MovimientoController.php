@@ -11,8 +11,11 @@ use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -99,14 +102,22 @@ class MovimientoController extends Controller
     public function store(Request $request)
     {
         $data = $this->validatedMovimientoData($request);
+        $storedComprobante = null;
 
         if ($request->hasFile('comprobante')) {
-            $data['comprobante'] = $request->file('comprobante')->store('comprobantes', 'public');
+            $storedComprobante = $this->storeComprobante($request->file('comprobante'));
+            $data = array_merge($data, $storedComprobante);
         }
 
         [$data, $message] = $this->applyApprovalState($request, $data, 'registrado');
 
-        $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
+        try {
+            $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
+        } catch (\Throwable $exception) {
+            $this->deleteComprobante($storedComprobante, 'No se pudo revertir un comprobante tras fallar la base de datos.');
+
+            throw $exception;
+        }
         $movimiento->ensureFolio();
         $this->logMovimientoCreated($request, $movimiento->fresh());
 
@@ -118,12 +129,12 @@ class MovimientoController extends Controller
         Gate::authorize('manage-records');
 
         $data = $this->validatedMovimientoData($request);
-        $oldComprobante = $movimiento->comprobante;
+        $oldComprobante = $this->comprobanteData($movimiento);
         $newComprobante = null;
 
         if ($request->hasFile('comprobante')) {
-            $newComprobante = $request->file('comprobante')->store('comprobantes', 'public');
-            $data['comprobante'] = $newComprobante;
+            $newComprobante = $this->storeComprobante($request->file('comprobante'));
+            $data = array_merge($data, $newComprobante);
         }
 
         [$data, $message] = $this->applyApprovalState($request, $data, 'actualizado');
@@ -131,15 +142,14 @@ class MovimientoController extends Controller
         try {
             $movimiento->update($data);
         } catch (\Throwable $exception) {
-            if ($newComprobante) {
-                Storage::disk('public')->delete($newComprobante);
-            }
+            $this->deleteComprobante($newComprobante, 'No se pudo revertir un comprobante tras fallar la actualización.');
 
             throw $exception;
         }
 
-        if ($newComprobante && $oldComprobante && $oldComprobante !== $newComprobante) {
-            Storage::disk('public')->delete($oldComprobante);
+        if ($newComprobante && $oldComprobante && ! $this->deleteComprobante($oldComprobante, 'No se pudo eliminar el comprobante anterior del movimiento.')) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'El movimiento se actualizó, pero no fue posible eliminar el comprobante anterior.');
         }
 
         return redirect()->route('movimientos.index')->with('ok', $message);
@@ -150,13 +160,14 @@ class MovimientoController extends Controller
         Gate::authorize('delete-anything');
 
         $folio = $movimiento->folio ?: Movimiento::formatFolio($movimiento->id);
-        $comprobante = $movimiento->comprobante;
+        $comprobante = $this->comprobanteData($movimiento);
+
+        if ($comprobante && ! $this->deleteComprobante($comprobante, 'No se pudo eliminar el comprobante del movimiento.')) {
+            return redirect()->route('movimientos.index')
+                ->with('error', "No se eliminó el movimiento {$folio} porque no se pudo eliminar su comprobante.");
+        }
 
         $movimiento->delete();
-
-        if ($comprobante) {
-            Storage::disk('public')->delete($comprobante);
-        }
 
         return redirect()->route('movimientos.index')
             ->with('ok', "Movimiento {$folio} eliminado correctamente.");
@@ -177,11 +188,16 @@ class MovimientoController extends Controller
             'fecha_liquidacion' => ['nullable','date'],
             'afecta_saldo_cliente' => ['nullable','boolean'],
             'notas' => ['nullable','string'],
-            'comprobante' => ['nullable','file','mimes:jpg,jpeg,png,pdf','max:2048'],
+            'comprobante' => ['nullable', 'file', 'extensions:jpg,jpeg,png,pdf', 'mimetypes:application/pdf,image/jpeg,image/png', 'max:'.config('movimientos.comprobantes.max_kib')],
         ];
 
         $concepto = $request->input('concepto');
-        $data = $request->validate($rules);
+        $data = $request->validate($rules, [
+            'comprobante.extensions' => 'El comprobante debe ser un archivo PDF, JPG o PNG.',
+            'comprobante.mimetypes' => 'El contenido del comprobante debe corresponder a un PDF, JPG o PNG válido.',
+            'comprobante.max' => 'El comprobante no puede superar los 50 MB.',
+            'comprobante.file' => 'El comprobante debe ser un archivo válido.',
+        ]);
         $data = $this->resolveMovimientoAssignment($data);
         $data = $this->resolvePaymentState($data);
 
@@ -390,6 +406,143 @@ class MovimientoController extends Controller
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+    }
+
+    public function comprobante(Movimiento $movimiento)
+    {
+        $comprobante = $this->comprobanteData($movimiento);
+
+        abort_unless($comprobante && $this->isAllowedComprobanteDisk($comprobante['comprobante_disk']), 404);
+
+        $disk = Storage::disk($comprobante['comprobante_disk']);
+
+        if (! $disk->exists($comprobante['comprobante'])) {
+            abort(404);
+        }
+
+        $filename = $this->downloadFilename($comprobante['comprobante_nombre_original'], $comprobante['comprobante']);
+        $mime = $comprobante['comprobante_mime'] ?: $disk->mimeType($comprobante['comprobante']);
+
+        if ($comprobante['comprobante_disk'] === 'r2') {
+            return redirect()->away($disk->temporaryUrl(
+                $comprobante['comprobante'],
+                now()->addMinutes(config('movimientos.comprobantes.temporary_url_minutes')),
+                array_filter([
+                    'ResponseContentDisposition' => 'inline; filename="'.$filename.'"',
+                    'ResponseContentType' => $mime,
+                ])
+            ));
+        }
+
+        return response()->file($disk->path($comprobante['comprobante']), array_filter([
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]));
+    }
+
+    private function storeComprobante(UploadedFile $file): array
+    {
+        $diskName = config('movimientos.comprobantes.disk');
+
+        if (! $this->isAllowedComprobanteDisk($diskName)) {
+            Log::error('El disco configurado para comprobantes de movimientos no está permitido.', ['disk' => $diskName]);
+            throw ValidationException::withMessages(['comprobante' => 'No fue posible almacenar el comprobante. Inténtalo de nuevo.']);
+        }
+
+        $mime = $file->getMimeType();
+        $extension = match ($mime) {
+            'application/pdf' => 'pdf',
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            default => null,
+        };
+
+        if (! $extension) {
+            throw ValidationException::withMessages(['comprobante' => 'El contenido del comprobante debe corresponder a un PDF, JPG o PNG válido.']);
+        }
+
+        $path = 'movimientos/comprobantes/'.now()->format('Y/m').'/'.Str::uuid().'.'.$extension;
+
+        try {
+            $storedPath = Storage::disk($diskName)->putFileAs(dirname($path), $file, basename($path), ['visibility' => 'private']);
+
+            if (! $storedPath) {
+                throw new \RuntimeException('El disco no confirmó el almacenamiento del comprobante.');
+            }
+        } catch (\Throwable $exception) {
+            Log::error('No se pudo almacenar el comprobante del movimiento.', [
+                'disk' => $diskName,
+                'exception_type' => $exception::class,
+            ]);
+
+            throw ValidationException::withMessages(['comprobante' => 'No fue posible almacenar el comprobante. Inténtalo de nuevo.']);
+        }
+
+        return [
+            'comprobante' => $path,
+            'comprobante_disk' => $diskName,
+            'comprobante_nombre_original' => $file->getClientOriginalName(),
+            'comprobante_mime' => $mime,
+            'comprobante_size' => $file->getSize(),
+        ];
+    }
+
+    private function comprobanteData(Movimiento $movimiento): ?array
+    {
+        if (! $movimiento->comprobante) {
+            return null;
+        }
+
+        return [
+            'comprobante' => $movimiento->comprobante,
+            'comprobante_disk' => $movimiento->comprobante_disk ?: 'public',
+            'comprobante_nombre_original' => $movimiento->comprobante_nombre_original,
+            'comprobante_mime' => $movimiento->comprobante_mime,
+            'comprobante_size' => $movimiento->comprobante_size,
+        ];
+    }
+
+    private function deleteComprobante(?array $comprobante, string $message): bool
+    {
+        if (! $comprobante) {
+            return true;
+        }
+
+        if (! $this->isAllowedComprobanteDisk($comprobante['comprobante_disk'])) {
+            Log::error($message, ['disk' => $comprobante['comprobante_disk'], 'path' => $comprobante['comprobante']]);
+
+            return false;
+        }
+
+        try {
+            if (! Storage::disk($comprobante['comprobante_disk'])->delete($comprobante['comprobante'])) {
+                Log::error($message, ['disk' => $comprobante['comprobante_disk'], 'path' => $comprobante['comprobante']]);
+
+                return false;
+            }
+        } catch (\Throwable $exception) {
+            Log::error($message, [
+                'disk' => $comprobante['comprobante_disk'],
+                'path' => $comprobante['comprobante'],
+                'exception_type' => $exception::class,
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isAllowedComprobanteDisk(string $disk): bool
+    {
+        return in_array($disk, config('movimientos.comprobantes.allowed_disks'), true);
+    }
+
+    private function downloadFilename(?string $originalName, string $path): string
+    {
+        $filename = $originalName ?: basename($path);
+
+        return str_replace(["\r", "\n", '"'], '', $filename);
     }
 
     public function recibo(Movimiento $movimiento)
