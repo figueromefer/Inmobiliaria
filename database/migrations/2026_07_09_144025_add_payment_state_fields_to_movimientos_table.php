@@ -100,6 +100,10 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return false;
+        }
+
         $database = DB::getDatabaseName();
 
         return DB::table('information_schema.statistics')

@@ -133,7 +133,7 @@
 
               <td class="px-4 py-2 text-right">
                 @if($m->comprobante)
-                  <a href="{{ asset('storage/' . $m->comprobante) }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
+                  <a href="{{ route('movimientos.comprobante', $m) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">
                     Ver
                   </a>
                 @else

@@ -145,7 +145,8 @@
         </label>
         <input type="file" name="comprobante" id="comprobante"
             class="form-input mt-1 block w-full rounded-md shadow-sm border-gray-300"
-            accept="image/*,application/pdf">
+            accept="image/jpeg,image/png,application/pdf">
+        <p class="mt-1 text-sm text-gray-500">Formatos permitidos: PDF, JPG y PNG. Tamaño máximo: 50 MB.</p>
         @error('comprobante')
             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
         @enderror
@@ -154,7 +155,7 @@
       @if($editing && $movimiento->comprobante)
         <p class="text-sm text-gray-600 -mt-3">
           Comprobante actual:
-          <a href="{{ asset('storage/'.$movimiento->comprobante) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">ver archivo</a>.
+          <a href="{{ route('movimientos.comprobante', $movimiento) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">ver archivo</a>.
           Déjalo vacío para conservarlo.
         </p>
       @endif
