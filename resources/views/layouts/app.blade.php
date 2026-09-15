@@ -186,6 +186,7 @@
                     .some(function (input) { return input.files && input.files.length > 0; });
                 if (!hasSelectedFile || form.dataset.fileUploadSubmitting === 'true') return;
 
+                event.preventDefault();
                 form.dataset.fileUploadSubmitting = 'true';
                 form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (button) {
                     button.disabled = true;
@@ -201,6 +202,12 @@
                 window.addEventListener('beforeunload', function (beforeUnloadEvent) {
                     beforeUnloadEvent.preventDefault();
                     beforeUnloadEvent.returnValue = '';
+                });
+
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        form.requestSubmit();
+                    });
                 });
             }, true);
         </script>

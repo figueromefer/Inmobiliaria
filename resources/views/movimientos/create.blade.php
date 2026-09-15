@@ -72,7 +72,6 @@
             </option>
           @endforeach
         </select>
-        <p id="renta-vigente-preview" class="hidden mt-2 rounded bg-blue-50 p-2 text-sm text-blue-800" aria-live="polite"></p>
       </div>
 
       {{-- Inquilino --}}
@@ -88,6 +87,7 @@
         </select>
         <p class="text-xs text-gray-500 mt-1">El sistema resolverá propiedad y cliente desde el contrato del inquilino.</p>
       </div>
+      <p id="renta-vigente-preview" class="hidden rounded bg-blue-50 p-2 text-sm text-blue-800" aria-live="polite"></p>
 
       {{-- Periodo del movimiento --}}
       <div>
@@ -183,15 +183,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function actualizarRentaVigente() {
     const esRenta = selConcepto.value === 'renta';
-    const propiedadId = selProp.value;
-    rentaPreview.classList.toggle('hidden', !esRenta);
-    if (!esRenta) return;
-    if (!propiedadId) {
+    const asignacion = selAsignado.value;
+    const esPropiedad = asignacion === 'propiedad';
+    const esInquilino = asignacion === 'inquilino';
+    const id = esPropiedad ? selProp.value : (esInquilino ? selInquilino.value : '');
+    rentaPreview.classList.toggle('hidden', !esRenta || (!esPropiedad && !esInquilino));
+    if (!esRenta || (!esPropiedad && !esInquilino)) {
+      rentaPreview.textContent = '';
+      return;
+    }
+    if (!id) {
       rentaPreview.textContent = 'No se encontró una renta vigente para esta propiedad.';
       return;
     }
     rentaPreview.textContent = 'Consultando renta mensual según contrato vigente…';
-    fetch(`{{ url('/movimientos/propiedades') }}/${encodeURIComponent(propiedadId)}/renta-vigente`, { headers: { Accept: 'application/json' } })
+    const baseUrl = esPropiedad ? '{{ url('/movimientos/propiedades') }}' : '{{ url('/movimientos/inquilinos') }}';
+    fetch(`${baseUrl}/${encodeURIComponent(id)}/renta-vigente`, { headers: { Accept: 'application/json' } })
       .then(response => response.ok ? response.json() : Promise.reject())
       .then(data => {
         rentaPreview.textContent = data.monto_mensual === null
@@ -241,13 +248,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-  selAsignado.addEventListener('change', toggleAssignmentPanels);
+  selAsignado.addEventListener('change', () => {
+    toggleAssignmentPanels();
+    actualizarRentaVigente();
+  });
 
   selConcepto.addEventListener('change', e => {
     toggleFieldsByConcept(e.target.value);
     actualizarRentaVigente();
   });
   selProp.addEventListener('change', actualizarRentaVigente);
+  selInquilino.addEventListener('change', actualizarRentaVigente);
+  document.addEventListener('searchable-selects:ready', () => {
+    selProp.tomselect?.on('change', actualizarRentaVigente);
+    selInquilino.tomselect?.on('change', actualizarRentaVigente);
+  });
 
   function togglePaymentFields() {
     const liquidado = selEstadoPago.value === 'liquidado';
