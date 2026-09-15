@@ -57,9 +57,13 @@ class ReporteAnexosYRentaPreviewTest extends TestCase
             ->assertSee('Cargando archivo… no cierres esta página.', false)
             ->assertSee('input[type="file"]', false)
             ->assertSee('event.preventDefault();', false)
-            ->assertSee('requestAnimationFrame', false)
             ->assertSee('form.requestSubmit()', false);
 
+        $this->assertSame(2, substr_count($response->getContent(), 'requestAnimationFrame(function () {'));
+        $this->assertMatchesRegularExpression(
+            '/requestAnimationFrame\(function \(\) \{\s*requestAnimationFrame\(function \(\) \{\s*form\.requestSubmit\(\);/s',
+            $response->getContent()
+        );
         $this->assertStringNotContainsString('fileUploadSubmitting', file_get_contents(resource_path('js/app.js')));
     }
 

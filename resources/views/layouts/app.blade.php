@@ -205,7 +205,9 @@
                 });
 
                 requestAnimationFrame(function () {
-                    form.requestSubmit();
+                    requestAnimationFrame(function () {
+                        form.requestSubmit();
+                    });
                 });
             }, true);
         </script>
