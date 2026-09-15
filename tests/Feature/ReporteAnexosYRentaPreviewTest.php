@@ -33,14 +33,14 @@ class ReporteAnexosYRentaPreviewTest extends TestCase
 
     public function test_movement_form_includes_informational_rent_preview_and_global_file_upload_indicator(): void
     {
-        $this->actingAs(User::factory()->create())->get(route('movimientos.create'))
-            ->assertOk()
+        $response = $this->actingAs(User::factory()->create())->get(route('movimientos.create'));
+        $response->assertOk()
             ->assertSee('renta-vigente-preview')
-            ->assertSee('actualizarRentaVigente');
+            ->assertSee('actualizarRentaVigente')
+            ->assertSee('Cargando archivo… no cierres esta página.', false)
+            ->assertSee('input[type="file"]', false);
 
-        $script = file_get_contents(resource_path('js/app.js'));
-        $this->assertStringContainsString('Cargando archivo… no cierres esta página.', $script);
-        $this->assertStringContainsString('input[type="file"]', $script);
+        $this->assertStringNotContainsString('fileUploadSubmitting', file_get_contents(resource_path('js/app.js')));
     }
 
     public function test_zip_contains_report_pdf_index_and_only_report_movement_receipt(): void
