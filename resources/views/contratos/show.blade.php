@@ -22,7 +22,7 @@
           <p class="text-sm font-medium text-gray-500">Folio o identificador</p>
           <p class="text-2xl font-semibold text-gray-900">{{ $contrato->expediente_justicia_alternativa ?: '#'.$contrato->id }}</p>
         </div>
-        <span class="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">Registro activo</span>
+        <span class="inline-flex w-fit rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">Contrato registrado</span>
       </div>
       <dl class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div><dt class="text-sm text-gray-500">Origen</dt><dd class="mt-1 font-medium text-gray-900">{{ $contrato->origen === 'justicia_alternativa' ? 'Justicia Alternativa' : 'Privado' }}</dd></div>

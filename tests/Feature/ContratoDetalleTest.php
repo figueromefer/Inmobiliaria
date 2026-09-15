@@ -37,6 +37,8 @@ class ContratoDetalleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Detalle de contrato');
+        $response->assertSee('Contrato registrado');
+        $response->assertDontSee('Registro activo');
         $response->assertSee('JA-DETALLE-1');
         $response->assertSee('Cliente de prueba');
         $response->assertSee('Casa de prueba');
