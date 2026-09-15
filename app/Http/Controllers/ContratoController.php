@@ -110,6 +110,18 @@ class ContratoController extends Controller
         ));
     }
 
+    public function show(int $contrato)
+    {
+        $contrato = Contrato::query()
+            ->with(['cliente', 'propiedad', 'inquilino', 'pendientes'])
+            ->when(Schema::hasColumn('contratos', 'deleted_at'), function ($query) {
+                $query->whereNull('contratos.deleted_at');
+            })
+            ->findOrFail($contrato);
+
+        return view('contratos.show', compact('contrato'));
+    }
+
     public function showImportJusticiaAlternativaForm()
     {
         return view('contratos.justicia-alternativa');
