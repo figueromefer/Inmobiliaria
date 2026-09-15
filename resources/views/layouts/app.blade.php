@@ -178,38 +178,29 @@
             });
         </script>
         <script>
-            document.addEventListener('submit', function (event) {
-                const form = event.target;
-                if (!(form instanceof HTMLFormElement)) return;
+            document.addEventListener('change', function (event) {
+                const input = event.target;
+                if (!(input instanceof HTMLInputElement) || input.type !== 'file' || !input.form) return;
 
+                const form = input.form;
                 const hasSelectedFile = Array.from(form.querySelectorAll('input[type="file"]'))
-                    .some(function (input) { return input.files && input.files.length > 0; });
-                if (!hasSelectedFile || form.dataset.fileUploadSubmitting === 'true') return;
+                    .some(function (fileInput) { return fileInput.files && fileInput.files.length > 0; });
+                const status = form.querySelector('[data-file-upload-selection-status]');
 
-                event.preventDefault();
-                form.dataset.fileUploadSubmitting = 'true';
-                form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (button) {
-                    button.disabled = true;
-                    button.setAttribute('aria-disabled', 'true');
-                });
+                if (!hasSelectedFile) {
+                    if (status) status.remove();
+                    return;
+                }
 
-                const status = document.createElement('div');
-                status.className = 'mt-3 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800';
-                status.setAttribute('role', 'status');
-                status.textContent = 'Cargando archivo… no cierres esta página.';
-                form.append(status);
+                if (status) return;
 
-                window.addEventListener('beforeunload', function (beforeUnloadEvent) {
-                    beforeUnloadEvent.preventDefault();
-                    beforeUnloadEvent.returnValue = '';
-                });
-
-                requestAnimationFrame(function () {
-                    requestAnimationFrame(function () {
-                        form.requestSubmit();
-                    });
-                });
-            }, true);
+                const note = document.createElement('div');
+                note.className = 'mt-3 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800';
+                note.setAttribute('role', 'status');
+                note.setAttribute('data-file-upload-selection-status', '');
+                note.textContent = 'Archivo seleccionado. Se cargará al guardar el movimiento.';
+                input.insertAdjacentElement('afterend', note);
+            });
         </script>
     </body>
 </html>
