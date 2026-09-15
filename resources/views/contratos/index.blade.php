@@ -91,10 +91,10 @@
     </form>
 
     @php
-      function sortUrlC($col, $sort, $dir) {
+      $sortUrlC = function ($col, $sort, $dir) {
         $next = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
         return request()->fullUrlWithQuery(['sort' => $col, 'dir' => $next, 'page' => 1]);
-      }
+      };
       $sort = $sort ?? 'fecha';
       $dir  = $dir  ?? 'desc';
     @endphp
@@ -104,12 +104,12 @@
         <table class="min-w-full text-sm lg:table-fixed">
             <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="text-left px-4 py-3 w-32"><a class="underline" href="{{ sortUrlC('id',$sort,$dir) }}">Expediente</a></th>
-                <th class="text-left px-4 py-3 w-48"><a class="underline" href="{{ sortUrlC('cliente',$sort,$dir) }}">Cliente</a></th>
+                <th class="text-left px-4 py-3 w-32"><a class="underline" href="{{ $sortUrlC('id',$sort,$dir) }}">Expediente</a></th>
+                <th class="text-left px-4 py-3 w-48"><a class="underline" href="{{ $sortUrlC('cliente',$sort,$dir) }}">Cliente</a></th>
                 <th class="text-left px-4 py-3 w-48">Arrendatario</th>
                 <th class="text-left px-4 py-3">Propiedad / Domicilio</th>
                 <th class="text-left px-4 py-3 w-48">Vigencia</th>
-                <th class="text-left px-4 py-3 w-36"><a class="underline" href="{{ sortUrlC('monto_mensual',$sort,$dir) }}">Monto mensual</a></th>
+                <th class="text-left px-4 py-3 w-36"><a class="underline" href="{{ $sortUrlC('monto_mensual',$sort,$dir) }}">Monto mensual</a></th>
                 <th class="text-right px-4 py-3 w-28 sticky right-0 bg-gray-50 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]">Acciones</th>
             </tr>
             </thead>
@@ -147,11 +147,14 @@
                     {{ $c->monto_mensual !== null ? '$'.number_format($c->monto_mensual, 2) : '—' }}
                 </td>
                 <td class="px-4 py-3 align-top text-right sticky right-0 bg-white shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]">
-                    @if(!empty($c->urldoc))
-                        <a href="{{ $c->urldoc }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>
-                    @else
-                        <span class="text-gray-400">Sin documento</span>
-                    @endif
+                    <div class="flex flex-col items-end gap-1">
+                        <a href="{{ route('contratos.show', $c) }}" class="text-blue-600 underline">Ver detalle</a>
+                        @if(!empty($c->urldoc))
+                            <a href="{{ $c->urldoc }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>
+                        @else
+                            <span class="text-gray-400">Sin documento</span>
+                        @endif
+                    </div>
                 </td>
                 </tr>
             @empty

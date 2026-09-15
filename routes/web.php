@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/contratos/justicia-alternativa/importar', [ContratoController::class, 'storeJusticiaAlternativa'])
         ->middleware('can:import-justice-alternative-contracts')
         ->name('contratos.justicia-alternativa.importar');
+    Route::get('/contratos/{contrato}', [ContratoController::class, 'show'])->name('contratos.show');
     Route::get('/calendario', [ContratoCalendarController::class, 'index'])->name('calendario.index');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -46,6 +46,7 @@ class Contrato extends Model
     public function cliente()   { return $this->belongsTo(Cliente::class, 'fk_cliente', 'pk_cliente'); }
     public function propiedad() { return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad')->withTrashed(); }
     public function inquilino() { return $this->belongsTo(Inquilino::class, 'inquilino_id'); }
+    public function pendientes() { return $this->hasMany(ContratoPendiente::class, 'contrato_id'); }
 
     public function scopeActivosEnMes($query, Carbon $mes)
     {
