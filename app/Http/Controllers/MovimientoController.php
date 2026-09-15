@@ -11,6 +11,7 @@ use App\Models\Inquilino;
 use App\Models\Propiedad;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -242,6 +243,63 @@ class MovimientoController extends Controller
         $movimiento->approveBy($request->user());
 
         return redirect()->route('movimientos.index')->with('ok', 'Movimiento aprobado correctamente.');
+    }
+
+    public function approveBulk(Request $request)
+    {
+        abort_unless($request->user()?->role === 'admin', 403);
+
+        $data = $request->validate([
+            'movimientos' => ['required', 'array', 'min:1', 'max:100'],
+            'movimientos.*' => ['integer', 'distinct'],
+        ]);
+        $ids = array_values(array_unique(array_map('intval', $data['movimientos'])));
+
+        [$approvedFolios, $omittedFolios] = DB::transaction(function () use ($ids, $request) {
+            $movimientos = Movimiento::query()
+                ->whereIn('id', $ids)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+            $approvedFolios = [];
+            $omittedFolios = [];
+
+            foreach ($ids as $id) {
+                $movimiento = $movimientos->get($id);
+                $folio = $movimiento?->folio ?: Movimiento::formatFolio($id);
+
+                if (! $movimiento) {
+                    $omittedFolios[] = "{$folio} (no existe)";
+                    continue;
+                }
+
+                if (! $movimiento->isPendingApproval()) {
+                    $omittedFolios[] = "{$folio} (ya no está pendiente)";
+                    continue;
+                }
+
+                $movimiento->approveBy($request->user());
+                $approvedFolios[] = $folio;
+            }
+
+            return [$approvedFolios, $omittedFolios];
+        });
+
+        $approvedCount = count($approvedFolios);
+        $message = $approvedCount === 1
+            ? '1 movimiento aprobado correctamente.'
+            : "{$approvedCount} movimientos aprobados correctamente.";
+
+        if ($approvedCount === 0) {
+            $message = 'No se aprobó ningún movimiento.';
+        }
+
+        if ($omittedFolios !== []) {
+            $message .= ' Se omitieron '.count($omittedFolios).': '.implode(', ', $omittedFolios).'.';
+        }
+
+        return redirect()->route('movimientos.index')
+            ->with($approvedCount > 0 ? 'ok' : 'error', $message);
     }
 
     public function propiedadesPorCliente($clienteId)

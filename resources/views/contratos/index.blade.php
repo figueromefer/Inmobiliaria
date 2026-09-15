@@ -104,13 +104,13 @@
         <table class="min-w-full text-sm lg:table-fixed">
             <thead class="bg-gray-50 border-b">
             <tr>
+                <th class="text-left px-4 py-3 w-32">Acciones</th>
                 <th class="text-left px-4 py-3 w-32"><a class="underline" href="{{ $sortUrlC('id',$sort,$dir) }}">Expediente</a></th>
                 <th class="text-left px-4 py-3 w-48"><a class="underline" href="{{ $sortUrlC('cliente',$sort,$dir) }}">Cliente</a></th>
                 <th class="text-left px-4 py-3 w-48">Arrendatario</th>
                 <th class="text-left px-4 py-3">Propiedad / Domicilio</th>
                 <th class="text-left px-4 py-3 w-48">Vigencia</th>
                 <th class="text-left px-4 py-3 w-36"><a class="underline" href="{{ $sortUrlC('monto_mensual',$sort,$dir) }}">Monto mensual</a></th>
-                <th class="text-right px-4 py-3 w-28 sticky right-0 bg-gray-50 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]">Acciones</th>
             </tr>
             </thead>
             <tbody>
@@ -120,7 +120,19 @@
                 @endphp
                 <tr class="border-b hover:bg-gray-50">
                 <td class="px-4 py-3 align-top">
-                    <div class="font-semibold text-gray-900">{{ $c->expediente_justicia_alternativa ?: '#'.$c->id }}</div>
+                    <div class="flex flex-col items-start gap-2">
+                        <a href="{{ route('contratos.show', $c) }}" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1 rounded">
+                            Ver detalle
+                        </a>
+                        @if(!empty($c->urldoc))
+                            <a href="{{ $c->urldoc }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>
+                        @else
+                            <span class="text-gray-400">Sin documento</span>
+                        @endif
+                    </div>
+                </td>
+                <td class="px-4 py-3 align-top">
+                    <a href="{{ route('contratos.show', $c) }}" class="font-semibold text-blue-600 underline">{{ $c->expediente_justicia_alternativa ?: '#'.$c->id }}</a>
                     <div class="text-xs text-gray-500">{{ $c->origen === 'justicia_alternativa' ? 'Justicia Alternativa' : 'Privado' }}</div>
                 </td>
                 <td class="px-4 py-3 align-top">
@@ -145,16 +157,6 @@
                 </td>
                 <td class="px-4 py-3 align-top">
                     {{ $c->monto_mensual !== null ? '$'.number_format($c->monto_mensual, 2) : '—' }}
-                </td>
-                <td class="px-4 py-3 align-top text-right sticky right-0 bg-white shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.35)]">
-                    <div class="flex flex-col items-end gap-1">
-                        <a href="{{ route('contratos.show', $c) }}" class="text-blue-600 underline">Ver detalle</a>
-                        @if(!empty($c->urldoc))
-                            <a href="{{ $c->urldoc }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>
-                        @else
-                            <span class="text-gray-400">Sin documento</span>
-                        @endif
-                    </div>
                 </td>
                 </tr>
             @empty

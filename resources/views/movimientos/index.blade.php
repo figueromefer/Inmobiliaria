@@ -39,10 +39,30 @@
       </form>
     </div>
 
+    @php
+      $canApproveBulk = auth()->user()?->role === 'admin';
+    @endphp
+
+    @if($canApproveBulk)
+      <form id="bulk-approve-form" action="{{ route('movimientos.approve-bulk') }}" method="POST" class="mb-4 flex flex-wrap items-center gap-3 rounded border border-green-200 bg-green-50 p-3">
+        @csrf
+        @method('PATCH')
+        <button id="bulk-approve-button" type="submit" disabled class="bg-green-600 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 text-white font-bold py-2 px-4 rounded">
+          Aprobar seleccionados (<span id="bulk-approve-count">0</span>)
+        </button>
+        <span id="bulk-approve-description" class="text-sm text-green-800" aria-live="polite">Selecciona movimientos pendientes de esta página.</span>
+      </form>
+    @endif
+
     <div class="overflow-x-auto bg-white border rounded">
       <table class="min-w-full text-sm">
         <thead class="bg-gray-50 border-b">
           <tr>
+            @if($canApproveBulk)
+              <th class="px-4 py-2 text-center">
+                <input id="select-all-pending" type="checkbox" aria-label="Seleccionar todos los movimientos pendientes visibles">
+              </th>
+            @endif
             <th class="text-left px-4 py-2">Periodo / fecha a la que corresponde</th>
             <th class="text-left px-4 py-2">Folio</th>
             <th class="text-left px-4 py-2">Cliente</th>
@@ -59,7 +79,7 @@
           </tr>
         </thead>
         <tbody>
-          @forelse($movimientos as $m)
+          @forelse ($movimientos as $m)
             @php
               $map = [
                 'deposito' => 'Depósito en garantía',
@@ -94,6 +114,13 @@
             @endphp
 
             <tr class="border-b hover:bg-gray-50">
+              @if($canApproveBulk)
+                <td class="px-4 py-2 text-center">
+                  @if($m->isPendingApproval())
+                    <input type="checkbox" name="movimientos[]" value="{{ $m->id }}" form="bulk-approve-form" data-bulk-approval-checkbox aria-label="Seleccionar {{ $m->folio ?? 'movimiento #'.$m->id }} para aprobar">
+                  @endif
+                </td>
+              @endif
               <td class="px-4 py-2">{{ optional($m->fecha)->format('Y-m-d') }}</td>
               <td class="px-4 py-2 font-semibold text-gray-700">{{ $m->folio ?? '—' }}</td>
               <td class="px-4 py-2">{{ $m->cliente->nombre ?? '—' }}</td>
@@ -184,7 +211,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="13" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>
+            <tr><td colspan="{{ $canApproveBulk ? 14 : 13 }}" class="px-4 py-8 text-center text-gray-500">No hay movimientos.</td></tr>
           @endforelse
         </tbody>
       </table>
@@ -194,4 +221,46 @@
       {{ $movimientos->onEachSide(1)->links() }}
     </div>
   </div>
+
+  @if($canApproveBulk)
+    <script>
+      (() => {
+        const form = document.getElementById('bulk-approve-form');
+        const button = document.getElementById('bulk-approve-button');
+        const count = document.getElementById('bulk-approve-count');
+        const description = document.getElementById('bulk-approve-description');
+        const selectAll = document.getElementById('select-all-pending');
+        const checkboxes = [...document.querySelectorAll('[data-bulk-approval-checkbox]')];
+
+        const updateSelection = () => {
+          const selected = checkboxes.filter((checkbox) => checkbox.checked).length;
+          button.disabled = selected === 0;
+          count.textContent = selected;
+          description.textContent = selected === 0
+            ? 'Selecciona movimientos pendientes de esta página.'
+            : `${selected} movimiento${selected === 1 ? '' : 's'} seleccionado${selected === 1 ? '' : 's'} para aprobar.`;
+          if (selectAll) {
+            selectAll.checked = checkboxes.length > 0 && selected === checkboxes.length;
+            selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
+          }
+        };
+
+        selectAll?.addEventListener('change', () => {
+          checkboxes.forEach((checkbox) => { checkbox.checked = selectAll.checked; });
+          updateSelection();
+        });
+        checkboxes.forEach((checkbox) => checkbox.addEventListener('change', updateSelection));
+        form.addEventListener('submit', (event) => {
+          const selected = checkboxes.filter((checkbox) => checkbox.checked).length;
+          if (selected === 0 || !window.confirm(`¿Aprobar ${selected} movimiento${selected === 1 ? '' : 's'} seleccionado${selected === 1 ? '' : 's'}?`)) {
+            event.preventDefault();
+            return;
+          }
+
+          button.disabled = true;
+          button.textContent = 'Aprobando...';
+        });
+      })();
+    </script>
+  @endif
 </x-app-layout>

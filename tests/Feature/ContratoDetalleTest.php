@@ -37,6 +37,8 @@ class ContratoDetalleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Detalle de contrato');
+        $response->assertSee('Volver a contratos');
+        $response->assertSee('bg-gray-500');
         $response->assertSee('Contrato registrado');
         $response->assertDontSee('Registro activo');
         $response->assertSee('JA-DETALLE-1');
@@ -77,7 +79,8 @@ class ContratoDetalleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Ver detalle');
-        $response->assertSee(route('contratos.show', $contrato), false);
+        $response->assertSee('bg-blue-600');
+        $this->assertGreaterThanOrEqual(2, substr_count($response->getContent(), route('contratos.show', $contrato)));
     }
 
     public function test_guest_cannot_access_contract_detail(): void
