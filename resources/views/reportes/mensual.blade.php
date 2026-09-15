@@ -34,12 +34,14 @@
       </div>
 
       {{-- 1) Rentas recabadas --}}
+      @php($mostrarFechaLiquidacion = $rentasRecabadas->contains(fn ($movimiento) => ! empty($movimiento->fecha_liquidacion)))
       <h3 class="text-lg font-semibold mb-2">Rentas recabadas</h3>
       <div class="overflow-x-auto bg-white border rounded mb-6">
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-3 py-2">Fecha</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
+              @if($mostrarFechaLiquidacion)<th class="text-left px-3 py-2">Fecha de liquidación</th>@endif
               <th class="text-left px-3 py-2">Propiedad</th>
               <th class="text-right px-3 py-2">Importe</th>
               <th class="text-left px-3 py-2">Forma</th>
@@ -50,13 +52,14 @@
             @forelse ($rentasRecabadas as $m)
               <tr class="border-b">
                 <td class="px-3 py-2">{{ optional($m->fecha)->format('Y-m-d') }}</td>
+                @if($mostrarFechaLiquidacion)<td class="px-3 py-2">{{ $m->fecha_liquidacion ? $m->fecha_liquidacion->format('Y-m-d') : '—' }}</td>@endif
                 <td class="px-3 py-2">{{ $m->propiedad->alias ?? '—' }}</td>
                 <td class="px-3 py-2 text-right">${{ number_format((float) $m->importe, 2) }}</td>
                 <td class="px-3 py-2">{{ ucfirst($m->forma_pago) }}</td>
                 <td class="px-3 py-2">{{ $m->notas ?? '—' }}</td>
               </tr>
             @empty
-              <tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">Sin datos</td></tr>
+              <tr><td colspan="{{ $mostrarFechaLiquidacion ? 6 : 5 }}" class="px-3 py-4 text-center text-gray-500">Sin datos</td></tr>
             @endforelse
           </tbody>
         </table>
@@ -69,7 +72,7 @@
           <thead class="bg-gray-50 border-b">
             <tr>
               <th class="text-left px-3 py-2">Creado</th>
-              <th class="text-left px-3 py-2">Fecha asignada</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
               <th class="text-left px-3 py-2">Propiedad</th>
               <th class="text-right px-3 py-2">Importe</th>
             </tr>
@@ -95,7 +98,7 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-3 py-2">Fecha</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
               <th class="text-left px-3 py-2">Concepto</th>
               <th class="text-left px-3 py-2">Propiedad</th>
               <th class="text-right px-3 py-2">Importe</th>
@@ -145,7 +148,7 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-3 py-2">Fecha</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
               <th class="text-left px-3 py-2">Notas</th>
               <th class="text-right px-3 py-2">Importe</th>
             </tr>
@@ -170,7 +173,7 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-3 py-2">Fecha</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
               <th class="text-left px-3 py-2">Propiedad</th>
               <th class="text-left px-3 py-2">Notas</th>
               <th class="text-right px-3 py-2">Importe</th>
@@ -197,7 +200,7 @@
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b">
             <tr>
-              <th class="text-left px-3 py-2">Fecha</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
               <th class="text-left px-3 py-2">Folio</th>
               <th class="text-left px-3 py-2">Propiedad</th>
               <th class="text-left px-3 py-2">Notas</th>
@@ -226,7 +229,7 @@
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="text-left px-3 py-2">Fecha</th>
+              <th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th>
                 <th class="text-right px-3 py-2">Importe</th>
                 <th class="text-left px-3 py-2">Forma</th>
                 <th class="text-left px-3 py-2">Notas</th>
@@ -248,39 +251,33 @@
         </div>
 
 
-      {{-- 7) Resumen --}}
+      {{-- 9) Resumen --}}
       <h3 class="text-lg font-semibold mb-2">Resumen</h3>
       <div class="overflow-x-auto bg-white border rounded">
         <table class="min-w-full text-sm">
           <tbody>
-            <tr><td class="px-3 py-2">INGRESOS DEL PERIODO</td><td class="px-3 py-2 text-right">${{ number_format((float) $resumen['ingresos_efectivo'], 2) }}</td></tr>
-            <tr><td class="px-3 py-2">TOTAL DEPOSITOS</td><td class="px-3 py-2 text-right">${{ number_format((float) $resumen['total_depositos'], 2) }}</td></tr>
-            <tr><td class="px-3 py-2">EGRESOS DEL PERIODO</td><td class="px-3 py-2 text-right">${{ number_format((float) $resumen['gastos_efectivo'], 2) }}</td></tr>
-            <tr class="border-t"><td class="px-3 py-2 font-semibold">TOTAL DESPUÉS DE GASTOS</td><td class="px-3 py-2 text-right font-semibold">${{ number_format((float) $resumen['total_despues_gastos'], 2) }}</td></tr>
-            <tr class="border-t"><td class="px-3 py-2 font-semibold">IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)</td><td class="px-3 py-2 text-right font-semibold">${{ number_format((float) $resumen['iguala'], 2) }}</td></tr>
-            <tr><td class="px-3 py-2">PAGOS AL CLIENTE (MES)</td>
-                <td class="px-3 py-2 text-right">${{ number_format((float) ($resumen['pagos_cliente_mes'] ?? 0), 2) }}</td></tr>
-
-            <tr class="border-t"><td class="px-3 py-2 font-semibold">SALDO DE MESES ANTERIORES</td>
-                <td class="px-3 py-2 text-right font-semibold">${{ number_format((float) ($resumen['saldo_anterior'] ?? 0), 2) }}</td></tr>
-            <tr><td class="px-3 py-2">SALDO ANTERIOR CONTABLE</td>
-                <td class="px-3 py-2 text-right">${{ number_format((float) ($resumen['saldo_anterior_contable'] ?? 0), 2) }}</td></tr>
-            <tr><td class="px-3 py-2">SALDO ANTERIOR LIQUIDADO</td>
-                <td class="px-3 py-2 text-right">${{ number_format((float) ($resumen['saldo_anterior_liquidado'] ?? 0), 2) }}</td></tr>
-            <tr><td class="px-3 py-2">PENDIENTE POR COBRAR</td>
-                <td class="px-3 py-2 text-right">${{ number_format((float) ($resumen['pendiente_por_cobrar'] ?? 0), 2) }}</td></tr>
-            <tr><td class="px-3 py-2">PENDIENTE POR PAGAR / LIQUIDAR</td>
-                <td class="px-3 py-2 text-right">${{ number_format((float) ($resumen['pendiente_por_pagar_o_liquidar'] ?? 0), 2) }}</td></tr>
-
-            <tr class="border-t"><td class="px-3 py-2 font-semibold">TOTAL A PAGAR DEL MES</td>
-                <td class="px-3 py-2 text-right font-semibold">${{ number_format((float) ($resumen['total_mes'] ?? 0), 2) }}</td></tr>
-            <tr><td class="px-3 py-2">SALDO PERIODO LIQUIDADO</td>
-                <td class="px-3 py-2 text-right">${{ number_format((float) ($resumen['saldo_periodo_liquidado'] ?? 0), 2) }}</td></tr>
-
-            <tr class="border-t"><td class="px-3 py-2 text-lg font-bold">SALDO CONTABLE FINAL</td>
-                <td class="px-3 py-2 text-right text-lg font-bold">${{ number_format((float) ($resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0), 2) }}</td></tr>
-            <tr><td class="px-3 py-2 text-lg font-bold">SALDO LIQUIDADO / DISPONIBLE</td>
-                <td class="px-3 py-2 text-right text-lg font-bold">${{ number_format((float) ($resumen['saldo_liquidado'] ?? 0), 2) }}</td></tr>
+            @php($summaryRows = [
+              ['label' => 'INGRESOS DEL PERIODO', 'importe' => $resumen['ingresos_efectivo'] ?? 0],
+              ['label' => 'TOTAL DEPOSITOS', 'importe' => $resumen['total_depositos'] ?? 0],
+              ['label' => 'EGRESOS DEL PERIODO', 'importe' => $resumen['gastos_efectivo'] ?? 0],
+              ['label' => 'TOTAL DESPUÉS DE GASTOS', 'importe' => $resumen['total_despues_gastos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+              ['label' => 'IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)', 'importe' => $resumen['iguala'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+              ['label' => 'PAGOS AL CLIENTE (MES)', 'importe' => $resumen['pagos_cliente_mes'] ?? 0],
+              ['label' => 'SALDO DE MESES ANTERIORES', 'importe' => $resumen['saldo_anterior'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+              ['label' => 'SALDO ANTERIOR CONTABLE', 'importe' => $resumen['saldo_anterior_contable'] ?? 0],
+              ['label' => 'SALDO ANTERIOR LIQUIDADO', 'importe' => $resumen['saldo_anterior_liquidado'] ?? 0],
+              ['label' => 'PENDIENTE POR COBRAR', 'importe' => $resumen['pendiente_por_cobrar'] ?? 0],
+              ['label' => 'PENDIENTE POR PAGAR / LIQUIDAR', 'importe' => $resumen['pendiente_por_pagar_o_liquidar'] ?? 0],
+              ['label' => 'TOTAL A PAGAR DEL MES', 'importe' => $resumen['total_mes'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+              ['label' => 'SALDO PERIODO LIQUIDADO', 'importe' => $resumen['saldo_periodo_liquidado'] ?? 0],
+              ['label' => 'SALDO CONTABLE FINAL', 'importe' => $resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'text-lg font-bold', 'valueClass' => 'text-lg font-bold'],
+              ['label' => 'SALDO LIQUIDADO / DISPONIBLE', 'importe' => $resumen['saldo_liquidado'] ?? 0, 'labelClass' => 'text-lg font-bold', 'valueClass' => 'text-lg font-bold'],
+            ])
+            @foreach($summaryRows as $row)
+              @if((float) $row['importe'] !== 0.0)
+                <tr class="{{ $row['rowClass'] ?? '' }}"><td class="px-3 py-2 {{ $row['labelClass'] ?? '' }}">{{ $row['label'] }}</td><td class="px-3 py-2 text-right {{ $row['valueClass'] ?? '' }}">${{ number_format((float) $row['importe'], 2) }}</td></tr>
+              @endif
+            @endforeach
           </tbody>
         </table>
       </div>

@@ -43,7 +43,7 @@
       <table class="min-w-full text-sm">
         <thead class="bg-gray-50 border-b">
           <tr>
-            <th class="text-left px-4 py-2">Fecha</th>
+            <th class="text-left px-4 py-2">Periodo / fecha a la que corresponde</th>
             <th class="text-left px-4 py-2">Folio</th>
             <th class="text-left px-4 py-2">Cliente</th>
             <th class="text-left px-4 py-2">Propiedad</th>
@@ -127,7 +127,7 @@
                   {{ $paymentMeta['label'] }}
                 </span>
                 @if($m->fecha_liquidacion)
-                  <div class="text-xs text-gray-500 mt-1">{{ $m->fecha_liquidacion->format('Y-m-d') }}</div>
+                  <div class="text-xs text-gray-500 mt-1">Fecha de liquidación: {{ $m->fecha_liquidacion->format('Y-m-d') }}</div>
                 @endif
               </td>
 
