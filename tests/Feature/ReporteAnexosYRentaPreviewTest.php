@@ -46,7 +46,7 @@ class ReporteAnexosYRentaPreviewTest extends TestCase
             ->assertOk()->assertJsonPath('monto_mensual', null);
     }
 
-    public function test_movement_form_includes_informational_rent_preview_and_global_file_upload_indicator(): void
+    public function test_movement_form_includes_informational_rent_preview_and_non_blocking_file_selection_note(): void
     {
         $response = $this->actingAs(User::factory()->create())->get(route('movimientos.create'));
         $response->assertOk()
@@ -54,17 +54,17 @@ class ReporteAnexosYRentaPreviewTest extends TestCase
             ->assertSee('actualizarRentaVigente')
             ->assertSee('movimientos/inquilinos', false)
             ->assertSee('searchable-selects:ready', false)
-            ->assertSee('Cargando archivo… no cierres esta página.', false)
+            ->assertSee('Archivo seleccionado. Se cargará al guardar el movimiento.', false)
             ->assertSee('input[type="file"]', false)
-            ->assertSee('event.preventDefault();', false)
-            ->assertSee('form.requestSubmit()', false);
+            ->assertSee("document.addEventListener('change'", false)
+            ->assertSee('data-file-upload-selection-status', false);
 
-        $this->assertSame(2, substr_count($response->getContent(), 'requestAnimationFrame(function () {'));
-        $this->assertMatchesRegularExpression(
-            '/requestAnimationFrame\(function \(\) \{\s*requestAnimationFrame\(function \(\) \{\s*form\.requestSubmit\(\);/s',
-            $response->getContent()
-        );
-        $this->assertStringNotContainsString('fileUploadSubmitting', file_get_contents(resource_path('js/app.js')));
+        $uploadScript = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $this->assertStringNotContainsString('beforeunload', $uploadScript);
+        $this->assertStringNotContainsString('event.preventDefault()', $uploadScript);
+        $this->assertStringNotContainsString('requestAnimationFrame', $uploadScript);
+        $this->assertStringNotContainsString('requestSubmit', $uploadScript);
+        $this->assertStringNotContainsString('fileUploadSubmitting', $uploadScript);
     }
 
     public function test_zip_contains_report_pdf_index_and_only_report_movement_receipt(): void
