@@ -5,7 +5,7 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Detalle de contrato</h2>
         <p class="mt-1 text-sm text-gray-500">Consulta de sólo lectura.</p>
       </div>
-      <a href="{{ route('contratos.index') }}" class="text-sm text-blue-600 underline">Volver a contratos</a>
+      <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Volver a contratos</a>
     </div>
   </x-slot>
 
