@@ -72,6 +72,7 @@
             </option>
           @endforeach
         </select>
+        <p id="renta-vigente-preview" class="hidden mt-2 rounded bg-blue-50 p-2 text-sm text-blue-800" aria-live="polite"></p>
       </div>
 
       {{-- Inquilino --}}
@@ -178,6 +179,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const selEstadoPago = document.getElementById('estado_pago');
   const fechaLiquidacionWrap = document.getElementById('fecha_liquidacion_wrap');
   const fechaLiquidacion = document.getElementById('fecha_liquidacion');
+  const rentaPreview = document.getElementById('renta-vigente-preview');
+
+  function actualizarRentaVigente() {
+    const esRenta = selConcepto.value === 'renta';
+    const propiedadId = selProp.value;
+    rentaPreview.classList.toggle('hidden', !esRenta);
+    if (!esRenta) return;
+    if (!propiedadId) {
+      rentaPreview.textContent = 'No se encontró una renta vigente para esta propiedad.';
+      return;
+    }
+    rentaPreview.textContent = 'Consultando renta mensual según contrato vigente…';
+    fetch(`{{ url('/movimientos/propiedades') }}/${encodeURIComponent(propiedadId)}/renta-vigente`, { headers: { Accept: 'application/json' } })
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(data => {
+        rentaPreview.textContent = data.monto_mensual === null
+          ? 'No se encontró una renta vigente para esta propiedad.'
+          : `Renta mensual según contrato vigente: $${Number(data.monto_mensual).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      })
+      .catch(() => { rentaPreview.textContent = 'No se encontró una renta vigente para esta propiedad.'; });
+  }
 
   function setSelectEnabled(select, enabled) {
     if (!select) return;
@@ -223,7 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   selConcepto.addEventListener('change', e => {
     toggleFieldsByConcept(e.target.value);
+    actualizarRentaVigente();
   });
+  selProp.addEventListener('change', actualizarRentaVigente);
 
   function togglePaymentFields() {
     const liquidado = selEstadoPago.value === 'liquidado';
@@ -242,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Estado inicial
   toggleAssignmentPanels();
   toggleFieldsByConcept(selConcepto.value);
+  actualizarRentaVigente();
   togglePaymentFields();
 });
 </script>

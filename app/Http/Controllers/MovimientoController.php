@@ -311,6 +311,22 @@ class MovimientoController extends Controller
         return response()->json($props);
     }
 
+    public function rentaVigentePorPropiedad(int $propiedad)
+    {
+        $contrato = Contrato::query()
+            ->where('fk_propiedad', $propiedad)
+            ->activosEnMes(now())
+            ->whereNotNull('monto_mensual')
+            ->orderByDesc('fecha_inicio')
+            ->first();
+
+        if (! $contrato) {
+            return response()->json(['monto_mensual' => null]);
+        }
+
+        return response()->json(['monto_mensual' => (float) $contrato->monto_mensual]);
+    }
+
     private function resolveMovimientoAssignment(array $data): array
     {
         return match ($data['asignado_a_tipo']) {
