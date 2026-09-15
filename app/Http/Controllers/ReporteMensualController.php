@@ -161,7 +161,7 @@ class ReporteMensualController extends Controller
         $movimientos = $reporteFinanciero['movimientos'];
         $rentasRecabadas = $movimientos->where('concepto', 'renta')->values();
         $rentasAdelantadas = $this->rentasAdelantadas($clienteId, $start, $end);
-        $pagosExtras = $this->pagosExtras($movimientos, $cliente);
+        $pagosExtras = $this->pagosExtras($movimientos);
         $desocupadas = $this->propiedadesDesocupadas($clienteId, $cliente, $start, $end, $rentasRecabadas);
         $gastosCliente = $movimientos->where('concepto', 'gasto_cliente')->values();
         $gastosPropiedad = $movimientos->where('concepto', 'gasto')->values();
@@ -224,30 +224,19 @@ class ReporteMensualController extends Controller
             ->get();
     }
 
-    private function pagosExtras(Collection $movimientos, Cliente $cliente): Collection
+    private function pagosExtras(Collection $movimientos): Collection
     {
-        $contratosCliente = Contrato::where('fk_cliente', $cliente->pk_cliente)->get();
-
-        return $movimientos->filter(function (Movimiento $movimiento) use ($contratosCliente) {
-            if ($movimiento->concepto === 'iguala') {
-                return false;
-            }
-
-            if ($movimiento->concepto === 'deposito' || empty($movimiento->propiedad_id)) {
-                return true;
-            }
-
-            foreach ($contratosCliente as $contrato) {
-                $inicio = $contrato->fecha_inicio;
-                $fin = $contrato->fecha_fin;
-
-                if ($inicio && $movimiento->fecha->greaterThanOrEqualTo($inicio) && (! $fin || $movimiento->fecha->lessThanOrEqualTo($fin))) {
-                    return false;
-                }
-            }
-
-            return true;
-        })->values();
+        // Los conceptos actuales con sección propia nunca deben duplicarse como pagos extras.
+        // Un depósito (y cualquier concepto histórico sin sección propia) permanece como extra.
+        return $movimientos
+            ->reject(fn (Movimiento $movimiento) => in_array($movimiento->concepto, [
+                'renta',
+                'gasto',
+                'gasto_cliente',
+                'iguala',
+                'pago_cliente',
+            ], true))
+            ->values();
     }
 
     private function propiedadesDesocupadas(int $clienteId, Cliente $cliente, Carbon $start, Carbon $end, Collection $rentasRecabadas): Collection
