@@ -72,6 +72,36 @@ class ReporteMensualPdfTest extends TestCase
         }
     }
 
+    public function test_non_zero_summary_rows_keep_their_original_visual_emphasis(): void
+    {
+        $data = $this->reportData([
+            'total_despues_gastos' => 900,
+            'iguala' => 100,
+            'saldo_anterior' => 50,
+            'total_mes' => 850,
+            'saldo_contable' => 950,
+            'saldo_liquidado' => 950,
+        ]);
+
+        $pdfHtml = view('reportes.mensual_pdf', $data)->render();
+        $webHtml = $this->renderWebReport($data);
+
+        foreach ([
+            'TOTAL DESPUÉS DE GASTOS',
+            'IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)',
+            'SALDO DE MESES ANTERIORES',
+            'TOTAL A PAGAR DEL MES',
+        ] as $label) {
+            $this->assertMatchesRegularExpression('/<tr class="border-t"><td class="[^\"]*font-semibold[^\"]*">'.preg_quote($label, '/').'/', $webHtml);
+            $this->assertMatchesRegularExpression('/<tr class="border-t"><td class="font-semibold">'.preg_quote($label, '/').'/', $pdfHtml);
+        }
+
+        foreach (['SALDO CONTABLE FINAL', 'SALDO LIQUIDADO / DISPONIBLE'] as $label) {
+            $this->assertMatchesRegularExpression('/<td class="[^\"]*text-lg font-bold[^\"]*">'.preg_quote($label, '/').'/', $webHtml);
+            $this->assertMatchesRegularExpression('/<td class="text-lg font-bold">'.preg_quote($label, '/').'/', $pdfHtml);
+        }
+    }
+
     public function test_short_and_long_reports_render_as_pdfs_with_the_closing_block_kept_together(): void
     {
         $short = Pdf::loadView('reportes.mensual_pdf', $this->reportData());

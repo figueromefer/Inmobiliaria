@@ -57,6 +57,18 @@
         .summary-table tr td:first-child {
             font-weight: bold;
         }
+        .summary-table .border-t td {
+            border-top: 1px solid #ddd;
+        }
+        .summary-table td.font-semibold {
+            font-weight: bold;
+        }
+        .summary-table td.text-lg {
+            font-size: 14px;
+        }
+        .summary-table td.font-bold {
+            font-weight: bold;
+        }
         .closing-block {
             page-break-inside: avoid;
             break-inside: avoid;
@@ -317,25 +329,26 @@
         <h3>Resumen</h3>
         <table class="summary-table">
             <tbody>
-                @foreach([
-                    'INGRESOS DEL PERIODO' => $resumen['ingresos_efectivo'] ?? 0,
-                    'TOTAL DEPOSITOS' => $resumen['total_depositos'] ?? 0,
-                    'EGRESOS DEL PERIODO' => $resumen['gastos_efectivo'] ?? 0,
-                    'TOTAL DESPUÉS DE GASTOS' => $resumen['total_despues_gastos'] ?? 0,
-                    'IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)' => $resumen['iguala'] ?? 0,
-                    'PAGOS AL CLIENTE (MES)' => $resumen['pagos_cliente_mes'] ?? 0,
-                    'SALDO DE MESES ANTERIORES' => $resumen['saldo_anterior'] ?? 0,
-                    'SALDO ANTERIOR CONTABLE' => $resumen['saldo_anterior_contable'] ?? 0,
-                    'SALDO ANTERIOR LIQUIDADO' => $resumen['saldo_anterior_liquidado'] ?? 0,
-                    'PENDIENTE POR COBRAR' => $resumen['pendiente_por_cobrar'] ?? 0,
-                    'PENDIENTE POR PAGAR / LIQUIDAR' => $resumen['pendiente_por_pagar_o_liquidar'] ?? 0,
-                    'TOTAL A PAGAR DEL MES' => $resumen['total_mes'] ?? 0,
-                    'SALDO PERIODO LIQUIDADO' => $resumen['saldo_periodo_liquidado'] ?? 0,
-                    'SALDO CONTABLE FINAL' => $resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0,
-                    'SALDO LIQUIDADO / DISPONIBLE' => $resumen['saldo_liquidado'] ?? 0,
-                ] as $etiqueta => $importe)
-                    @if((float) $importe !== 0.0)
-                        <tr><td>{{ $etiqueta }}</td><td class="text-right">${{ number_format((float) $importe, 2) }}</td></tr>
+                @php($summaryRows = [
+                    ['label' => 'INGRESOS DEL PERIODO', 'importe' => $resumen['ingresos_efectivo'] ?? 0],
+                    ['label' => 'TOTAL DEPOSITOS', 'importe' => $resumen['total_depositos'] ?? 0],
+                    ['label' => 'EGRESOS DEL PERIODO', 'importe' => $resumen['gastos_efectivo'] ?? 0],
+                    ['label' => 'TOTAL DESPUÉS DE GASTOS', 'importe' => $resumen['total_despues_gastos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+                    ['label' => 'IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)', 'importe' => $resumen['iguala'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+                    ['label' => 'PAGOS AL CLIENTE (MES)', 'importe' => $resumen['pagos_cliente_mes'] ?? 0],
+                    ['label' => 'SALDO DE MESES ANTERIORES', 'importe' => $resumen['saldo_anterior'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+                    ['label' => 'SALDO ANTERIOR CONTABLE', 'importe' => $resumen['saldo_anterior_contable'] ?? 0],
+                    ['label' => 'SALDO ANTERIOR LIQUIDADO', 'importe' => $resumen['saldo_anterior_liquidado'] ?? 0],
+                    ['label' => 'PENDIENTE POR COBRAR', 'importe' => $resumen['pendiente_por_cobrar'] ?? 0],
+                    ['label' => 'PENDIENTE POR PAGAR / LIQUIDAR', 'importe' => $resumen['pendiente_por_pagar_o_liquidar'] ?? 0],
+                    ['label' => 'TOTAL A PAGAR DEL MES', 'importe' => $resumen['total_mes'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
+                    ['label' => 'SALDO PERIODO LIQUIDADO', 'importe' => $resumen['saldo_periodo_liquidado'] ?? 0],
+                    ['label' => 'SALDO CONTABLE FINAL', 'importe' => $resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'text-lg font-bold', 'valueClass' => 'text-lg font-bold'],
+                    ['label' => 'SALDO LIQUIDADO / DISPONIBLE', 'importe' => $resumen['saldo_liquidado'] ?? 0, 'labelClass' => 'text-lg font-bold', 'valueClass' => 'text-lg font-bold'],
+                ])
+                @foreach($summaryRows as $row)
+                    @if((float) $row['importe'] !== 0.0)
+                        <tr class="{{ $row['rowClass'] ?? '' }}"><td class="{{ $row['labelClass'] ?? '' }}">{{ $row['label'] }}</td><td class="text-right {{ $row['valueClass'] ?? '' }}">${{ number_format((float) $row['importe'], 2) }}</td></tr>
                     @endif
                 @endforeach
             </tbody>
