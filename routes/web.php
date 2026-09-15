@@ -130,10 +130,12 @@ Route::middleware('auth')->group(function () {
         ->name('movimientos.approve-bulk');
     Route::get('/movimientos/{movimiento}/comprobante', [MovimientoController::class, 'comprobante'])->name('movimientos.comprobante');
     Route::get('/movimientos/propiedades-por-cliente/{cliente}', [MovimientoController::class, 'propiedadesPorCliente'])->name('movimientos.propiedadesPorCliente');
+    Route::get('/movimientos/propiedades/{propiedad}/renta-vigente', [MovimientoController::class, 'rentaVigentePorPropiedad'])->name('movimientos.renta-vigente');
     Route::get('/movimientos/{movimiento}/recibo', [MovimientoController::class, 'recibo'])->name('movimientos.recibo');
 
     Route::get('/reportes/mensual', [ReporteMensualController::class, 'index'])->name('reportes.mensual');
     Route::get('/reportes/mensual/pdf', [ReporteMensualController::class, 'pdf'])->name('reportes.mensual.pdf');
+    Route::get('/reportes/mensual/anexos', [ReporteMensualController::class, 'anexos'])->name('reportes.mensual.anexos');
     Route::get('/reportes/ganancias-clientes', [ReporteGananciasClientesController::class, 'index'])->name('reportes.ganancias-clientes');
 
     Route::resource('documentos', DocumentoController::class);

@@ -177,5 +177,32 @@
                 }, true);
             });
         </script>
+        <script>
+            document.addEventListener('submit', function (event) {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) return;
+
+                const hasSelectedFile = Array.from(form.querySelectorAll('input[type="file"]'))
+                    .some(function (input) { return input.files && input.files.length > 0; });
+                if (!hasSelectedFile || form.dataset.fileUploadSubmitting === 'true') return;
+
+                form.dataset.fileUploadSubmitting = 'true';
+                form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (button) {
+                    button.disabled = true;
+                    button.setAttribute('aria-disabled', 'true');
+                });
+
+                const status = document.createElement('div');
+                status.className = 'mt-3 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800';
+                status.setAttribute('role', 'status');
+                status.textContent = 'Cargando archivo… no cierres esta página.';
+                form.append(status);
+
+                window.addEventListener('beforeunload', function (beforeUnloadEvent) {
+                    beforeUnloadEvent.preventDefault();
+                    beforeUnloadEvent.returnValue = '';
+                });
+            }, true);
+        </script>
     </body>
 </html>

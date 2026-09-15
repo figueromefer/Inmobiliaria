@@ -31,6 +31,9 @@
         <a href="{{ route('reportes.mensual.pdf', ['cliente_id' => $clienteId, 'mes' => $mes]) }}" target="_blank" rel="noopener noreferrer" class="rounded bg-gray-800 px-4 py-2 font-semibold text-white hover:bg-gray-700">
           Exportar PDF
         </a>
+        <a href="{{ route('reportes.mensual.anexos', ['cliente_id' => $clienteId, 'mes' => $mes]) }}" class="ml-2 rounded bg-gray-800 px-4 py-2 font-semibold text-white hover:bg-gray-700">
+          Descargar reporte con anexos (.zip)
+        </a>
       </div>
 
       {{-- 1) Rentas recabadas --}}

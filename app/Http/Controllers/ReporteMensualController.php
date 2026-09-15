@@ -11,6 +11,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ReporteMensualController extends Controller
@@ -58,6 +60,91 @@ class ReporteMensualController extends Controller
         );
 
         return Pdf::loadView('reportes.mensual_pdf', $data)->stream($nombreArchivo);
+    }
+
+    public function anexos(Request $request, ReporteFinancieroService $reportes)
+    {
+        if (! class_exists(\ZipArchive::class)) {
+            return back()->with('error', 'La extensión ZIP no está disponible en este servidor.');
+        }
+
+        $clienteId = (int) $request->query('cliente_id', 0);
+        $mes = trim((string) $request->query('mes', ''));
+        $clientes = $this->clientesParaFiltro();
+        if (! $this->parametrosValidos($clienteId, $mes)) {
+            return back()->with('error', 'Selecciona un cliente y mes válidos.');
+        }
+        $data = $this->buildReportData($reportes, $clientes, $clienteId, $mes);
+        if (! $data) {
+            return back()->with('error', 'Cliente no encontrado.');
+        }
+
+        $clienteNombre = Str::slug((string) $data['cliente']->nombre, '_') ?: 'cliente';
+        $zipPath = tempnam(sys_get_temp_dir(), 'reporte_anexos_');
+        $zip = new \ZipArchive();
+        if ($zipPath === false || $zip->open($zipPath, \ZipArchive::OVERWRITE) !== true) {
+            return back()->with('error', 'No fue posible preparar el archivo con anexos.');
+        }
+
+        $pdfName = "reporte_mensual_{$clienteNombre}_{$mes}.pdf";
+        $zip->addFromString($pdfName, Pdf::loadView('reportes.mensual_pdf', $data)->output());
+        $index = ["Folio\tFecha\tConcepto\tImporte\tNombre original\tRuta ZIP\tIncidencia"];
+        $temporaryFiles = [];
+        $usedNames = [];
+
+        foreach ($data['reporteFinanciero']['movimientos'] as $movimiento) {
+            if (! $movimiento->comprobante) {
+                continue;
+            }
+            $diskName = $movimiento->comprobante_disk ?: 'public';
+            $originalName = $movimiento->comprobante_nombre_original ?: basename($movimiento->comprobante);
+            $folio = $movimiento->folio ?: Movimiento::formatFolio($movimiento->id);
+            $row = [$folio, optional($movimiento->fecha)->format('Y-m-d'), $movimiento->concepto, number_format((float) $movimiento->importe, 2, '.', ''), $originalName];
+            $zipName = 'comprobantes/'.Str::slug(pathinfo($originalName, PATHINFO_FILENAME), '_').'.'.pathinfo($originalName, PATHINFO_EXTENSION);
+            if ($zipName === 'comprobantes/.') $zipName = 'comprobantes/'.$folio;
+            $baseName = $zipName;
+            $counter = 2;
+            while (isset($usedNames[$zipName])) {
+                $zipName = pathinfo($baseName, PATHINFO_DIRNAME).'/'.pathinfo($baseName, PATHINFO_FILENAME)."_{$counter}.".pathinfo($baseName, PATHINFO_EXTENSION);
+                $counter++;
+            }
+            $usedNames[$zipName] = true;
+
+            try {
+                if (! in_array($diskName, config('movimientos.comprobantes.allowed_disks'), true)) {
+                    throw new \RuntimeException('Disco de comprobante no permitido.');
+                }
+                $source = Storage::disk($diskName)->readStream($movimiento->comprobante);
+                if (! is_resource($source)) {
+                    throw new \RuntimeException('No fue posible abrir el comprobante.');
+                }
+                $temporaryFile = tempnam(sys_get_temp_dir(), 'anexo_');
+                $destination = $temporaryFile ? fopen($temporaryFile, 'wb') : false;
+                if (! $destination) {
+                    throw new \RuntimeException('No fue posible preparar el comprobante.');
+                }
+                stream_copy_to_stream($source, $destination);
+                fclose($source);
+                fclose($destination);
+                $zip->addFile($temporaryFile, $zipName);
+                $temporaryFiles[] = $temporaryFile;
+                $index[] = implode("\t", array_merge($row, [$zipName, '']));
+            } catch (\Throwable $exception) {
+                Log::warning('No se pudo anexar un comprobante al reporte mensual.', ['movimiento_id' => $movimiento->id, 'disk' => $diskName, 'exception_type' => $exception::class]);
+                $index[] = implode("\t", array_merge($row, ['', 'No se pudo leer el comprobante.']));
+            }
+        }
+        if (count($index) === 1) {
+            $index[] = "\t\t\t\t\t\tNo hay comprobantes para los movimientos incluidos.";
+        }
+        $zip->addFromString('indice-anexos.txt', implode("\n", $index)."\n");
+        $zip->close();
+        foreach ($temporaryFiles as $temporaryFile) {
+            @unlink($temporaryFile);
+        }
+
+        return response()->download($zipPath, "reporte_mensual_anexos_{$clienteNombre}_{$mes}.zip", ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend(true);
     }
 
     private function buildReportData(ReporteFinancieroService $reportes, Collection $clientes, int $clienteId, string $mes): ?array
