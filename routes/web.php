@@ -21,11 +21,18 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ArchivadoController;
 use App\Services\RecurringTaskService;
 
-Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
-Route::get('/__migrate_status__', function () { Artisan::call('migrate:status'); return nl2br(e(Artisan::output())); });
-Route::get('/__migrate_dry_run__', function () { Artisan::call('migrate', ['--pretend' => true]); return nl2br(e(Artisan::output())); });
-Route::get('/__run_migrate__', function () { Artisan::call('migrate', ['--force' => true]); return nl2br(Artisan::output()); });
-Route::get('/__clear_caches__', function () { Artisan::call('config:clear'); Artisan::call('cache:clear'); Artisan::call('route:clear'); Artisan::call('view:clear'); return nl2br(Artisan::output() . "\nCaches limpiados ✔️"); });
+/*
+ * Operational endpoints are deliberately available only to local/testing
+ * environments. Production and staging maintenance must be performed through
+ * the hosting control plane or the authenticated CLI, never through HTTP.
+ */
+if (app()->environment(['local', 'testing'])) {
+    Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
+    Route::get('/__migrate_status__', function () { Artisan::call('migrate:status'); return nl2br(e(Artisan::output())); });
+    Route::get('/__migrate_dry_run__', function () { Artisan::call('migrate', ['--pretend' => true]); return nl2br(e(Artisan::output())); });
+    Route::get('/__run_migrate__', function () { Artisan::call('migrate', ['--force' => true]); return nl2br(Artisan::output()); });
+    Route::get('/__clear_caches__', function () { Artisan::call('config:clear'); Artisan::call('cache:clear'); Artisan::call('route:clear'); Artisan::call('view:clear'); return nl2br(Artisan::output() . "\nCaches limpiados ✔️"); });
+}
 
 Route::match(['GET', 'HEAD'], '/', function () {
     return auth()->check() ? redirect()->route('tasks.index') : view('auth.login');
