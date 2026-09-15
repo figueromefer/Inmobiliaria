@@ -88,9 +88,9 @@
         <p class="text-xs text-gray-500 mt-1">El sistema resolverá propiedad y cliente desde el contrato del inquilino.</p>
       </div>
 
-      {{-- Fecha --}}
+      {{-- Periodo del movimiento --}}
       <div>
-        <label class="block text-sm font-medium">Fecha</label>
+        <label class="block text-sm font-medium">Periodo / fecha a la que corresponde</label>
         <input type="date" name="fecha" value="{{ $field('fecha', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('fecha')->toDateString() : $field('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
       </div>
 

@@ -152,7 +152,9 @@ Pruebas de línea base agregadas: `OperationalRoutesTest` crea un proceso aislad
 
 ### Fase 1 — reporte mensual sin anexos
 
-Logo local, cliente, fechas correctamente etiquetadas, filas en cero ocultas y firma no huérfana. Aceptación: PDF con cliente/logo, negativos visibles, ceros ausentes y pruebas visuales de varias longitudes.
+Implementada en la rama `feat/reporte-mensual-pdf`: el PDF usa `public_path('images/logo.png')`, identifica al cliente en la primera página, muestra las etiquetas de periodo y liquidación, y filtra cada fila de resumen por su valor numérico antes de formatear. El bloque de resumen y firma se agrupa con `page-break-inside: avoid` y `break-inside: avoid`, sin salto fijo ni margen vertical fijo. La interfaz de reporte y movimientos conserva los mismos datos/cálculos y sólo aclara las etiquetas.
+
+Aceptación: PDF con cliente/logo, negativos visibles, ceros ausentes y pruebas de render con reporte corto y largo. La revisión visual del primer folio se realizó mediante Quick Look; el entorno no tiene Poppler/PyPDF para extraer una imagen de la última página, por lo que la prueba automatizada comprueba que el PDF largo tiene múltiples páginas y que el cierre usa el contenedor de no separación. La revisión final en staging debe incluir el último folio de un reporte de varias páginas antes de desplegar.
 
 ### Fase 2 — detalle de contratos de sólo lectura
 

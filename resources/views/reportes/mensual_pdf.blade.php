@@ -57,13 +57,17 @@
         .summary-table tr td:first-child {
             font-weight: bold;
         }
+        .closing-block {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
         .signature {
-            margin-top: 40px;
+            margin-top: 16px;
             text-align: center;
             font-size: 12px;
         }
         .signature .line {
-            margin: 30px auto 5px auto;
+            margin: 20px auto 5px auto;
             width: 70%;
             border-top: 1px solid #000;
         }
@@ -88,19 +92,21 @@
 @endphp
 
 <div class="header">
-    {{-- Logo corporativo; coloca tu logo en public/img/logo.png --}}
-    <img src="{{ public_path('imgages/logo.png') }}" alt="Logo">
-    <h2>Reporte mensual - {{ $reporteFecha->translatedFormat('F Y') }}</h2>
+    <img src="{{ public_path('images/logo.png') }}" alt="Logo Dorantes Aranda &amp; Asociados">
+    <h2>Reporte mensual — {{ $cliente->nombre ?? 'Cliente' }}</h2>
+    <div>{{ $reporteFecha->translatedFormat('F Y') }}</div>
 </div>
 
 {{-- 1) Rentas recabadas --}}
 @if(isset($rentasRecabadas) && $rentasRecabadas->isNotEmpty())
+    @php($mostrarFechaLiquidacion = $rentasRecabadas->contains(fn ($movimiento) => ! empty($movimiento->fecha_liquidacion)))
     <div class="section">
         <h3>Rentas recabadas</h3>
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Periodo / fecha a la que corresponde</th>
+                    @if($mostrarFechaLiquidacion)<th>Fecha de liquidación</th>@endif
                     <th>Propiedad</th>
                     <th class="text-right">Importe</th>
                     <th>Forma</th>
@@ -111,6 +117,7 @@
                 @foreach($rentasRecabadas as $m)
                     <tr>
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
+                        @if($mostrarFechaLiquidacion)<td>{{ $m->fecha_liquidacion ? $m->fecha_liquidacion->format('d/m/Y') : '—' }}</td>@endif
                         <td>{{ $m->propiedad->alias ?? '—' }}</td>
                         <td class="text-right">${{ number_format((float) $m->importe, 2) }}</td>
                         <td>{{ ucfirst($m->forma_pago) }}</td>
@@ -130,7 +137,7 @@
             <thead>
                 <tr>
                     <th>Creado</th>
-                    <th>Fecha asignada</th>
+                    <th>Periodo / fecha a la que corresponde</th>
                     <th>Propiedad</th>
                     <th class="text-right">Importe</th>
                 </tr>
@@ -156,7 +163,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Periodo / fecha a la que corresponde</th>
                     <th>Concepto</th>
                     <th>Propiedad</th>
                     <th class="text-right">Importe</th>
@@ -202,7 +209,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Periodo / fecha a la que corresponde</th>
                     <th>Notas</th>
                     <th class="text-right">Importe</th>
                 </tr>
@@ -227,7 +234,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Periodo / fecha a la que corresponde</th>
                     <th>Propiedad</th>
                     <th>Notas</th>
                     <th class="text-right">Importe</th>
@@ -254,7 +261,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Periodo / fecha a la que corresponde</th>
                     <th>Folio</th>
                     <th>Propiedad</th>
                     <th>Notas</th>
@@ -283,7 +290,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Periodo / fecha a la que corresponde</th>
                     <th class="text-right">Importe</th>
                     <th>Forma</th>
                     <th>Notas</th>
@@ -303,27 +310,34 @@
     </div>
 @endif
 
+<div class="closing-block">
 {{-- 9) Resumen --}}
 @if(isset($resumen))
     <div class="section">
         <h3>Resumen</h3>
         <table class="summary-table">
             <tbody>
-                <tr><td>INGRESOS DEL PERIODO</td><td class="text-right">${{ number_format((float) ($resumen['ingresos_efectivo'] ?? 0), 2) }}</td></tr>
-                <tr><td>TOTAL DEPOSITOS</td><td class="text-right">${{ number_format((float) ($resumen['total_depositos'] ?? 0), 2) }}</td></tr>
-                <tr><td>EGRESOS DEL PERIODO</td><td class="text-right">${{ number_format((float) ($resumen['gastos_efectivo'] ?? 0), 2) }}</td></tr>
-                <tr><td>TOTAL DESPUÉS DE GASTOS</td><td class="text-right">${{ number_format((float) ($resumen['total_despues_gastos'] ?? 0), 2) }}</td></tr>
-                <tr><td>IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)</td><td class="text-right">${{ number_format((float) ($resumen['iguala'] ?? 0), 2) }}</td></tr>
-                <tr><td>PAGOS AL CLIENTE (MES)</td><td class="text-right">${{ number_format((float) ($resumen['pagos_cliente_mes'] ?? 0), 2) }}</td></tr>
-                <tr><td>SALDO DE MESES ANTERIORES</td><td class="text-right">${{ number_format((float) ($resumen['saldo_anterior'] ?? 0), 2) }}</td></tr>
-                <tr><td>SALDO ANTERIOR CONTABLE</td><td class="text-right">${{ number_format((float) ($resumen['saldo_anterior_contable'] ?? 0), 2) }}</td></tr>
-                <tr><td>SALDO ANTERIOR LIQUIDADO</td><td class="text-right">${{ number_format((float) ($resumen['saldo_anterior_liquidado'] ?? 0), 2) }}</td></tr>
-                <tr><td>PENDIENTE POR COBRAR</td><td class="text-right">${{ number_format((float) ($resumen['pendiente_por_cobrar'] ?? 0), 2) }}</td></tr>
-                <tr><td>PENDIENTE POR PAGAR / LIQUIDAR</td><td class="text-right">${{ number_format((float) ($resumen['pendiente_por_pagar_o_liquidar'] ?? 0), 2) }}</td></tr>
-                <tr><td>TOTAL A PAGAR DEL MES</td><td class="text-right">${{ number_format((float) ($resumen['total_mes'] ?? 0), 2) }}</td></tr>
-                <tr><td>SALDO PERIODO LIQUIDADO</td><td class="text-right">${{ number_format((float) ($resumen['saldo_periodo_liquidado'] ?? 0), 2) }}</td></tr>
-                <tr><td>SALDO CONTABLE FINAL</td><td class="text-right">${{ number_format((float) ($resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0), 2) }}</td></tr>
-                <tr><td>SALDO LIQUIDADO / DISPONIBLE</td><td class="text-right">${{ number_format((float) ($resumen['saldo_liquidado'] ?? 0), 2) }}</td></tr>
+                @foreach([
+                    'INGRESOS DEL PERIODO' => $resumen['ingresos_efectivo'] ?? 0,
+                    'TOTAL DEPOSITOS' => $resumen['total_depositos'] ?? 0,
+                    'EGRESOS DEL PERIODO' => $resumen['gastos_efectivo'] ?? 0,
+                    'TOTAL DESPUÉS DE GASTOS' => $resumen['total_despues_gastos'] ?? 0,
+                    'IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)' => $resumen['iguala'] ?? 0,
+                    'PAGOS AL CLIENTE (MES)' => $resumen['pagos_cliente_mes'] ?? 0,
+                    'SALDO DE MESES ANTERIORES' => $resumen['saldo_anterior'] ?? 0,
+                    'SALDO ANTERIOR CONTABLE' => $resumen['saldo_anterior_contable'] ?? 0,
+                    'SALDO ANTERIOR LIQUIDADO' => $resumen['saldo_anterior_liquidado'] ?? 0,
+                    'PENDIENTE POR COBRAR' => $resumen['pendiente_por_cobrar'] ?? 0,
+                    'PENDIENTE POR PAGAR / LIQUIDAR' => $resumen['pendiente_por_pagar_o_liquidar'] ?? 0,
+                    'TOTAL A PAGAR DEL MES' => $resumen['total_mes'] ?? 0,
+                    'SALDO PERIODO LIQUIDADO' => $resumen['saldo_periodo_liquidado'] ?? 0,
+                    'SALDO CONTABLE FINAL' => $resumen['saldo_contable'] ?? $resumen['total_incluye_saldos'] ?? 0,
+                    'SALDO LIQUIDADO / DISPONIBLE' => $resumen['saldo_liquidado'] ?? 0,
+                ] as $etiqueta => $importe)
+                    @if((float) $importe !== 0.0)
+                        <tr><td>{{ $etiqueta }}</td><td class="text-right">${{ number_format((float) $importe, 2) }}</td></tr>
+                    @endif
+                @endforeach
             </tbody>
         </table>
     </div>
@@ -336,6 +350,7 @@
     <div class="line"></div>
     Dorantes Aranda &amp; Asociados<br>
     Abogados e Inmobiliarios
+</div>
 </div>
 
 </body>
