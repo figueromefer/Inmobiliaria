@@ -8,18 +8,20 @@ use App\Http\Requests\LinkContractDraftEntityRequest;
 use App\Exceptions\ContractDraftVersionConflictException;
 use App\Models\ContractDraft;
 use App\Models\ContractDraftVersion;
+use App\Models\ContractPublicRequest;
 use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftReconciliationService;
 use App\Services\ContractDraftVersioningService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class ContractDraftController extends Controller
 {
     public function index()
     {
         $drafts = ContractDraft::query()
-            ->with(['currentVersion', 'createdBy'])
+            ->with(['currentVersion', 'createdBy', 'publicRequest'])
             ->latest()
             ->paginate(20);
 
@@ -49,7 +51,7 @@ class ContractDraftController extends Controller
 
     public function show(Request $request, ContractDraft $draft, ContractDraftReconciliationService $reconciliation)
     {
-        $draft->load(['currentVersion.createdBy', 'createdBy', 'cliente', 'propiedad', 'inquilino']);
+        $draft->load(['currentVersion.createdBy', 'createdBy', 'cliente', 'propiedad', 'inquilino', 'publicRequest']);
 
         return view('contratos.borradores.show', [
             'draft' => $draft,
@@ -139,5 +141,35 @@ class ContractDraftController extends Controller
 
         return redirect()->route('contratos.borradores.show', $draft)
             ->with('success', 'Vínculo de conciliación eliminado. El snapshot contractual no fue modificado.');
+    }
+
+    public function regeneratePublicContinuationLink(ContractDraft $draft)
+    {
+        /** @var ContractPublicRequest|null $public */
+        $public = $draft->publicRequest;
+        abort_unless($draft->source === 'public_form' && $public !== null, 404);
+        abort_if(
+            $draft->status !== ContractDraft::STATUS_DRAFT
+            || $public->submitted_at !== null
+            || $public->revoked_at !== null,
+            422,
+            'Esta solicitud ya no permite generar un enlace editable.',
+        );
+
+        $token = Str::random(64);
+        $public->forceFill([
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => now()->addDays(30),
+        ])->save();
+
+        $continuationUrl = route('contrato.solicitud.step', [
+            $public->public_reference,
+            $token,
+            'generales',
+        ]);
+
+        return response()
+            ->view('contratos.borradores.public_continuation_link', compact('draft', 'public', 'continuationUrl'))
+            ->header('Cache-Control', 'no-store, private');
     }
 }
