@@ -1,0 +1,11 @@
+{
+  "status": "ready",
+  "template_key": "lease_with_guarantor",
+  "placeholders": {
+    "{{fiador}}": "Fiador PM",
+    "{{banco}}": "Banco",
+    "{{beneficiario}}": "Beneficiario"
+  },
+  "markers": ["{{si_inmueble}}", "{{mantenimiento_quien}}", "{{uso_inmueble}}"],
+  "required_marker_subset": ["__T7__", "__T8__", "__T9__", "__I5__", "__I6__", "{{fiador}}", "{{representante_fiador}}", "{{fiador_representante}}", "{{si_inmueble}}", "{{clausula_deposito}}"]
+}

@@ -44,4 +44,15 @@ return [
         'token' => env('JUSTICIA_ALTERNATIVA_TOKEN', ''),
         'timeout' => env('JUSTICIA_ALTERNATIVA_TIMEOUT', 20),
     ],
+
+    'google_contracts' => [
+        'templates' => [
+            'lease_without_guarantor' => env('GOOGLE_CONTRACT_TEMPLATE_WITHOUT_GUARANTOR_ID'),
+            'lease_with_guarantor' => env('GOOGLE_CONTRACT_TEMPLATE_WITH_GUARANTOR_ID'),
+        ],
+        'destination_folder_id' => env('GOOGLE_CONTRACT_DESTINATION_FOLDER_ID'),
+        'service_account_json' => env('GOOGLE_SERVICE_ACCOUNT_JSON'),
+        'service_account_json_path' => env('GOOGLE_SERVICE_ACCOUNT_JSON_PATH'),
+        'timeout' => (int) env('GOOGLE_CONTRACT_TIMEOUT', 20),
+    ],
 ];

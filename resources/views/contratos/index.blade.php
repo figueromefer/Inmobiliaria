@@ -11,6 +11,9 @@
       @if(auth()->user()?->can('create-private-contracts') || auth()->user()?->can('import-justice-alternative-contracts') || auth()->user()?->can('delete-anything'))
         <div class="flex flex-wrap items-center gap-2">
           @can('create-private-contracts')
+            <a href="{{ route('contratos.borradores.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+              Borradores internos
+            </a>
             <a href="https://forms.gle/F5ao5ZMKN8bJToVy5" target="_blank" rel="noopener noreferrer" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
               + Nuevo contrato privado
             </a>

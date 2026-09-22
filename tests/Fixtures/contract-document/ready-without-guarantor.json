@@ -1,0 +1,19 @@
+{
+  "status": "ready",
+  "template_key": "lease_without_guarantor",
+  "folder_name": "Contrato Arrendador Prueba",
+  "document_name": "Contrato - Casa Prueba",
+  "placeholders": {
+    "{{arrendador}}": "Arrendador Prueba",
+    "{{arrendatario}}": "Arrendatario Prueba",
+    "{{dia_pago}}": "05 a 10",
+    "{{fecha_firma}}": "15 DE SEPTIEMBRE DEL 2026",
+    "{{monto_mensualidad}}": "10000",
+    "{{monto_mensualidad_letra}}": "Diez Mil pesos 00/100 MN"
+  },
+  "not_applicable_markers": [
+    "__T7__", "__T8__", "__T9__", "__I5__", "__I6__",
+    "{{fiador}}", "{{fiador_rfc}}", "{{fiador_nacionalidad}}", "{{fiador_lugar_nacimiento}}", "{{fiador_fecha_nacimiento}}", "{{fiador_ocupacion}}", "{{fiador_estado_civil}}", "{{fiador_domicilio}}", "{{fiador_telefono}}", "{{fiador_correo}}", "{{fiador_identificacion}}", "{{fiador_acta_constitutiva}}",
+    "{{representante_fiador}}", "{{representante_fiador_nacionalidad}}", "{{representante_fiador_ocupacion}}", "{{representante_fiador_lugar_fecha_nacimiento}}", "{{representante_fiador_acta_facultades}}", "{{representante_fiador_identificacion}}", "{{fiador_representante}}", "{{si_inmueble}}", "{{garantia}}", "{{garantia_monto}}"
+  ]
+}
