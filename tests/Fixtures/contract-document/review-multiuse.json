@@ -1,0 +1,6 @@
+{
+  "status": "requires_review",
+  "template_key": "lease_without_guarantor",
+  "marker": "{{uso_inmueble}}",
+  "operation": "requires_review"
+}

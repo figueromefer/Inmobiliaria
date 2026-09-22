@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\GoogleContractDocumentClient;
+use App\Services\GoogleApiContractDocumentClient;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Cliente;
@@ -15,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(GoogleContractDocumentClient::class, GoogleApiContractDocumentClient::class);
     }
 
     public function boot(): void

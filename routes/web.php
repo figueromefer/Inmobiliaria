@@ -7,6 +7,10 @@ use App\Http\Controllers\ClienteController as ClienteCtl;
 use App\Http\Controllers\PropiedadController;
 use App\Http\Controllers\InquilinoController;
 use App\Http\Controllers\ContratoController;
+use App\Http\Controllers\ContractDraftController;
+use App\Http\Controllers\ContractDraftWizardController;
+use App\Http\Controllers\ContractDocumentPreviewController;
+use App\Http\Controllers\PublicContractRequestController;
 use App\Http\Controllers\ContratoPendienteController;
 use App\Http\Controllers\ContratoCalendarController;
 use App\Http\Controllers\MovimientoController;
@@ -40,6 +44,15 @@ Route::match(['GET', 'HEAD'], '/', function () {
 
 Route::view('/login', 'auth.login')->name('login')->middleware('guest');
 Route::view('/forgot-password', 'auth.forgot-password')->name('password.request')->middleware('guest');
+
+Route::prefix('/contrato/solicitud')->name('contrato.solicitud.')->middleware('throttle:60,1')->group(function () {
+    Route::get('/', [PublicContractRequestController::class, 'create'])->name('create');
+    Route::post('/', [PublicContractRequestController::class, 'start'])->name('start');
+    Route::get('/{reference}/recibida', [PublicContractRequestController::class, 'received'])->name('recibida');
+    Route::get('/{reference}/{token}/{step}', [PublicContractRequestController::class, 'show'])->name('step');
+    Route::put('/{reference}/{token}/{step}', [PublicContractRequestController::class, 'save'])->name('save');
+    Route::post('/{reference}/{token}/enviar', [PublicContractRequestController::class, 'submit'])->name('submit');
+});
 
 Route::get('/dashboard', function () { return redirect()->route('tasks.index'); })->middleware(['auth'])->name('dashboard');
 
@@ -96,6 +109,30 @@ Route::middleware('auth')->group(function () {
     Route::post('/contratos/pendientes/{pendiente}/resolver', [ContratoPendienteController::class, 'resolver'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.resolver');
+    Route::middleware('can:manage-records')->prefix('/contratos/borradores')->name('contratos.borradores.')->group(function () {
+        Route::get('/', [ContractDraftController::class, 'index'])->name('index');
+        Route::get('/nuevo', [ContractDraftController::class, 'create'])->name('create');
+        Route::post('/', [ContractDraftController::class, 'store'])->name('store');
+        Route::post('/{draft}/conciliacion/{entity}', [ContractDraftController::class, 'linkEntity'])
+            ->whereIn('entity', ['cliente', 'propiedad', 'inquilino'])
+            ->name('reconciliation.link');
+        Route::delete('/{draft}/conciliacion/{entity}', [ContractDraftController::class, 'unlinkEntity'])
+            ->whereIn('entity', ['cliente', 'propiedad', 'inquilino'])
+            ->name('reconciliation.unlink');
+        Route::get('/{draft}/captura/{step}', [ContractDraftWizardController::class, 'show'])
+            ->name('wizard.show');
+        Route::put('/{draft}/captura/{step}', [ContractDraftWizardController::class, 'save'])
+            ->name('wizard.save');
+        Route::get('/{draft}/previsualizacion-documental', [ContractDocumentPreviewController::class, 'show'])->name('document-preview');
+        Route::post('/{draft}/previsualizacion-documental/solicitud', [ContractDocumentPreviewController::class, 'request'])->name('document-preview.request');
+        Route::post('/{draft}/previsualizacion-documental/generar', [ContractDocumentPreviewController::class, 'generate'])->name('document-preview.generate');
+        Route::post('/{draft}/previsualizacion-documental/documentos/{documentVersion}/reintentar', [ContractDocumentPreviewController::class, 'retry'])->name('document-preview.retry');
+        Route::get('/{draft}', [ContractDraftController::class, 'show'])->name('show');
+        Route::get('/{draft}/editar', [ContractDraftController::class, 'edit'])->name('edit');
+        Route::put('/{draft}', [ContractDraftController::class, 'update'])->name('update');
+        Route::get('/{draft}/versiones', [ContractDraftController::class, 'versions'])->name('versions');
+        Route::get('/{draft}/versiones/{version}', [ContractDraftController::class, 'version'])->name('version');
+    });
     Route::get('/contratos/justicia-alternativa', [ContratoController::class, 'showImportJusticiaAlternativaForm'])
         ->middleware('can:import-justice-alternative-contracts')
         ->name('contratos.justicia-alternativa');
