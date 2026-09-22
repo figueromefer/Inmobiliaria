@@ -219,6 +219,42 @@ class PublicContractRequestWorkflowTest extends TestCase
         $this->assertSame($versionCount, $public->draft->fresh()->versions()->count());
     }
 
+    public function test_public_wizard_renders_persisted_party_and_conditional_branch_controls(): void
+    {
+        [$reference, $token] = $this->start();
+        $this->capturePublic($reference, $token, $this->fixtureA());
+
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'arrendador']))
+            ->assertOk()
+            ->assertSee('data-party-container="lessor"', false)
+            ->assertSee('data-party-type="lessor"', false)
+            ->assertSee('data-type="fisica"', false)
+            ->assertSee('data-type="moral"', false)
+            ->assertSee('option value="fisica" selected', false)
+            ->assertSee('Arrendador A');
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'tercero']))
+            ->assertOk()
+            ->assertSee('data-guarantor-type', false)
+            ->assertSee('option value="none" selected', false);
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'garantia']))
+            ->assertOk()->assertSee('data-conditional="guarantee-details"', false);
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'pago']))
+            ->assertOk()->assertSee('data-conditional="bank-details"', false);
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'mantenimiento']))
+            ->assertOk()->assertSee('data-conditional="maintenance-payer"', false);
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'renovacion']))
+            ->assertOk()->assertSee('data-conditional="previous-contract"', false);
+
+        [$reference, $token] = $this->start();
+        $this->capturePublic($reference, $token, $this->fixtureB());
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'arrendador']))
+            ->assertOk()->assertSee('option value="moral" selected', false)->assertSee('Representante Arrendador B');
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'tercero']))
+            ->assertOk()->assertSee('option value="moral" selected', false)->assertSee('Representante Fiador B');
+        $this->get(route('contrato.solicitud.step', [$reference, $token, 'pago']))
+            ->assertOk()->assertSee('value="Banco B"', false)->assertSee('control.disabled=!visible', false);
+    }
+
     public function test_incomplete_submit_keeps_request_editable_and_unsubmitted(): void
     {
         [$reference, $token, $public] = $this->start();
