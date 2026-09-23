@@ -40,7 +40,7 @@ class ContractDraftManagementTest extends TestCase
             $this->actingAs(User::factory()->create(['role' => $role]))
                 ->get(route('contratos.borradores.index'))
                 ->assertOk()
-                ->assertSee('Borradores internos de contrato');
+            ->assertSee('Borradores y solicitudes de contrato');
         }
     }
 

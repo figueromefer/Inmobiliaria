@@ -38,7 +38,7 @@ class PublicContractRequestWorkflowTest extends TestCase
         $this->assertDatabaseCount('propiedades', 0);
         $this->assertDatabaseCount('inquilinos', 0);
         $this->actingAs($this->agent())->get(route('contratos.borradores.index'))
-            ->assertOk()->assertSee('public_form')->assertSee('submitted');
+            ->assertOk()->assertSee('Solicitud del cliente')->assertSee('Enviada');
     }
 
     public function test_fixture_b_public_pm_pm_guarantor_guarantee_and_transfer_completes_end_to_end(): void
