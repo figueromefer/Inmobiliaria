@@ -1,4 +1,11 @@
 <x-app-layout>
+    <style>
+        .client-link-button { align-items:center; background-color:#a16207; border:1px solid #854d0e; border-radius:.5rem; color:#fff; cursor:pointer; display:inline-flex; font-weight:700; line-height:1.25; padding:.625rem 1rem; text-decoration:none; }
+        .client-link-button:hover { background-color:#854d0e; color:#fff; }
+        .client-link-button-secondary { align-items:center; background-color:#1d4ed8; border:1px solid #1e40af; border-radius:.5rem; color:#fff; cursor:pointer; display:inline-flex; font-weight:700; line-height:1.25; padding:.625rem 1rem; text-decoration:none; }
+        .client-link-button-secondary:hover { background-color:#1e40af; color:#fff; }
+        .client-link-button:disabled, .client-link-button-secondary:disabled { cursor:not-allowed; opacity:.6; }
+    </style>
     @php
         $statusLabels = ['draft' => 'En captura', 'submitted' => 'Enviada'];
         $isEditablePublicRequest = $draft->source === 'public_form' && $draft->publicRequest && $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && !$draft->publicRequest->submitted_at && !$draft->publicRequest->revoked_at;
@@ -18,7 +25,7 @@
                 <p class="mt-2 text-gray-600">Si el cliente perdió o cerró su enlace, puedes generar uno nuevo para que continúe con la solicitud.</p>
                 <dl class="mt-3 grid gap-3 md:grid-cols-4"><div><dt class="text-gray-500">Estado</dt><dd>{{ $statusLabels[$draft->status] ?? ucfirst($draft->status) }}</dd></div><div><dt class="text-gray-500">Creada</dt><dd>{{ $draft->publicRequest->created_at?->format('Y-m-d H:i') ?? '—' }}</dd></div><div><dt class="text-gray-500">Expiración</dt><dd>{{ $draft->publicRequest->expires_at?->format('Y-m-d H:i') ?? '—' }}</dd></div><div><dt class="text-gray-500">Enviada</dt><dd>{{ $draft->publicRequest->submitted_at?->format('Y-m-d H:i') ?? '—' }}</dd></div></dl>
                 @if($isEditablePublicRequest)
-                    <form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="mt-4" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg">Generar nuevo enlace para el cliente</button></form>
+                    <form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="mt-4" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="client-link-button bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg">Generar nuevo enlace para el cliente</button></form>
                 @else
                     <p class="mt-4 rounded bg-gray-50 p-3 text-gray-600">Esta solicitud ya fue enviada y no admite un nuevo enlace de edición.</p>
                 @endif
