@@ -73,17 +73,59 @@ class ContractPublicContinuationLinkTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_administrative_list_does_not_render_tokens_or_hashes(): void
+    public function test_administrative_views_hide_technical_identifiers_and_show_editable_client_controls(): void
     {
         [$reference, $token, $public] = $this->startPublicRequest();
+        $draft = $public->draft->fresh('currentVersion');
 
         $this->actingAs($this->manager())
             ->get(route('contratos.borradores.index'))
             ->assertOk()
-            ->assertSee($reference)
+            ->assertDontSee($reference)
             ->assertDontSee($token)
             ->assertDontSee($public->token_hash)
-            ->assertSee('Generar enlace de continuación');
+            ->assertSee('Solicitud del cliente')
+            ->assertSee('En captura')
+            ->assertSee('Generar enlace para cliente');
+        $this->actingAs($this->manager())
+            ->get(route('contratos.borradores.show', $draft))
+            ->assertOk()
+            ->assertDontSee($reference)
+            ->assertDontSee($draft->currentVersion->payload_hash)
+            ->assertSee('Enlace del cliente')
+            ->assertSee('Generar nuevo enlace para el cliente')
+            ->assertSee('Edición interna');
+    }
+
+    public function test_submitted_or_revoked_public_request_explains_that_client_link_cannot_be_regenerated(): void
+    {
+        foreach (['submitted', 'revoked'] as $state) {
+            [, , $public] = $this->startPublicRequest();
+            $public->forceFill([$state === 'submitted' ? 'submitted_at' : 'revoked_at' => now()])->save();
+            if ($state === 'submitted') {
+                $public->draft->forceFill(['status' => ContractDraft::STATUS_SUBMITTED])->save();
+            }
+
+            $this->actingAs($this->manager())
+                ->get(route('contratos.borradores.show', $public->draft))
+                ->assertOk()
+                ->assertDontSee('Generar nuevo enlace para el cliente')
+                ->assertSee('Esta solicitud ya fue enviada y no admite un nuevo enlace de edición.');
+        }
+    }
+
+    public function test_internal_draft_does_not_render_public_link_controls(): void
+    {
+        $draft = ContractDraft::query()->create([
+            'source' => 'laravel',
+            'status' => ContractDraft::STATUS_DRAFT,
+        ]);
+
+        $this->actingAs($this->manager())
+            ->get(route('contratos.borradores.index'))
+            ->assertOk()
+            ->assertSee('Captura interna')
+            ->assertDontSee('Generar enlace para cliente');
     }
 
     public function test_only_the_last_of_two_regenerated_links_remains_valid(): void

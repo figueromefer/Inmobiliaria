@@ -3,7 +3,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800">Nuevo enlace de continuación</h2>
-                <p class="text-sm text-gray-500">Solicitud pública {{ $public->public_reference }}</p>
+                <p class="text-sm text-gray-500">Solicitud del cliente</p>
             </div>
             <a href="{{ route('contratos.borradores.show', $draft) }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Volver al borrador</a>
         </div>
