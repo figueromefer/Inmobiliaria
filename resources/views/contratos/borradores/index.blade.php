@@ -1,4 +1,9 @@
 <x-app-layout>
+    <style>
+        .client-link-button { align-items:center; background-color:#a16207; border:1px solid #854d0e; border-radius:.375rem; color:#fff; cursor:pointer; display:inline-flex; font-weight:700; line-height:1.25; padding:.5rem .75rem; text-decoration:none; }
+        .client-link-button:hover { background-color:#854d0e; color:#fff; }
+        .client-link-button:disabled { cursor:not-allowed; opacity:.6; }
+    </style>
     <x-slot name="header">
         <div class="flex items-center justify-between gap-4">
             <div>
@@ -47,7 +52,7 @@
                             <td class="px-4 py-3">{{ $draft->currentVersion?->draft_version ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $draft->createdBy?->name ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $draft->updated_at?->format('Y-m-d H:i') ?? '—' }}</td>
-                            <td class="px-4 py-3 space-x-2"><a class="inline-flex bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1 rounded" href="{{ route('contratos.borradores.show', $draft) }}">Ver borrador</a>@if($isEditablePublicRequest)<form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="inline" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="mt-2 inline-flex bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded">Generar enlace para cliente</button></form>@endif</td>
+                            <td class="px-4 py-3 space-x-2"><a class="inline-flex bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1 rounded" href="{{ route('contratos.borradores.show', $draft) }}">Ver borrador</a>@if($isEditablePublicRequest)<form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="inline" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="client-link-button mt-2 inline-flex bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded">Generar enlace para cliente</button></form>@endif</td>
                         </tr>
                     @empty
                         <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Aún no hay solicitudes.</td></tr>
