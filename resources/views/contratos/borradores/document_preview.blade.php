@@ -1,4 +1,10 @@
 <x-app-layout>
+    <style>
+        .document-generate-button { align-items:center; background-color:#4f46e5; border:1px solid #3730a3; border-radius:.5rem; color:#fff; cursor:pointer; display:inline-flex; font-weight:700; line-height:1.25; padding:.625rem 1rem; }
+        .document-generate-button:hover { background-color:#3730a3; color:#fff; }
+        .document-retry-button { align-items:center; background-color:#c2410c; border:1px solid #9a3412; border-radius:.375rem; color:#fff; cursor:pointer; display:inline-flex; font-weight:700; line-height:1.25; padding:.5rem .75rem; }
+        .document-retry-button:hover { background-color:#9a3412; color:#fff; }
+    </style>
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -23,7 +29,7 @@
                     @csrf
                     <input type="hidden" name="expected_draft_version_id" value="{{ $draft->currentVersion->id }}">
                     <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
-                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Generar documento</button>
+                    <button class="document-generate-button">Generar documento</button>
                 </form>
             @endif
         </div>
@@ -41,7 +47,7 @@
                                 <span class="block text-red-700">{{ $documentVersion->last_error }}</span>
                                 <form class="inline" method="POST" action="{{ route('contratos.borradores.document-preview.retry', [$draft, $documentVersion]) }}">
                                     @csrf
-                                    <button class="mt-2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-1 px-3 rounded">Reintentar generación</button>
+                                    <button class="document-retry-button mt-2">Reintentar generación</button>
                                 </form>
                             @endif
                         </li>

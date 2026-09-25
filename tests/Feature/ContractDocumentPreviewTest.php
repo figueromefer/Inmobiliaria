@@ -24,6 +24,7 @@ class ContractDocumentPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('Previsualización documental')
             ->assertSee('lease_without_guarantor')
+            ->assertSee('document-generate-button')
             ->assertSee('Generar documento');
 
         $intent = ['expected_draft_version_id' => $draft->current_version_id, 'idempotency_key' => '15f0a3ca-20d7-4e79-a82c-9e2f667c69d3'];

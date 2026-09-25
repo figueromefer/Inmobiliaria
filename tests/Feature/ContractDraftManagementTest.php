@@ -59,6 +59,27 @@ class ContractDraftManagementTest extends TestCase
             ->assertSee('Guardar nueva versión');
     }
 
+    public function test_internal_draft_exposes_the_next_contract_preparation_step(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $draft = $this->createDraft($actor, $this->payload());
+        $previewUrl = route('contratos.borradores.document-preview', $draft);
+
+        $this->actingAs($actor)->get(route('contratos.borradores.index'))
+            ->assertOk()
+            ->assertSee('Preparar contrato')
+            ->assertSee('contract-prepare-button')
+            ->assertSee($previewUrl, false);
+
+        $this->actingAs($actor)->get(route('contratos.borradores.show', $draft))
+            ->assertOk()
+            ->assertSee('Continuar captura')
+            ->assertSee('Preparar contrato')
+            ->assertSee('contract-prepare-button')
+            ->assertSee('Cuando hayas terminado la captura, revisa la información y prepara el contrato para generación.')
+            ->assertSee($previewUrl, false);
+    }
+
     public function test_authorized_user_creates_an_incomplete_draft_with_version_one_only(): void
     {
         $actor = User::factory()->create(['role' => User::ROLE_AGENT]);

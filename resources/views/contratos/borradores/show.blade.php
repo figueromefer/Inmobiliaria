@@ -5,6 +5,8 @@
         .client-link-button-secondary { align-items:center; background-color:#1d4ed8; border:1px solid #1e40af; border-radius:.5rem; color:#fff; cursor:pointer; display:inline-flex; font-weight:700; line-height:1.25; padding:.625rem 1rem; text-decoration:none; }
         .client-link-button-secondary:hover { background-color:#1e40af; color:#fff; }
         .client-link-button:disabled, .client-link-button-secondary:disabled { cursor:not-allowed; opacity:.6; }
+        .contract-prepare-button { align-items:center; background-color:#4f46e5; border:1px solid #3730a3; border-radius:.5rem; color:#fff; display:inline-flex; font-weight:700; line-height:1.25; padding:.625rem 1rem; text-decoration:none; }
+        .contract-prepare-button:hover { background-color:#3730a3; color:#fff; }
     </style>
     @php
         $statusLabels = ['draft' => 'En captura', 'submitted' => 'Enviada'];
@@ -13,11 +15,18 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div><h2 class="font-semibold text-xl text-gray-800">Borrador #{{ $draft->id }}</h2><p class="text-sm text-gray-500">Estado: {{ $statusLabels[$draft->status] ?? ucfirst($draft->status) }}</p></div>
-            <div class="flex flex-wrap items-center gap-3"><div><a href="{{ route('contratos.borradores.wizard.show', [$draft, 'generales']) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Continuar captura</a><p class="mt-1 text-center text-xs text-gray-500">Edición interna</p></div><a href="{{ route('contratos.borradores.document-preview', $draft) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Previsualización documental</a><a href="{{ route('contratos.borradores.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Volver</a></div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div><a href="{{ route('contratos.borradores.wizard.show', [$draft, 'generales']) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Continuar captura</a><p class="mt-1 text-center text-xs text-gray-500">{{ in_array($draft->source, ['laravel', 'internal'], true) ? 'Seguir editando datos' : 'Edición interna' }}</p></div>
+                <div><a href="{{ route('contratos.borradores.document-preview', $draft) }}" class="contract-prepare-button">Preparar contrato</a><p class="mt-1 text-center text-xs text-gray-500">Revisar y generar documento</p></div>
+                <a href="{{ route('contratos.borradores.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Volver</a>
+            </div>
         </div>
     </x-slot>
     @php($payload = $draft->currentVersion->canonical_payload)
     <div class="max-w-6xl mx-auto mt-6 space-y-5">
+        @if(in_array($draft->source, ['laravel', 'internal'], true))
+            <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">Cuando hayas terminado la captura, revisa la información y prepara el contrato para generación.</div>
+        @endif
         <div class="bg-white rounded-lg shadow p-5 grid gap-3 md:grid-cols-3 text-sm"><div><span class="text-gray-500">Versión actual</span><div class="font-semibold">{{ $draft->currentVersion->draft_version }}</div></div><div><span class="text-gray-500">Actor</span><div class="font-semibold">{{ $draft->currentVersion->createdBy?->name ?? '—' }}</div></div><div><span class="text-gray-500">Fecha</span><div class="font-semibold">{{ $draft->currentVersion->created_at->format('Y-m-d H:i') }}</div></div></div>
         @if($draft->publicRequest)
             <div class="bg-white rounded-lg shadow p-5 text-sm">
