@@ -16,6 +16,29 @@ class ContractDraftWizardTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_wizard_exposes_every_document_critical_capture_field(): void
+    {
+        $actor = $this->agent();
+        $draft = $this->draft($actor);
+
+        foreach ([
+            'generales' => ['Fecha de firma', 'Domicilio del inmueble'],
+            'arrendador' => ['Nombre completo', 'Razón social', 'Acta constitutiva', 'Teléfono', 'Representante', 'Acta de facultades'],
+            'arrendatario' => ['Nombre completo', 'Razón social', 'Acta constitutiva', 'Teléfono', 'Representante', 'Acta de facultades'],
+            'tercero' => ['Tipo de tercero', 'Nombre completo', 'Razón social', 'Acta constitutiva', 'Representante'],
+            'garantia' => ['¿Existe inmueble en garantía?', 'Título de propiedad'],
+            'vigencia' => ['Inicio', 'Fin', 'Duración', 'Regla de pago', 'Renta total', 'Renta mensual', 'Depósito'],
+            'uso' => ['Residencial', 'Industrial', 'Comercial', 'Otro'],
+            'pago' => ['Forma de pago', 'Banco', 'Beneficiario', 'CLABE'],
+            'mantenimiento' => ['¿Existen cuotas?', 'Quién paga'],
+        ] as $step => $labels) {
+            $response = $this->actingAs($actor)->get(route('contratos.borradores.wizard.show', [$draft, $step]))->assertOk();
+            foreach ($labels as $label) {
+                $response->assertSee($label);
+            }
+        }
+    }
+
     public function test_authorized_user_can_open_wizard_and_save_general_step_as_new_version(): void
     {
         $actor = $this->agent();
