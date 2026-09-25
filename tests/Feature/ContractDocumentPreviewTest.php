@@ -23,7 +23,9 @@ class ContractDocumentPreviewTest extends TestCase
             ->get(route('contratos.borradores.document-preview', $draft))
             ->assertOk()
             ->assertSee('Previsualización documental')
-            ->assertSee('lease_without_guarantor')
+            ->assertSee('El contrato está listo para generarse.')
+            ->assertDontSee('lease_without_guarantor')
+            ->assertSee('document-generate-button')
             ->assertSee('Generar documento');
 
         $intent = ['expected_draft_version_id' => $draft->current_version_id, 'idempotency_key' => '15f0a3ca-20d7-4e79-a82c-9e2f667c69d3'];
@@ -72,6 +74,47 @@ class ContractDocumentPreviewTest extends TestCase
             ->post(route('contratos.borradores.document-preview.request', $draft), ['expected_draft_version_id' => $draft->current_version_id, 'idempotency_key' => 'd8bbfb70-f5ae-42e8-a1b8-9f8e20d1a9ea'])
             ->assertSessionHasErrors('document');
         $this->assertDatabaseCount('contract_document_versions', 0);
+    }
+
+    public function test_blocked_preview_lists_human_missing_fields_and_links_to_capture_without_internal_operations(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $draft = app(ContractDraftVersioningService::class)->createDraft(
+            app(ContractDraftPayload::class)->empty(),
+            ['source' => 'laravel', 'status' => 'draft', 'created_by' => $actor->id],
+            null,
+            ContractDraftPayload::SCHEMA_VERSION,
+            'created',
+            $actor->id,
+        );
+
+        $this->actingAs($actor)->get(route('contratos.borradores.document-preview', $draft))
+            ->assertOk()
+            ->assertSee('El contrato todavía no está listo para generarse.')
+            ->assertSee('Completa los siguientes datos:')
+            ->assertSee('domicilio del inmueble')
+            ->assertSee('Continuar captura')
+            ->assertSee(route('contratos.borradores.wizard.show', [$draft, 'generales']), false)
+            ->assertDontSee('remove_table')
+            ->assertDontSee('replace_marker')
+            ->assertDontSee('Operaciones documentales previstas');
+    }
+
+    public function test_review_preview_explains_the_next_human_action(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $draft = $this->draft($actor);
+        $payload = $draft->currentVersion->canonical_payload;
+        $payload['leased_property']['property_use_codes'] = ['other'];
+        app(ContractDraftVersioningService::class)->appendVersion($draft, $payload, null, ContractDraftPayload::SCHEMA_VERSION, 'saved', $actor->id);
+
+        $this->actingAs($actor)->get(route('contratos.borradores.document-preview', $draft))
+            ->assertOk()
+            ->assertSee('El contrato requiere revisión antes de generarse.')
+            ->assertSee('Revisa la información indicada y confirma el criterio correspondiente antes de continuar.')
+            ->assertSee('Continuar captura')
+            ->assertSee(route('contratos.borradores.wizard.show', [$draft, 'uso']), false)
+            ->assertDontSee('replace_marker');
     }
 
     public function test_blocked_or_review_document_cannot_call_google_generation(): void
