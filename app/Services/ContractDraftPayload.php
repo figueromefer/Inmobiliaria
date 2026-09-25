@@ -397,6 +397,14 @@ class ContractDraftPayload
      */
     private function normalizeTransportFields(array $payload): array
     {
+        if (isset($payload['amounts']) && is_array($payload['amounts'])) {
+            foreach (['total_rent', 'monthly_rent', 'security_deposit', 'rental_commission', 'monthly_commission_value'] as $key) {
+                if (array_key_exists($key, $payload['amounts'])) {
+                    $payload['amounts'][$key] = $this->normalizeMoneyTransportValue($payload['amounts'][$key]);
+                }
+            }
+        }
+
         if (!isset($payload['leased_property']) || !is_array($payload['leased_property'])) {
             return $payload;
         }
@@ -417,6 +425,27 @@ class ContractDraftPayload
         $payload['leased_property'] = $property;
 
         return $payload;
+    }
+
+    private function normalizeMoneyTransportValue(mixed $value): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return $value;
+        }
+
+        // La UI puede presentar MXN como "$23,000.00". Conservamos el
+        // importe como cadena decimal para no perder precisión al convertirlo
+        // a float; los formatos ambiguos siguen fallando en numericOrNull().
+        if (preg_match('/^\\$?(?:\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d+)?$/', $value)) {
+            return str_replace([',', '$'], '', $value);
+        }
+
+        return $value;
     }
 
     /** @param array<string, mixed> $payload */

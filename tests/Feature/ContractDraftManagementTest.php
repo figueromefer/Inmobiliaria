@@ -40,7 +40,7 @@ class ContractDraftManagementTest extends TestCase
             $this->actingAs(User::factory()->create(['role' => $role]))
                 ->get(route('contratos.borradores.index'))
                 ->assertOk()
-            ->assertSee('Borradores y solicitudes de contrato');
+                ->assertSee('Borradores y solicitudes de contrato');
         }
     }
 
@@ -80,6 +80,67 @@ class ContractDraftManagementTest extends TestCase
         $this->assertDatabaseCount('clientes', 0);
         $this->assertDatabaseCount('propiedades', 0);
         $this->assertDatabaseCount('inquilinos', 0);
+    }
+
+    public function test_internal_form_literal_production_scenario_creates_a_canonical_draft(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $formPayload = [
+            'metadata' => ['contract_reference' => '12 prueba', 'contract_date' => '2026-09-25'],
+            'lessor' => ['person' => ['person_type' => 'fisica', 'full_name' => 'JOSE ADALBERTO GONZALEZ HERNANDEZ', 'rfc' => '123456777777777', 'email' => 'J_PABLO37@HOTMAIL.COM']],
+            'lessee' => ['person' => ['person_type' => 'moral', 'legal_name' => 'PRENTIS GDL SA DE CV', 'rfc' => '.3432452', 'email' => 'JPADILLA@DORANTESARANDA.COM']],
+            'guarantor' => ['type' => 'fisica', 'person' => ['person_type' => 'fisica', 'full_name' => 'MARTHA ESPINOSA']],
+            'guarantee_property' => ['exists' => 'yes', 'address' => 'PRUEBA DE DOMICILIO DE GARANTIA'],
+            'leased_property' => ['alias' => 'TORRE CELTIS V212 PRUEBA', 'address' => 'REAL ACUEDUCTO 240 INTERIOR 8', '_property_use_codes_submitted' => '1', 'property_use_codes' => ['commercial']],
+            'term' => ['start_date' => '2026-09-25', 'end_date' => '2027-09-24', 'rent_due_rule' => ['raw_text' => '25 al 30']],
+            'amounts' => ['monthly_rent' => '23000', 'security_deposit' => '23000'],
+            'payment' => ['method' => 'unspecified'],
+            'maintenance' => ['exists' => 'yes', 'payer' => 'lessor'],
+            'renewal' => ['is_renewal' => 'no'],
+        ];
+
+        $this->actingAs($actor)->post(route('contratos.borradores.store'), ['payload' => $formPayload])->assertRedirect();
+
+        $draft = ContractDraft::with('currentVersion')->sole();
+        $stored = $draft->currentVersion->canonical_payload;
+        $this->assertSame('laravel', $draft->source);
+        $this->assertSame(ContractDraft::STATUS_DRAFT, $draft->status);
+        $this->assertSame(1, $draft->currentVersion->draft_version);
+        $this->assertSame('PRENTIS GDL SA DE CV', $stored['lessee']['person']['legal_name']);
+        $this->assertNull($stored['lessee']['person']['full_name']);
+        $this->assertSame('23000', $stored['amounts']['monthly_rent']);
+        $this->assertSame('23000', $stored['amounts']['security_deposit']);
+    }
+
+    public function test_formatted_money_is_normalized_without_losing_decimal_precision(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $payload = $this->payload();
+        $payload['amounts']['monthly_rent'] = '$23,000.50';
+        $payload['amounts']['security_deposit'] = '$23,000.00';
+
+        $this->actingAs($actor)->post(route('contratos.borradores.store'), ['payload' => $payload])->assertRedirect();
+
+        $stored = ContractDraft::with('currentVersion')->sole()->currentVersion->canonical_payload;
+        $this->assertSame('23000.50', $stored['amounts']['monthly_rent']);
+        $this->assertSame('23000.00', $stored['amounts']['security_deposit']);
+    }
+
+    public function test_form_errors_are_rendered_next_to_the_relevant_amount_and_old_input_is_preserved(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $payload = $this->payload();
+        $payload['amounts']['monthly_rent'] = '$23,00.00';
+
+        $this->actingAs($actor)->from(route('contratos.borradores.create'))
+            ->post(route('contratos.borradores.store'), ['payload' => $payload])
+            ->assertRedirect(route('contratos.borradores.create'))
+            ->assertSessionHasErrors('payload.amounts.monthly_rent');
+
+        $this->actingAs($actor)->get(route('contratos.borradores.create'))
+            ->assertOk()
+            ->assertSee('El importe debe ser numérico o null.')
+            ->assertSee('$23,00.00', false);
     }
 
     public function test_edit_creates_an_immutable_second_version_with_the_editor_as_actor(): void
