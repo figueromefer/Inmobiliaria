@@ -184,10 +184,11 @@ class ReporteMensualController extends Controller
             'igualas' => $igualas,
             'pagosCliente' => $pagosCliente,
             'resumen' => [
-                'ingresos_efectivo' => (float) $periodo['ingresos_total'],
+                'ingresos_efectivo' => (float) $periodo['ingresos_afectan_saldo'],
+                'total_transferencias' => (float) $periodo['total_transferencias'],
                 'total_depositos' => (float) $periodo['depositos'],
                 'gastos_efectivo' => (float) $periodo['egresos_total'],
-                'total_despues_gastos' => (float) $periodo['ingresos_total'] - (float) $periodo['egresos_total'],
+                'total_despues_gastos' => (float) $periodo['ingresos_afectan_saldo'] - (float) $periodo['egresos_total'],
                 'iguala' => (float) ($periodo['igualas'] ?? 0),
                 'pagos_cliente_mes' => (float) $periodo['pagos_cliente'],
                 'saldo_anterior' => (float) $reporteFinanciero['saldo_anterior'],
@@ -212,7 +213,10 @@ class ReporteMensualController extends Controller
             ->with('propiedad')
             ->where('cliente_id', $clienteId)
             ->where('approval_status', Movimiento::STATUS_APPROVED)
-            ->where('afecta_saldo_cliente', true)
+            ->where(function ($query) {
+                $query->where('afecta_saldo_cliente', true)
+                    ->orWhere('forma_pago', 'transferencia');
+            })
             ->where(function ($query) {
                 $query->whereNull('estado_pago')
                     ->orWhere('estado_pago', '!=', Movimiento::PAYMENT_CANCELED);
@@ -285,6 +289,7 @@ class ReporteMensualController extends Controller
             'pagosCliente' => collect(),
             'resumen' => [
                 'ingresos_efectivo' => 0,
+                'total_transferencias' => 0,
                 'total_depositos' => 0,
                 'gastos_efectivo' => 0,
                 'total_despues_gastos' => 0,

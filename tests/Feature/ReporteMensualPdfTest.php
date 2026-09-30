@@ -72,6 +72,20 @@ class ReporteMensualPdfTest extends TestCase
         }
     }
 
+    public function test_report_views_show_informative_total_transfers(): void
+    {
+        $data = $this->reportData(['total_transferencias' => 8000]);
+
+        foreach (['reportes.mensual', 'reportes.mensual_pdf'] as $view) {
+            $html = $view === 'reportes.mensual'
+                ? $this->renderWebReport($data)
+                : view($view, $data)->render();
+
+            $this->assertStringContainsString('TOTAL TRANSFERENCIAS (INFORMATIVO; DEPOSITADAS DIRECTAMENTE AL CLIENTE)', $html);
+            $this->assertStringContainsString('$8,000.00', $html);
+        }
+    }
+
     public function test_non_zero_summary_rows_keep_their_original_visual_emphasis(): void
     {
         $data = $this->reportData([
@@ -143,6 +157,7 @@ class ReporteMensualPdfTest extends TestCase
 
         $summary = array_merge([
             'ingresos_efectivo' => 1000,
+            'total_transferencias' => 0,
             'total_depositos' => 0,
             'gastos_efectivo' => 0,
             'total_despues_gastos' => 1000,
