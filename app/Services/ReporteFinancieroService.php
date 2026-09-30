@@ -62,11 +62,18 @@ class ReporteFinancieroService
             ->orderBy('id')
             ->get();
 
-        $saldoAnteriorContable = $this->saldoNeto($anteriores);
-        $saldoAnteriorLiquidado = $this->saldoNeto($this->filtrarLiquidados($anteriores));
-        $periodo = $this->resumenPeriodo($movimientos);
-        $pendientes = $this->resumenPendientes($movimientos);
-        $liquidados = $this->resumenLiquidados($movimientos);
+        // La colección base conserva el criterio histórico de visibilidad
+        // (afecta saldo), con la única excepción de transferencias directas
+        // de renta o depósito, que son informativas para Dorantes.
+        // Los saldos se calculan únicamente con el subconjunto financiero.
+        $anterioresFinancieros = $this->movimientosQueAfectanSaldo($anteriores);
+        $movimientosFinancieros = $this->movimientosQueAfectanSaldo($movimientos);
+
+        $saldoAnteriorContable = $this->saldoNeto($anterioresFinancieros);
+        $saldoAnteriorLiquidado = $this->saldoNeto($this->filtrarLiquidados($anterioresFinancieros));
+        $periodo = $this->resumenPeriodo($movimientos, $movimientosFinancieros);
+        $pendientes = $this->resumenPendientes($movimientosFinancieros);
+        $liquidados = $this->resumenLiquidados($movimientosFinancieros);
         $saldoContable = $saldoAnteriorContable + $periodo['saldo_periodo_contable'];
         $saldoLiquidado = $saldoAnteriorLiquidado + $periodo['saldo_periodo_liquidado'];
 
@@ -93,7 +100,13 @@ class ReporteFinancieroService
     {
         return Movimiento::query()
             ->where('approval_status', Movimiento::STATUS_APPROVED)
-            ->where('afecta_saldo_cliente', true)
+            ->where(function (Builder $query) {
+                $query->where('afecta_saldo_cliente', true)
+                    ->orWhere(function (Builder $transferencias) {
+                        $transferencias->where('forma_pago', 'transferencia')
+                            ->whereIn('concepto', ['renta', 'deposito']);
+                    });
+            })
             ->where(function (Builder $query) {
                 $query->whereNull('estado_pago')
                     ->orWhere('estado_pago', '!=', Movimiento::PAYMENT_CANCELED);
@@ -139,17 +152,24 @@ class ReporteFinancieroService
         return [$inicio, $fin];
     }
 
-    private function resumenPeriodo(Collection $movimientos): array
+    private function resumenPeriodo(Collection $movimientos, Collection $movimientosFinancieros): array
     {
         $rentas = $this->sumarConcepto($movimientos, 'renta');
         $depositos = $this->sumarConcepto($movimientos, 'deposito');
-        $gastos = $this->sumarConcepto($movimientos, 'gasto');
-        $gastosCliente = $this->sumarConcepto($movimientos, 'gasto_cliente');
-        $igualas = $this->sumarConcepto($movimientos, 'iguala');
-        $pagosCliente = $this->sumarConcepto($movimientos, 'pago_cliente');
-        $ingresosTotal = $rentas + $depositos;
+        $transferenciasInformativas = $movimientos
+            ->filter(fn (Movimiento $movimiento) => $this->esTransferenciaInformativa($movimiento))
+            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
+        $ingresosReportados = $rentas + $depositos;
+
+        $ingresosAfectanSaldo = $movimientosFinancieros
+            ->whereIn('concepto', ['renta', 'deposito'])
+            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
+        $gastos = $this->sumarConcepto($movimientosFinancieros, 'gasto');
+        $gastosCliente = $this->sumarConcepto($movimientosFinancieros, 'gasto_cliente');
+        $igualas = $this->sumarConcepto($movimientosFinancieros, 'iguala');
+        $pagosCliente = $this->sumarConcepto($movimientosFinancieros, 'pago_cliente');
         $egresosTotal = $gastos + $gastosCliente + $igualas;
-        $liquidados = $this->filtrarLiquidados($movimientos);
+        $liquidados = $this->filtrarLiquidados($movimientosFinancieros);
         $ingresosLiquidados = $liquidados
             ->whereIn('concepto', ['renta', 'deposito'])
             ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
@@ -157,13 +177,18 @@ class ReporteFinancieroService
             ->whereIn('concepto', ['gasto', 'gasto_cliente', 'iguala'])
             ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
         $pagosClienteLiquidados = $this->sumarConcepto($liquidados, 'pago_cliente');
-        $saldoPeriodoContable = $ingresosTotal - $egresosTotal - $pagosCliente;
+        $saldoPeriodoContable = $ingresosAfectanSaldo - $egresosTotal - $pagosCliente;
         $saldoPeriodoLiquidado = $ingresosLiquidados - $egresosLiquidados - $pagosClienteLiquidados;
 
         return [
             'rentas' => $rentas,
             'depositos' => $depositos,
-            'ingresos_total' => $ingresosTotal,
+            // ingresos_total se conserva como alias financiero para consumidores existentes.
+            'ingresos_total' => (float) $ingresosAfectanSaldo,
+            'ingresos_afectan_saldo' => (float) $ingresosAfectanSaldo,
+            'ingresos_totales_reportados' => (float) $ingresosReportados,
+            'transferencias_informativas' => (float) $transferenciasInformativas,
+            'total_transferencias' => (float) $transferenciasInformativas,
             'gastos' => $gastos,
             'gastos_cliente' => $gastosCliente,
             'igualas' => $igualas,
@@ -229,5 +254,19 @@ class ReporteFinancieroService
     private function filtrarLiquidados(Collection $movimientos): Collection
     {
         return $movimientos->filter(fn (Movimiento $movimiento) => $movimiento->estado_pago === Movimiento::PAYMENT_LIQUIDATED || $movimiento->estado_pago === null);
+    }
+
+    private function movimientosQueAfectanSaldo(Collection $movimientos): Collection
+    {
+        return $movimientos
+            ->filter(fn (Movimiento $movimiento) => $movimiento->afecta_saldo_cliente)
+            ->reject(fn (Movimiento $movimiento) => $this->esTransferenciaInformativa($movimiento))
+            ->values();
+    }
+
+    private function esTransferenciaInformativa(Movimiento $movimiento): bool
+    {
+        return $movimiento->forma_pago === 'transferencia'
+            && in_array($movimiento->concepto, ['renta', 'deposito'], true);
     }
 }

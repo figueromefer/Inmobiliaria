@@ -261,6 +261,7 @@
           <tbody>
             @php($summaryRows = [
               ['label' => 'INGRESOS DEL PERIODO', 'importe' => $resumen['ingresos_efectivo'] ?? 0],
+              ['label' => 'TOTAL TRANSFERENCIAS (INFORMATIVO; DEPOSITADAS DIRECTAMENTE AL CLIENTE)', 'importe' => $resumen['total_transferencias'] ?? 0],
               ['label' => 'TOTAL DEPOSITOS', 'importe' => $resumen['total_depositos'] ?? 0],
               ['label' => 'EGRESOS DEL PERIODO', 'importe' => $resumen['gastos_efectivo'] ?? 0],
               ['label' => 'TOTAL DESPUÉS DE GASTOS', 'importe' => $resumen['total_despues_gastos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
