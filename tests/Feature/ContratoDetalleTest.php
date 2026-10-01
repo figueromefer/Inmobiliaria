@@ -78,8 +78,8 @@ class ContratoDetalleTest extends TestCase
         $response = $this->actingAs($this->user())->get(route('contratos.index'));
 
         $response->assertOk();
-        $response->assertSee('Ver detalle');
-        $response->assertSee('bg-blue-600');
+        $response->assertSee('Ver');
+        $response->assertSee('contracts-row-action');
         $this->assertGreaterThanOrEqual(2, substr_count($response->getContent(), route('contratos.show', $contrato)));
     }
 

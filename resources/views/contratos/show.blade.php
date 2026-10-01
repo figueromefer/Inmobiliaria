@@ -1,11 +1,22 @@
 <x-app-layout>
+  <style>
+    .contract-detail-action { align-items:center; background:#155e75; border:1px solid #0f4c5c; border-radius:.4rem; color:#fff; display:inline-flex; font-weight:700; min-height:2.4rem; padding:.5rem .8rem; text-decoration:none; }
+    .contract-detail-action:hover,.contract-detail-action:focus { background:#0f4c5c; color:#fff; }
+    .contract-detail-action-secondary { background:#475569; border-color:#334155; }
+  </style>
   <x-slot name="header">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Detalle de contrato</h2>
         <p class="mt-1 text-sm text-gray-500">Consulta de sólo lectura.</p>
       </div>
-      <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Volver a contratos</a>
+      <div class="flex flex-wrap gap-2">
+        @if($contrato->document_url)<a href="{{ $contrato->document_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action contract-detail-action-secondary">Ver documento</a>@endif
+        @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action">Carpeta Drive</a>@endif
+        @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.revision.start', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Editar contrato</button></form>@endif
+        @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.renew', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Renovar contrato</button></form>@endif
+        <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Volver a contratos</a>
+      </div>
     </div>
   </x-slot>
 
@@ -31,6 +42,14 @@
         <div><dt class="text-sm text-gray-500">Actualizado</dt><dd class="mt-1 text-gray-900">{{ $fecha($contrato->updated_at, 'd/m/Y H:i') }}</dd></div>
       </dl>
     </section>
+
+    @if($contrato->previousContract || $contrato->renewals->isNotEmpty())
+    <section class="rounded-lg border bg-white p-6 shadow-sm">
+      <h3 class="text-lg font-semibold text-gray-900">Renovaciones</h3>
+      @if($contrato->previousContract)<p class="mt-3 text-sm text-gray-700">Renovación de contrato <a class="text-blue-600 underline" href="{{ route('contratos.show', $contrato->previousContract) }}">#{{ $contrato->previousContract->id }}</a>.</p>@endif
+      @if($contrato->renewals->isNotEmpty())<ul class="mt-3 space-y-2 text-sm">@foreach($contrato->renewals as $renewal)<li><a class="text-blue-600 underline" href="{{ route('contratos.show', $renewal) }}">Contrato #{{ $renewal->id }}</a> · {{ $renewal->fecha_inicio?->format('d/m/Y') ?: '—' }} a {{ $renewal->fecha_fin?->format('d/m/Y') ?: '—' }}</li>@endforeach</ul>@endif
+    </section>
+    @endif
 
     <section class="rounded-lg border bg-white p-6 shadow-sm">
       <h3 class="text-lg font-semibold text-gray-900">Vigencia y condiciones</h3>
@@ -95,12 +114,12 @@
       <div class="mt-4 grid gap-6 lg:grid-cols-2">
         <div>
           <h4 class="font-medium text-gray-900">Documento asociado</h4>
-          @if($contrato->urldoc)
-            <a href="{{ $contrato->urldoc }}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-blue-600 underline">Abrir documento del contrato</a>
+          @if($contrato->document_url)
+            <a href="{{ $contrato->document_url }}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-blue-600 underline">Abrir documento del contrato</a>
           @else
             <p class="mt-2 text-sm text-gray-500">Sin documento asociado.</p>
           @endif
-          <p class="mt-3 text-sm text-gray-500">No existe una relación directa de documentos con este contrato.</p>
+          @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-blue-600 underline">Abrir carpeta Drive</a>@else<p class="mt-3 text-sm text-gray-500">Sin carpeta Drive.</p>@endif
         </div>
         <div>
           <h4 class="font-medium text-gray-900">Movimientos</h4>
@@ -115,6 +134,22 @@
           @endif
         </div>
       </div>
+    </section>
+
+    <section class="rounded-lg border bg-white p-6 shadow-sm">
+      <h3 class="text-lg font-semibold text-gray-900">Versiones del contrato</h3>
+      @if($versions->isEmpty())
+        <p class="mt-3 text-sm text-gray-500">Este contrato no cuenta con versiones documentales registradas.</p>
+      @else
+        <ul class="mt-4 divide-y rounded border">
+          @foreach($versions as $version)
+            <li class="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div><p class="font-medium text-gray-900">Versión {{ $loop->count - $loop->index }} @if($version->id === $contrato->contract_document_version_id)<span class="ml-2 rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-800">Actual</span>@else<span class="ml-2 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">Anterior</span>@endif</p><p class="mt-1 text-sm text-gray-500">{{ $version->created_at?->format('d/m/Y H:i') }} · {{ $version->createdBy?->name ?: 'Sistema' }} · {{ $version->status === 'generated' ? 'Documento generado' : 'Documento pendiente' }}</p></div>
+              @if($version->url)<a href="{{ $version->url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>@endif
+            </li>
+          @endforeach
+        </ul>
+      @endif
     </section>
   </div>
 </x-app-layout>
