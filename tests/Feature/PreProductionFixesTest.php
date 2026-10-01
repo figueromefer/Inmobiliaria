@@ -10,7 +10,6 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\GeocodingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PreProductionFixesTest extends TestCase
@@ -236,7 +235,7 @@ class PreProductionFixesTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('+ Nuevo contrato privado');
-        $response->assertSee('Traer contrato de justicia alternativa');
+        $response->assertSee('Traer contrato de Justicia Alternativa');
 
         $this->actingAs($this->user('agent'))
             ->get(route('contratos.justicia-alternativa'))
@@ -340,7 +339,8 @@ class PreProductionFixesTest extends TestCase
 
     private function fakeGeocoding(): void
     {
-        $this->app->instance(GeocodingService::class, new class extends GeocodingService {
+        $this->app->instance(GeocodingService::class, new class extends GeocodingService
+        {
             public function geocode(?string $address): ?array
             {
                 return null;

@@ -40,7 +40,7 @@ class PublicContractRequestController extends Controller
         $this->step($step);
         $public = $this->resolve($reference, $token);
 
-        return view('contrato.public_wizard', ['public' => $public, 'draft' => $public->draft->load('currentVersion'), 'step' => $step, 'steps' => self::STEPS, 'payload' => $public->draft->currentVersion->canonical_payload, 'token' => $token]);
+        return view('contrato.public_wizard', ['public' => $public, 'draft' => $public->draft->load('currentVersion'), 'step' => $step, 'steps' => self::STEPS, 'payload' => $public->draft->currentVersion->canonical_payload, 'token' => $token, 'wizardContext' => 'public']);
     }
 
     public function save(Request $request, string $reference, string $token, string $step, ContractDraftPayload $payloads, ContractDraftVersioningService $versioning)
