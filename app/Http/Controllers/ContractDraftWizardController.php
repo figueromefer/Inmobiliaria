@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ContractDraftPublishedException;
 use App\Exceptions\ContractDraftVersionConflictException;
 use App\Http\Requests\SaveContractDraftWizardStepRequest;
 use App\Models\ContractDraft;
@@ -51,10 +52,10 @@ class ContractDraftWizardController extends Controller
                 ),
                 null,
                 ContractDraftPayload::SCHEMA_VERSION,
-                'wizard_saved:' . $step,
+                'wizard_saved:'.$step,
                 $request->user()->id,
             );
-        } catch (ContractDraftVersionConflictException) {
+        } catch (ContractDraftVersionConflictException|ContractDraftPublishedException) {
             throw ValidationException::withMessages([
                 'expected_version_id' => 'El borrador fue actualizado por otro usuario. Recarga este paso antes de guardar.',
             ]);

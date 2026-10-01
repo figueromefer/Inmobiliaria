@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 class Contrato extends Model
 {
@@ -33,39 +33,79 @@ class Contrato extends Model
         'expediente_justicia_alternativa',
         'imported_at',
         'raw_justicia_alternativa',
+        'contract_draft_version_id',
+        'contract_document_version_id',
+        'previous_contract_id',
     ];
 
     protected $casts = [
-        'fecha'        => 'datetime',
+        'fecha' => 'datetime',
         'fecha_inicio' => 'date',
-        'fecha_fin'    => 'date',
-        'imported_at'  => 'datetime',
+        'fecha_fin' => 'date',
+        'imported_at' => 'datetime',
         'raw_justicia_alternativa' => 'array',
     ];
 
-    public function cliente()   { return $this->belongsTo(Cliente::class, 'fk_cliente', 'pk_cliente'); }
-    public function propiedad() { return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad')->withTrashed(); }
-    public function inquilino() { return $this->belongsTo(Inquilino::class, 'inquilino_id'); }
-    public function pendientes() { return $this->hasMany(ContratoPendiente::class, 'contrato_id'); }
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class, 'fk_cliente', 'pk_cliente');
+    }
+
+    public function propiedad()
+    {
+        return $this->belongsTo(Propiedad::class, 'fk_propiedad', 'pk_propiedad')->withTrashed();
+    }
+
+    public function inquilino()
+    {
+        return $this->belongsTo(Inquilino::class, 'inquilino_id');
+    }
+
+    public function pendientes()
+    {
+        return $this->hasMany(ContratoPendiente::class, 'contrato_id');
+    }
+
+    public function draftVersion()
+    {
+        return $this->belongsTo(ContractDraftVersion::class, 'contract_draft_version_id');
+    }
+
+    public function documentVersion()
+    {
+        return $this->belongsTo(ContractDocumentVersion::class, 'contract_document_version_id');
+    }
+
+    public function previousContract()
+    {
+        return $this->belongsTo(self::class, 'previous_contract_id');
+    }
+
+    public function renewals()
+    {
+        return $this->hasMany(self::class, 'previous_contract_id');
+    }
 
     public function scopeActivosEnMes($query, Carbon $mes)
     {
         $inicio = $mes->copy()->startOfMonth();
-        $fin    = $mes->copy()->endOfMonth();
+        $fin = $mes->copy()->endOfMonth();
+
         return $query
             ->where(function ($q) use ($fin) {
                 $q->whereNull('fecha_inicio')
-                  ->orWhere('fecha_inicio', '<=', $fin);
+                    ->orWhere('fecha_inicio', '<=', $fin);
             })
             ->where(function ($q) use ($inicio) {
                 $q->whereNull('fecha_fin')
-                  ->orWhere('fecha_fin', '>=', $inicio);
+                    ->orWhere('fecha_fin', '>=', $inicio);
             });
     }
 
     public function getComisionMensualFractionAttribute(): float
     {
         $v = (float) ($this->comision_mensual ?? 0);
+
         return $v > 1 ? $v / 100 : $v;
     }
 }

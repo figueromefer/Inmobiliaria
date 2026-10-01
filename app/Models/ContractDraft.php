@@ -13,11 +13,17 @@ class ContractDraft extends Model
     use HasFactory;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_VALIDATED = 'validated';
+
     public const STATUS_AWAITING_CONFIRMATION = 'awaiting_confirmation';
+
     public const STATUS_PUBLISHED = 'published';
+
     public const STATUS_SUPERSEDED = 'superseded';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_SUBMITTED = 'submitted';
 
     protected $fillable = [
@@ -35,6 +41,11 @@ class ContractDraft extends Model
     public function contrato(): BelongsTo
     {
         return $this->belongsTo(Contrato::class);
+    }
+
+    public function finalizationDraftVersion(): BelongsTo
+    {
+        return $this->belongsTo(ContractDraftVersion::class, 'finalization_draft_version_id');
     }
 
     public function cliente(): BelongsTo

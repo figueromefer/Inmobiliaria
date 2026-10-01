@@ -2,23 +2,22 @@
 
 namespace App\Services;
 
+use App\Exceptions\ContractDraftPublishedException;
 use App\Exceptions\ContractDraftVersionConflictException;
 use App\Models\ContractDraft;
 use App\Models\ContractDraftVersion;
+use DomainException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use DomainException;
 
 class ContractDraftVersioningService
 {
-    public function __construct(private readonly ContractPayloadCanonicalizer $canonicalizer)
-    {
-    }
+    public function __construct(private readonly ContractPayloadCanonicalizer $canonicalizer) {}
 
     /**
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed> $draftAttributes
-     * @param array<string, mixed>|null $rawLegacyPayload
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $draftAttributes
+     * @param  array<string, mixed>|null  $rawLegacyPayload
      */
     public function createDraft(
         array $payload,
@@ -57,8 +56,8 @@ class ContractDraftVersioningService
     }
 
     /**
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed>|null $rawLegacyPayload
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>|null  $rawLegacyPayload
      */
     public function appendVersion(
         ContractDraft $draft,
@@ -70,6 +69,7 @@ class ContractDraftVersioningService
     ): ContractDraftVersion {
         return DB::transaction(function () use ($draft, $payload, $rawLegacyPayload, $schemaVersion, $action, $createdBy): ContractDraftVersion {
             $lockedDraft = ContractDraft::query()->lockForUpdate()->findOrFail($draft->getKey());
+            $this->assertEditable($lockedDraft);
             $nextVersion = ((int) $lockedDraft->versions()->max('draft_version')) + 1;
             $canonicalPayload = $this->canonicalizer->canonicalize($payload);
             $payloadHash = $this->canonicalizer->hashCanonical($canonicalPayload);
@@ -96,8 +96,8 @@ class ContractDraftVersioningService
      * siendo el actual. El resolver se ejecuta después del lock para que un
      * merge parcial nunca parta de una versión obsoleta.
      *
-     * @param callable(array<string, mixed>): array<string, mixed> $payloadResolver
-     * @param array<string, mixed>|null $rawLegacyPayload
+     * @param  callable(array<string, mixed>): array<string, mixed>  $payloadResolver
+     * @param  array<string, mixed>|null  $rawLegacyPayload
      */
     public function appendVersionFromExpected(
         ContractDraft $draft,
@@ -110,6 +110,7 @@ class ContractDraftVersioningService
     ): ContractDraftVersion {
         return DB::transaction(function () use ($draft, $expectedVersionId, $payloadResolver, $rawLegacyPayload, $schemaVersion, $action, $createdBy): ContractDraftVersion {
             $lockedDraft = ContractDraft::query()->lockForUpdate()->findOrFail($draft->getKey());
+            $this->assertEditable($lockedDraft);
 
             if ((int) $lockedDraft->current_version_id !== $expectedVersionId) {
                 throw new ContractDraftVersionConflictException('El borrador fue actualizado por otro usuario. Recarga la página antes de guardar.');
@@ -149,6 +150,7 @@ class ContractDraftVersioningService
     {
         return DB::transaction(function () use ($draft, $version): ContractDraft {
             $lockedDraft = ContractDraft::query()->lockForUpdate()->findOrFail($draft->getKey());
+            $this->assertEditable($lockedDraft);
             $lockedVersion = ContractDraftVersion::query()->lockForUpdate()->findOrFail($version->getKey());
 
             if ((int) $lockedVersion->contract_draft_id !== (int) $lockedDraft->id) {
@@ -159,5 +161,12 @@ class ContractDraftVersioningService
 
             return $lockedDraft;
         });
+    }
+
+    private function assertEditable(ContractDraft $draft): void
+    {
+        if ($draft->status === ContractDraft::STATUS_PUBLISHED || $draft->contrato_id !== null) {
+            throw new ContractDraftPublishedException('Un borrador publicado no admite nuevas versiones.');
+        }
     }
 }
