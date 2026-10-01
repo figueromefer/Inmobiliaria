@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\ContractDraftPublishedException;
 use App\Models\ActivityLog;
 use App\Models\Cliente;
 use App\Models\ContractDraft;
@@ -48,6 +49,7 @@ class ContractDraftReconciliationService
         return DB::transaction(function () use ($draft, $entity, $entityId, $actor, $request) {
             $config = $this->config($entity);
             $lockedDraft = ContractDraft::query()->lockForUpdate()->findOrFail($draft->id);
+            $this->assertEditable($lockedDraft);
             $master = $this->find($entity, $entityId);
             $column = $config['column'];
             $oldValue = $lockedDraft->{$column};
@@ -68,6 +70,7 @@ class ContractDraftReconciliationService
         return DB::transaction(function () use ($draft, $entity, $actor, $request) {
             $config = $this->config($entity);
             $lockedDraft = ContractDraft::query()->lockForUpdate()->findOrFail($draft->id);
+            $this->assertEditable($lockedDraft);
             $column = $config['column'];
             $oldValue = $lockedDraft->{$column};
 
@@ -109,7 +112,6 @@ class ContractDraftReconciliationService
         ];
     }
 
-    /** @return LengthAwarePaginator */
     private function search(string $entity, string $search): LengthAwarePaginator
     {
         return match ($entity) {
@@ -143,7 +145,7 @@ class ContractDraftReconciliationService
     /** @return array{column:string,model:class-string<Model>,key:string} */
     private function config(string $entity): array
     {
-        if (!isset(self::ENTITY_CONFIG[$entity])) {
+        if (! isset(self::ENTITY_CONFIG[$entity])) {
             throw ValidationException::withMessages(['entity' => 'La entidad de conciliación no es válida.']);
         }
 
@@ -201,8 +203,15 @@ class ContractDraftReconciliationService
             'model_type' => ContractDraft::class,
             'model_id' => $draft->id,
             'module' => 'contract_draft_reconciliation',
-            'old_values' => [$entity . '_id' => $oldValue],
-            'new_values' => [$entity . '_id' => $newValue],
+            'old_values' => [$entity.'_id' => $oldValue],
+            'new_values' => [$entity.'_id' => $newValue],
         ]);
+    }
+
+    private function assertEditable(ContractDraft $draft): void
+    {
+        if ($draft->status === ContractDraft::STATUS_PUBLISHED || $draft->contrato_id !== null) {
+            throw new ContractDraftPublishedException('Un borrador publicado no admite cambios de conciliación.');
+        }
     }
 }

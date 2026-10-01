@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ContractDraftPublishedException;
+use App\Exceptions\ContractDraftVersionConflictException;
+use App\Http\Requests\LinkContractDraftEntityRequest;
 use App\Http\Requests\StoreContractDraftRequest;
 use App\Http\Requests\UpdateContractDraftRequest;
-use App\Http\Requests\LinkContractDraftEntityRequest;
-use App\Exceptions\ContractDraftVersionConflictException;
 use App\Models\ContractDraft;
 use App\Models\ContractDraftVersion;
 use App\Models\ContractPublicRequest;
@@ -13,8 +14,8 @@ use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftReconciliationService;
 use App\Services\ContractDraftVersioningService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ContractDraftController extends Controller
 {
@@ -88,7 +89,7 @@ class ContractDraftController extends Controller
                 'saved',
                 $request->user()->id,
             );
-        } catch (ContractDraftVersionConflictException $exception) {
+        } catch (ContractDraftVersionConflictException|ContractDraftPublishedException $exception) {
             throw ValidationException::withMessages([
                 'expected_version_id' => 'El borrador fue actualizado por otro usuario. Recarga la página antes de guardar.',
             ]);
@@ -119,13 +120,17 @@ class ContractDraftController extends Controller
         string $entity,
         ContractDraftReconciliationService $reconciliation,
     ) {
-        $reconciliation->link(
-            $draft,
-            $entity,
-            (int) $request->validated('entity_id'),
-            $request->user(),
-            $request,
-        );
+        try {
+            $reconciliation->link(
+                $draft,
+                $entity,
+                (int) $request->validated('entity_id'),
+                $request->user(),
+                $request,
+            );
+        } catch (ContractDraftPublishedException $exception) {
+            throw ValidationException::withMessages(['draft' => $exception->getMessage()]);
+        }
 
         return redirect()->route('contratos.borradores.show', $draft)
             ->with('success', 'Vínculo de conciliación actualizado. El snapshot contractual no fue modificado.');
@@ -137,7 +142,11 @@ class ContractDraftController extends Controller
         string $entity,
         ContractDraftReconciliationService $reconciliation,
     ) {
-        $reconciliation->unlink($draft, $entity, $request->user(), $request);
+        try {
+            $reconciliation->unlink($draft, $entity, $request->user(), $request);
+        } catch (ContractDraftPublishedException $exception) {
+            throw ValidationException::withMessages(['draft' => $exception->getMessage()]);
+        }
 
         return redirect()->route('contratos.borradores.show', $draft)
             ->with('success', 'Vínculo de conciliación eliminado. El snapshot contractual no fue modificado.');
