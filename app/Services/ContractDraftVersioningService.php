@@ -35,6 +35,9 @@ class ContractDraftVersioningService
                 'external_id',
                 'status',
                 'contrato_id',
+                'editing_contract_id',
+                'renewal_of_contract_id',
+                'purpose',
                 'cliente_id',
                 'propiedad_id',
                 'inquilino_id',
@@ -124,7 +127,7 @@ class ContractDraftVersioningService
                 throw new ContractDraftVersionConflictException('La versión esperada no pertenece al borrador indicado.');
             }
 
-            $payload = $payloadResolver($currentVersion->canonical_payload);
+            $payload = $payloadResolver($currentVersion->canonical_payload, $lockedDraft);
             $nextVersion = ((int) $lockedDraft->versions()->max('draft_version')) + 1;
             $canonicalPayload = $this->canonicalizer->canonicalize($payload);
             $payloadHash = $this->canonicalizer->hashCanonical($canonicalPayload);

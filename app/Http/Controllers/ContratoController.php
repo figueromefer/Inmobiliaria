@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Models\ContratoPendiente;
+use App\Models\ContractDocumentVersion;
 use App\Services\JusticiaAlternativaImportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,39 +16,45 @@ class ContratoController extends Controller
     public function index(Request $request)
     {
         // === Filtros ===
-        $q           = trim((string) $request->query('q', ''));         // búsqueda libre (cliente, propiedad, domicilio_inmueble)
-        $solicitante = trim((string) $request->query('solicitante', ''));// LEGADO: nombre del cliente (por compat)
-        $clienteId   = (int) $request->query('cliente_id', 0);          // NUEVO: filtro por id de cliente
-        $desde       = $request->query('desde');                        // yyyy-mm-dd
-        $hasta       = $request->query('hasta');                        // yyyy-mm-dd
-        $perPage     = (int) $request->query('perPage', 15);
-        if ($perPage < 5 || $perPage > 100) $perPage = 15;
+        $q = trim((string) $request->query('q', ''));         // búsqueda libre (cliente, propiedad, domicilio_inmueble)
+        $solicitante = trim((string) $request->query('solicitante', '')); // LEGADO: nombre del cliente (por compat)
+        $clienteId = (int) $request->query('cliente_id', 0);          // NUEVO: filtro por id de cliente
+        $desde = $request->query('desde');                        // yyyy-mm-dd
+        $hasta = $request->query('hasta');                        // yyyy-mm-dd
+        $tipo = $request->query('tipo');                         // privado | justicia_alternativa
+        if (! in_array($tipo, ['privado', 'justicia_alternativa'], true)) {
+            $tipo = '';
+        }
+        $perPage = (int) $request->query('perPage', 15);
+        if ($perPage < 5 || $perPage > 100) {
+            $perPage = 15;
+        }
 
         // === Orden ===
         $sort = $request->query('sort', 'fecha');
-        $dir  = strtolower($request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $dir = strtolower($request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
 
         $sortable = [
-            'id','tipo_solicitante','fecha','fecha_inicio','fecha_fin',
-            'comision_renta','comision_mensual','monto_mensual','created_at','cliente'
+            'id', 'tipo_solicitante', 'fecha', 'fecha_inicio', 'fecha_fin',
+            'comision_renta', 'comision_mensual', 'monto_mensual', 'created_at', 'cliente',
         ];
 
         $query = Contrato::query()
-            ->with(['inquilino','cliente','propiedad'])
+            ->with(['inquilino', 'cliente', 'propiedad', 'documentVersion'])
             ->when(Schema::hasColumn('contratos', 'deleted_at'), function ($query) {
                 $query->whereNull('contratos.deleted_at');
             });
 
         if ($q !== '') {
             $query->where(function ($w) use ($q) {
-                $w->whereHas('cliente', function($c) use ($q){
-                        $c->where('nombre','like',"%{$q}%");
+                $w->whereHas('cliente', function ($c) use ($q) {
+                    $c->where('nombre', 'like', "%{$q}%");
+                })
+                    ->orWhereHas('propiedad', function ($p) use ($q) {
+                        $p->where('alias', 'like', "%{$q}%")
+                            ->orWhere('domicilio', 'like', "%{$q}%");
                     })
-                  ->orWhereHas('propiedad', function($p) use ($q){
-                        $p->where('alias','like',"%{$q}%")
-                          ->orWhere('domicilio','like',"%{$q}%");
-                    })
-                  ->orWhere('domicilio_inmueble','like',"%{$q}%");
+                    ->orWhere('domicilio_inmueble', 'like', "%{$q}%");
             });
         }
 
@@ -62,15 +69,30 @@ class ContratoController extends Controller
             }
         }
 
-        if ($desde) $query->whereDate('fecha', '>=', $desde);
-        if ($hasta) $query->whereDate('fecha', '<=', $hasta);
+        if ($desde) {
+            $query->whereDate('fecha', '>=', $desde);
+        }
+        if ($hasta) {
+            $query->whereDate('fecha', '<=', $hasta);
+        }
 
-        if (!in_array($sort, $sortable, true)) $sort = 'fecha';
+        if ($tipo === 'justicia_alternativa') {
+            $query->where('origen', 'justicia_alternativa');
+        } elseif ($tipo === 'privado') {
+            // Legacy rows with NULL origin predate the private default and remain private.
+            $query->where(function ($query) {
+                $query->whereNull('origen')->orWhere('origen', '!=', 'justicia_alternativa');
+            });
+        }
+
+        if (! in_array($sort, $sortable, true)) {
+            $sort = 'fecha';
+        }
 
         if ($sort === 'cliente') {
             $query->leftJoin('clientes', 'contratos.fk_cliente', '=', 'clientes.pk_cliente')
-                  ->orderBy('clientes.nombre', $dir)
-                  ->select('contratos.*');
+                ->orderBy('clientes.nombre', $dir)
+                ->select('contratos.*');
         } else {
             $query->orderBy($sort, $dir);
         }
@@ -78,27 +100,30 @@ class ContratoController extends Controller
         $contratos = $query->paginate($perPage)->appends([
             'q' => $q,
             'solicitante' => $solicitante,
-            'cliente_id'  => $clienteId,
+            'cliente_id' => $clienteId,
             'desde' => $desde,
             'hasta' => $hasta,
+            'tipo' => $tipo,
             'perPage' => $perPage,
             'sort' => $sort,
             'dir' => $dir,
         ]);
 
         $contratos->getCollection()->transform(function ($contrato) {
-            if (!$contrato->fecha_fin) {
+            if (! $contrato->fecha_fin) {
                 $contrato->por_expirar = false;
+
                 return $contrato;
             }
 
             $fechaFin = Carbon::parse($contrato->fecha_fin);
             $contrato->por_expirar = Carbon::now()->diffInMonths($fechaFin, false) <= 2;
+
             return $contrato;
         });
 
         $solicitantes = Cliente::orderBy('nombre')->pluck('nombre')->all();
-        $clientes = Cliente::orderBy('nombre')->get(['pk_cliente as id','nombre']);
+        $clientes = Cliente::orderBy('nombre')->get(['pk_cliente as id', 'nombre']);
         $pendientesCount = ContratoPendiente::pendientes()->count();
 
         return view('contratos.index', compact(
@@ -106,20 +131,29 @@ class ContratoController extends Controller
             'solicitantes',
             'clientes',
             'pendientesCount',
-            'q','solicitante','clienteId','desde','hasta','perPage','sort','dir'
+            'q', 'solicitante', 'clienteId', 'desde', 'hasta', 'tipo', 'perPage', 'sort', 'dir'
         ));
     }
 
     public function show(int $contrato)
     {
         $contrato = Contrato::query()
-            ->with(['cliente', 'propiedad', 'inquilino', 'pendientes'])
+            ->with(['cliente', 'propiedad', 'inquilino', 'pendientes', 'documentVersion', 'previousContract', 'renewals'])
             ->when(Schema::hasColumn('contratos', 'deleted_at'), function ($query) {
                 $query->whereNull('contratos.deleted_at');
             })
             ->findOrFail($contrato);
 
-        return view('contratos.show', compact('contrato'));
+        $versions = ContractDocumentVersion::query()
+            ->with(['createdBy', 'draftVersion.draft'])
+            ->whereHas('draftVersion.draft', function ($query) use ($contrato) {
+                $query->where('contrato_id', $contrato->id)
+                    ->orWhere('editing_contract_id', $contrato->id);
+            })
+            ->latest('created_at')
+            ->get();
+
+        return view('contratos.show', compact('contrato', 'versions'));
     }
 
     public function showImportJusticiaAlternativaForm()
@@ -168,7 +202,7 @@ class ContratoController extends Controller
         }
 
         $remote = $service->fetchByExpediente($expediente);
-        if (!($remote['ok'] ?? false)) {
+        if (! ($remote['ok'] ?? false)) {
             return back()
                 ->withInput()
                 ->withErrors(['expediente' => $remote['message'] ?? 'No se pudo consultar el expediente.']);
@@ -187,7 +221,7 @@ class ContratoController extends Controller
         }
 
         $row = $remote['data'] ?? null;
-        if (!is_array($row)) {
+        if (! is_array($row)) {
             return back()
                 ->withInput()
                 ->withErrors(['expediente' => 'La respuesta de Justicia Alternativa no contiene datos válidos.']);

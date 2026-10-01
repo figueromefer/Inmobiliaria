@@ -1,29 +1,34 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ClienteController as ClienteCtl;
-use App\Http\Controllers\PropiedadController;
-use App\Http\Controllers\InquilinoController;
-use App\Http\Controllers\ContratoController;
-use App\Http\Controllers\ContractDraftController;
-use App\Http\Controllers\ContractDraftWizardController;
-use App\Http\Controllers\ContractDocumentPreviewController;
-use App\Http\Controllers\PublicContractRequestController;
-use App\Http\Controllers\ContratoPendienteController;
-use App\Http\Controllers\ContratoCalendarController;
-use App\Http\Controllers\MovimientoController;
-use App\Http\Controllers\ReporteMensualController;
-use App\Http\Controllers\BackfillContratosController;
-use App\Http\Controllers\DocumentoController;
-use App\Http\Controllers\Web\TicketWebController;
-use App\Http\Controllers\PagoCalendarController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\ReporteGananciasClientesController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ArchivadoController;
+use App\Http\Controllers\BackfillContratosController;
+use App\Http\Controllers\ClienteController as ClienteCtl;
+use App\Http\Controllers\ContractDocumentPreviewController;
+use App\Http\Controllers\ContractDraftController;
+use App\Http\Controllers\ContractDraftWizardController;
+use App\Http\Controllers\ContractRevisionController;
+use App\Http\Controllers\ContractRenewalController;
+use App\Http\Controllers\ContratoCalendarController;
+use App\Http\Controllers\ContratoController;
+use App\Http\Controllers\ContratoPendienteController;
+use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\InquilinoController;
+use App\Http\Controllers\MovimientoController;
+use App\Http\Controllers\PagoCalendarController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PropiedadController;
+use App\Http\Controllers\PrivateContractPreparationController;
+use App\Http\Controllers\PrivateContractFinalizationController;
+use App\Http\Controllers\PrivateContractWizardController;
+use App\Http\Controllers\PublicContractRequestController;
+use App\Http\Controllers\ReporteGananciasClientesController;
+use App\Http\Controllers\ReporteMensualController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\Web\TicketWebController;
 use App\Services\RecurringTaskService;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 
 /*
  * Operational endpoints are deliberately available only to local/testing
@@ -32,10 +37,29 @@ use App\Services\RecurringTaskService;
  */
 if (app()->environment(['local', 'testing'])) {
     Route::get('/__backfill_contratos_fk__', [BackfillContratosController::class, 'run']);
-    Route::get('/__migrate_status__', function () { Artisan::call('migrate:status'); return nl2br(e(Artisan::output())); });
-    Route::get('/__migrate_dry_run__', function () { Artisan::call('migrate', ['--pretend' => true]); return nl2br(e(Artisan::output())); });
-    Route::get('/__run_migrate__', function () { Artisan::call('migrate', ['--force' => true]); return nl2br(Artisan::output()); });
-    Route::get('/__clear_caches__', function () { Artisan::call('config:clear'); Artisan::call('cache:clear'); Artisan::call('route:clear'); Artisan::call('view:clear'); return nl2br(Artisan::output() . "\nCaches limpiados ✔️"); });
+    Route::get('/__migrate_status__', function () {
+        Artisan::call('migrate:status');
+
+        return nl2br(e(Artisan::output()));
+    });
+    Route::get('/__migrate_dry_run__', function () {
+        Artisan::call('migrate', ['--pretend' => true]);
+
+        return nl2br(e(Artisan::output()));
+    });
+    Route::get('/__run_migrate__', function () {
+        Artisan::call('migrate', ['--force' => true]);
+
+        return nl2br(Artisan::output());
+    });
+    Route::get('/__clear_caches__', function () {
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('route:clear');
+        Artisan::call('view:clear');
+
+        return nl2br(Artisan::output()."\nCaches limpiados ✔️");
+    });
 }
 
 Route::match(['GET', 'HEAD'], '/', function () {
@@ -54,7 +78,9 @@ Route::prefix('/contrato/solicitud')->name('contrato.solicitud.')->middleware('t
     Route::post('/{reference}/{token}/enviar', [PublicContractRequestController::class, 'submit'])->name('submit');
 });
 
-Route::get('/dashboard', function () { return redirect()->route('tasks.index'); })->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard', function () {
+    return redirect()->route('tasks.index');
+})->middleware(['auth'])->name('dashboard');
 
 Route::middleware(['auth', 'can:manage-users'])->group(function () {
     Route::resource('users', UserController::class)->except(['show']);
@@ -68,9 +94,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/tareas', [\App\Http\Controllers\TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tareas', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tareas/{task}', [\App\Http\Controllers\TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
-    Route::get('/tareas/archivadas', [\App\Http\Controllers\TaskController::class,'archived'])->name('tasks.archived');
+    Route::get('/tareas/archivadas', [\App\Http\Controllers\TaskController::class, 'archived'])->name('tasks.archived');
     Route::post('/tareas/generar-recurrentes/mantenimiento', function (RecurringTaskService $service) {
         $created = $service->generateMaintenancePaymentTasks();
+
         return redirect()->route('tasks.index')->with('success', "Tareas de mantenimiento generadas: {$created}");
     })->middleware('can:manage-records')->name('tasks.generate-maintenance');
 
@@ -94,6 +121,25 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('inquilinos', InquilinoController::class)->only(['index', 'show']);
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
+    Route::post('/contratos/{contrato}/editar', [ContractRevisionController::class, 'start'])
+        ->middleware('can:manage-records')->name('contratos.revision.start');
+    Route::post('/contratos/{contrato}/renovar', [ContractRenewalController::class, 'store'])
+        ->middleware('can:manage-records')->name('contratos.renew');
+    Route::middleware(['can:create-private-contracts', 'can:manage-records'])
+        ->prefix('/contratos/privados')
+        ->name('contratos.privados.')
+        ->group(function () {
+            Route::get('/nuevo', [PrivateContractPreparationController::class, 'start'])->name('create');
+            Route::get('/{draft}/preparacion', [PrivateContractPreparationController::class, 'show'])->name('preparacion.show');
+            Route::put('/{draft}/preparacion/generales', [PrivateContractPreparationController::class, 'saveGeneral'])->name('preparacion.generales');
+            Route::post('/{draft}/preparacion/conciliacion/{entity}', [PrivateContractPreparationController::class, 'reconcile'])->name('preparacion.conciliacion');
+            Route::put('/{draft}/preparacion/fiador', [PrivateContractPreparationController::class, 'saveGuarantor'])->name('preparacion.fiador');
+            Route::post('/{draft}/preparacion/siguiente', [PrivateContractPreparationController::class, 'next'])->name('preparacion.next');
+            Route::get('/{draft}/captura/{step}', [PrivateContractWizardController::class, 'show'])->name('wizard.show');
+            Route::put('/{draft}/captura/{step}', [PrivateContractWizardController::class, 'save'])->name('wizard.save');
+            Route::post('/{draft}/generar', [PrivateContractFinalizationController::class, 'store'])->name('finalize');
+            Route::post('/{draft}/generar-revision', [ContractRevisionController::class, 'publish'])->name('revision.publish');
+        });
     Route::get('/contratos/pendientes', [ContratoPendienteController::class, 'index'])
         ->middleware('can:manage-records')
         ->name('contratos.pendientes.index');
@@ -197,4 +243,4 @@ Route::middleware('auth')->group(function () {
     Route::get('/pagos-pendientes/events', [PagoCalendarController::class, 'events'])->name('api.pagos.events');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

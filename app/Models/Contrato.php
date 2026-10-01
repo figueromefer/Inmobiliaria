@@ -76,6 +76,31 @@ class Contrato extends Model
         return $this->belongsTo(ContractDocumentVersion::class, 'contract_document_version_id');
     }
 
+    /** Drafts used for versioned corrections; they never represent renewals. */
+    public function revisionDrafts()
+    {
+        return $this->hasMany(ContractDraft::class, 'editing_contract_id');
+    }
+
+    public function renewalDrafts()
+    {
+        return $this->hasMany(ContractDraft::class, 'renewal_of_contract_id');
+    }
+
+    public function getDriveFolderUrlAttribute(): ?string
+    {
+        $id = $this->documentVersion?->drive_folder_id;
+
+        return is_string($id) && preg_match('/^[A-Za-z0-9_-]+$/', $id)
+            ? 'https://drive.google.com/drive/folders/'.rawurlencode($id)
+            : null;
+    }
+
+    public function getDocumentUrlAttribute(): ?string
+    {
+        return $this->documentVersion?->url ?: $this->urldoc;
+    }
+
     public function previousContract()
     {
         return $this->belongsTo(self::class, 'previous_contract_id');

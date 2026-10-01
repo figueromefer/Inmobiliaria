@@ -31,6 +31,9 @@ class ContractDraft extends Model
         'external_id',
         'status',
         'contrato_id',
+        'editing_contract_id',
+        'renewal_of_contract_id',
+        'purpose',
         'cliente_id',
         'propiedad_id',
         'inquilino_id',
@@ -41,6 +44,16 @@ class ContractDraft extends Model
     public function contrato(): BelongsTo
     {
         return $this->belongsTo(Contrato::class);
+    }
+
+    public function editingContract(): BelongsTo
+    {
+        return $this->belongsTo(Contrato::class, 'editing_contract_id');
+    }
+
+    public function renewalOfContract(): BelongsTo
+    {
+        return $this->belongsTo(Contrato::class, 'renewal_of_contract_id');
     }
 
     public function finalizationDraftVersion(): BelongsTo
