@@ -186,6 +186,7 @@ class PrivateContractWizardTest extends TestCase
         [$draft, $agent, $google] = $this->completeDraft();
         $this->actingAs($agent)->post(route('contratos.privados.finalize', $draft), ['expected_version_id' => $draft->current_version_id]);
         $contract = $draft->fresh()->contrato;
+        $initialCommissionCount = \App\Models\Movimiento::query()->where('contrato_id', $contract->id)->where('automation_type', 'initial_commission')->count();
         $oldSnapshot = $contract->draftVersion->canonical_payload;
         $oldDocument = $contract->contract_document_version_id;
         $contract->cliente->update(['nombre' => 'Maestro cambiado después de publicar']);
@@ -213,6 +214,7 @@ class PrivateContractWizardTest extends TestCase
         $this->assertNotSame($oldDocument, $contract->contract_document_version_id);
         $this->assertSame(11000.0, (float) $contract->monto_mensual);
         $this->assertDatabaseCount('contratos', 1);
+        $this->assertSame($initialCommissionCount, \App\Models\Movimiento::query()->where('contrato_id', $contract->id)->where('automation_type', 'initial_commission')->count());
         $this->assertDatabaseCount('contract_document_versions', 2);
         $this->assertSame(1, $google->folderCalls);
         $this->assertSame(2, $google->copyCalls);
