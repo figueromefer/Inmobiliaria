@@ -17,8 +17,13 @@
             @endcan
 
             <form method="GET" action="{{ route('documentos.index') }}" class="mb-6 flex flex-wrap gap-2" data-live-search>
+                <input type="hidden" name="sort" value="{{ $sort }}">
+                <input type="hidden" name="dir" value="{{ $dir }}">
                 @if($inquilinoId)
                     <input type="hidden" name="inquilino" value="{{ $inquilinoId }}">
+                @endif
+                @if($contratoId)
+                    <input type="hidden" name="contrato" value="{{ $contratoId }}">
                 @endif
 
                 <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Título, tipo, cliente, propiedad o inquilino" class="border-gray-300 rounded shadow-sm px-3 py-2" data-live-search-input>

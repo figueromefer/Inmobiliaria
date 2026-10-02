@@ -16,6 +16,8 @@
             </div>
 
             <form method="GET" action="{{ route('propiedades.index') }}" class="mt-6 flex flex-wrap items-end gap-2" data-live-search>
+                <input type="hidden" name="sort" value="{{ $sort }}">
+                <input type="hidden" name="dir" value="{{ $dir }}">
                 <div>
                     <label for="q" class="block text-sm font-medium text-gray-700">Buscar</label>
                     <input type="text" id="q" name="q" value="{{ $q ?? '' }}" placeholder="Alias, domicilio, colonia, municipio o estado" class="mt-1 border rounded px-3 py-2 w-80" data-live-search-input>

@@ -22,6 +22,8 @@
     @endphp
     <div class="max-w-7xl mx-auto mt-6 bg-white p-6 rounded-lg shadow">
         <form method="GET" class="mb-4 flex flex-wrap items-end gap-2" data-live-search>
+            <input type="hidden" name="sort" value="{{ $sort }}">
+            <input type="hidden" name="dir" value="{{ $dir }}">
             <div>
                 <label for="q" class="block text-sm font-medium">Buscar</label>
                 <input id="q" name="q" value="{{ $q ?? '' }}" placeholder="ID, origen, estado o creador" class="mt-1 rounded border px-3 py-2" data-live-search-input>

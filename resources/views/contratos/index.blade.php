@@ -67,6 +67,8 @@
       
     {{-- Filtros --}}
     <form method="GET" action="{{ route('contratos.index') }}" class="mb-4 grid gap-3 sm:grid-cols-6" data-live-search>
+      <input type="hidden" name="sort" value="{{ $sort }}">
+      <input type="hidden" name="dir" value="{{ $dir }}">
       <div class="sm:col-span-2">
         <label for="q" class="block text-sm font-medium">Buscar</label>
         <input type="text" id="q" name="q" value="{{ $q }}"

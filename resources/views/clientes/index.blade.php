@@ -30,6 +30,8 @@
                     @endcan
                 </div>
                 <form method="GET" class="flex gap-2" data-live-search>
+                    <input type="hidden" name="sort" value="{{ $sort }}">
+                    <input type="hidden" name="dir" value="{{ $dir }}">
                     <input
                         type="text"
                         name="search"

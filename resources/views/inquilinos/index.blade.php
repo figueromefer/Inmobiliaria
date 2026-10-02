@@ -15,6 +15,8 @@
 
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <form method="GET" action="{{ route('inquilinos.index') }}" class="grid gap-3 md:grid-cols-4" data-live-search>
+                <input type="hidden" name="sort" value="{{ $sort }}">
+                <input type="hidden" name="dir" value="{{ $dir }}">
                 <div class="md:col-span-2">
                     <label for="q" class="block text-sm font-medium text-gray-700">Buscar</label>
                     <input type="text" id="q" name="q" value="{{ $q }}" placeholder="Nombre, correo, teléfono, domicilio, nacionalidad o propiedad" class="mt-1 w-full border-gray-300 rounded-lg shadow-sm" data-live-search-input />

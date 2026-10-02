@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Cliente;
+use App\Models\ContractDraft;
 use App\Models\Contrato;
 use App\Models\Documento;
 use App\Models\Inquilino;
@@ -77,6 +78,30 @@ class TableUxTest extends TestCase
             ->assertSeeInOrder(['<option value="">— Selecciona —</option>', 'Zeta cliente'], false);
 
         $this->assertStringContainsString("field: '\$order'", file_get_contents(resource_path('views/layouts/app.blade.php')));
+    }
+
+    public function test_live_search_forms_preserve_table_state_except_the_page(): void
+    {
+        $agent = $this->agent();
+        $cliente = Cliente::create(['nombre' => 'Cliente estado', 'rfc' => 'XAXX010101000', 'domicilio' => 'Domicilio']);
+        $propiedad = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Casa estado']);
+        $inquilino = Inquilino::create(['nombre' => 'Inquilino estado']);
+        $contrato = Contrato::create(['fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'inquilino_id' => $inquilino->id, 'fecha' => now(), 'origen' => 'privado']);
+        Documento::create(['fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'fk_inquilino' => $inquilino->id, 'contrato_id' => $contrato->id, 'titulo' => 'Documento estado', 'tipo' => 'otro', 'archivo' => 'documentos/estado.pdf']);
+        ContractDraft::create(['source' => 'internal', 'status' => ContractDraft::STATUS_DRAFT]);
+
+        $this->actingAs($agent)->get(route('clientes.index', ['search' => 'estado', 'sort' => 'correo', 'dir' => 'desc', 'page' => 2]))
+            ->assertOk()->assertSee('name="sort" value="correo"', false)->assertSee('name="dir" value="desc"', false)->assertDontSee('name="page"', false);
+        $this->actingAs($agent)->get(route('propiedades.index', ['q' => 'estado', 'estatus_informacion' => 'pendiente', 'sort' => 'cliente', 'dir' => 'desc']))
+            ->assertOk()->assertSee('name="sort" value="cliente"', false)->assertSee('name="dir" value="desc"', false)->assertSee('name="estatus_informacion"', false);
+        $this->actingAs($agent)->get(route('movimientos.index', ['q' => 'estado', 'perPage' => 50, 'sort' => 'importe', 'dir' => 'asc']))
+            ->assertOk()->assertSee('name="perPage"', false)->assertSee('name="sort" value="importe"', false)->assertSee('name="dir" value="asc"', false);
+        $this->actingAs($agent)->get(route('contratos.index', ['q' => 'estado', 'tipo' => 'privado', 'desde' => '2026-01-01', 'hasta' => '2026-12-31', 'perPage' => 50, 'sort' => 'cliente', 'dir' => 'asc']))
+            ->assertOk()->assertSee('name="sort" value="cliente"', false)->assertSee('name="dir" value="asc"', false)->assertSee('name="tipo"', false)->assertSee('name="desde"', false)->assertSee('name="hasta"', false);
+        $this->actingAs($agent)->get(route('documentos.index', ['q' => 'estado', 'cliente' => $cliente->pk_cliente, 'propiedad' => $propiedad->pk_propiedad, 'inquilino' => $inquilino->id, 'contrato' => $contrato->id, 'sort' => 'tipo', 'dir' => 'asc']))
+            ->assertOk()->assertSee('name="sort" value="tipo"', false)->assertSee('name="dir" value="asc"', false)->assertSee('name="inquilino" value="'.$inquilino->id.'"', false)->assertSee('name="contrato" value="'.$contrato->id.'"', false);
+        $this->actingAs($agent)->get(route('contratos.borradores.index', ['q' => 'internal', 'sort' => 'source', 'dir' => 'asc']))
+            ->assertOk()->assertSee('name="sort" value="source"', false)->assertSee('name="dir" value="asc"', false);
     }
 
     private function agent(): User

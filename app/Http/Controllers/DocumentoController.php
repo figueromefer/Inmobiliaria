@@ -89,7 +89,7 @@ class DocumentoController extends Controller
         $inquilinos = Inquilino::orderBy('nombre')->get();
         $tipos = self::$tipos;
 
-        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos', 'q', 'sort', 'dir'));
+        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'contratoId', 'tipos', 'q', 'sort', 'dir'));
     }
 
     public function create(Request $request)

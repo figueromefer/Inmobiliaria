@@ -20,6 +20,8 @@
 
     <div class="min-w-full divide-y divide-gray-200 mt-6 mb-6">
       <form method="GET" action="{{ route('movimientos.index') }}" class="flex gap-2" data-live-search>
+        <input type="hidden" name="sort" value="{{ $sort }}">
+        <input type="hidden" name="dir" value="{{ $dir }}">
         <div>
           <label class="block text-sm font-medium">Buscar</label>
           <input type="text" name="q" value="{{ $q }}" class="mt-1 border rounded px-3 py-2" placeholder="Folio, cliente, propiedad, concepto, estatus" data-live-search-input>
