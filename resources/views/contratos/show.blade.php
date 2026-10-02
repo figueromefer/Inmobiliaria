@@ -11,6 +11,7 @@
         <p class="mt-1 text-sm text-gray-500">Consulta de sólo lectura.</p>
       </div>
       <div class="flex flex-wrap gap-2">
+        @can('manage-records')<a href="{{ route('documentos.create', ['contrato'=>$contrato->id,'context'=>'contrato','context_id'=>$contrato->id]) }}" class="contract-detail-action">Subir documento</a>@endcan
         @if($contrato->document_url)<a href="{{ $contrato->document_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action contract-detail-action-secondary">Ver documento</a>@endif
         @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action">Carpeta Drive</a>@endif
         @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.revision.start', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Editar contrato</button></form>@endif
@@ -27,6 +28,9 @@
   @endphp
 
   <div class="max-w-7xl mx-auto mt-6 space-y-6 px-4 pb-8 lg:px-8">
+    @include('documentos._checklist', ['documentChecklist' => $documentChecklist])
+    @php($originalFirmado = $contrato->documentos->contains(fn($documento) => $documento->tipo === 'contrato_original_firmado'))
+    <section class="rounded-lg border p-4 {{ $originalFirmado ? 'border-green-300 bg-green-50 text-green-900' : 'border-red-300 bg-red-50 text-red-900' }}"><strong>{{ $originalFirmado ? 'Original firmado cargado' : 'Original firmado pendiente' }}</strong></section>
     <section class="rounded-lg border bg-white p-6 shadow-sm">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -120,6 +124,8 @@
             <p class="mt-2 text-sm text-gray-500">Sin documento asociado.</p>
           @endif
           @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-blue-600 underline">Abrir carpeta Drive</a>@else<p class="mt-3 text-sm text-gray-500">Sin carpeta Drive.</p>@endif
+          <h4 class="mt-4 font-medium text-gray-900">Documentos cargados</h4>
+          @forelse($contrato->documentos as $documento)<div class="mt-2 text-sm"><strong>{{ $documento->titulo ?: $documento->tipo }}</strong> · {{ $documento->created_at?->format('d/m/Y') }} <a class="text-blue-600 underline" href="{{ route('documentos.view', $documento) }}" target="_blank">Ver</a> <a class="text-blue-600 underline" href="{{ route('documentos.download', $documento) }}">Descargar</a> @can('delete-anything')<form class="inline" method="POST" action="{{ route('documentos.destroy', ['documento'=>$documento,'context'=>'contrato','context_id'=>$contrato->id]) }}">@csrf @method('DELETE')<button class="text-red-600 underline">Eliminar</button></form>@endcan</div>@empty<p class="mt-2 text-sm text-gray-500">Sin documentos cargados.</p>@endforelse
         </div>
         <div>
           <h4 class="font-medium text-gray-900">Movimientos</h4>

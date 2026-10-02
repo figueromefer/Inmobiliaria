@@ -66,6 +66,11 @@ class Contrato extends Model
         return $this->hasMany(ContratoPendiente::class, 'contrato_id');
     }
 
+    public function documentos()
+    {
+        return $this->hasMany(Documento::class, 'contrato_id');
+    }
+
     public function draftVersion()
     {
         return $this->belongsTo(ContractDraftVersion::class, 'contract_draft_version_id');
@@ -132,5 +137,31 @@ class Contrato extends Model
         $v = (float) ($this->comision_mensual ?? 0);
 
         return $v > 1 ? $v / 100 : $v;
+    }
+
+    /** Estado de vigencia para UI; no altera la vigencia contractual. */
+    public function getVigenciaEstadoAttribute(): array
+    {
+        if (! $this->fecha_inicio || ! $this->fecha_fin) {
+            return ['key' => 'sin_vigencia', 'label' => 'Sin vigencia'];
+        }
+
+        $today = Carbon::today();
+        $inicio = Carbon::parse($this->fecha_inicio)->startOfDay();
+        $fin = Carbon::parse($this->fecha_fin)->endOfDay();
+
+        if ($inicio->gt($today)) {
+            return ['key' => 'proximo', 'label' => 'Próximo'];
+        }
+
+        if ($fin->lt($today)) {
+            return ['key' => 'vencido', 'label' => 'Vencido'];
+        }
+
+        if ($fin->lte($today->copy()->addMonthsNoOverflow(2)->endOfDay())) {
+            return ['key' => 'por_vencer', 'label' => 'Por vencer'];
+        }
+
+        return ['key' => 'vigente', 'label' => 'Vigente'];
     }
 }

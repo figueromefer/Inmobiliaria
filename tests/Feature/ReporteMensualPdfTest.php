@@ -67,7 +67,7 @@ class ReporteMensualPdfTest extends TestCase
             $this->assertStringNotContainsString('TOTAL DESPUÉS DE GASTOS', $html);
             $this->assertStringContainsString('TOTAL DEPOSITOS', $html);
             $this->assertStringContainsString('$1,234.50', $html);
-            $this->assertStringContainsString('EGRESOS DEL PERIODO', $html);
+            $this->assertStringContainsString('TOTAL DE GASTOS', $html);
             $this->assertStringContainsString('$-50.00', $html);
         }
     }
@@ -102,7 +102,7 @@ class ReporteMensualPdfTest extends TestCase
 
         foreach ([
             'TOTAL DESPUÉS DE GASTOS',
-            'IGUALA / COMISIÓN DE ADMINISTRACIÓN (INCLUIDA EN EGRESOS)',
+            'TOTAL IGUALAS / COMISIONES DE ADMINISTRACIÓN',
             'SALDO DE MESES ANTERIORES',
             'TOTAL A PAGAR DEL MES',
         ] as $label) {

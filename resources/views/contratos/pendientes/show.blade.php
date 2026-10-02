@@ -93,6 +93,15 @@ $confidenceNote = function ($confidence) {
 <form method="POST" action="{{ route('contratos.pendientes.resolver', $pendiente) }}" class="bg-white rounded-xl shadow border p-6 space-y-6">
 @csrf
 
+<section class="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
+<h3 class="font-bold text-amber-900">Datos faltantes o por revisar</h3>
+@if(!empty($missingFields))<p class="text-sm text-amber-800">Faltan: {{ implode(', ', $missingFields) }}.</p>@else<p class="text-sm text-amber-800">Puedes corregir los datos si la información recibida requiere ajuste.</p>@endif
+<div class="grid gap-3 md:grid-cols-2">
+@foreach(['fecha_inicio_contrato'=>'Fecha inicio','fecha_terminacion_contrato'=>'Fecha fin','monto_mensual'=>'Renta mensual','monto_total'=>'Monto total','monto_deposito'=>'Depósito','domicilio_inmueble_arrendamiento'=>'Domicilio'] as $key=>$label)
+<label class="text-sm font-medium">{{ $label }}<input class="mt-1 w-full rounded border-gray-300" type="{{ str_starts_with($key,'fecha') ? 'date' : (str_starts_with($key,'monto') ? 'number' : 'text') }}" step="any" name="manual[{{ $key }}]" value="{{ old('manual.'.$key, $pendiente->manual_overrides[$key] ?? '') }}"><span class="block text-xs text-gray-600">{{ array_key_exists($key, $pendiente->manual_overrides ?? []) ? 'Corregido manualmente' : 'Dato recibido de Justicia Alternativa' }}</span></label>
+@endforeach
+</div></section>
+
 <h3 class="font-bold text-lg">Conciliación</h3>
 
 <section class="space-y-3 border-b pb-5">

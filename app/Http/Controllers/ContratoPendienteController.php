@@ -10,6 +10,7 @@ use App\Models\Propiedad;
 use App\Models\Task;
 use App\Services\GeocodingService;
 use App\Services\JusticiaAlternativaImportService;
+use App\Services\JusticiaAlternativaEffectivePayloadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -39,16 +40,18 @@ class ContratoPendienteController extends Controller
         return $this->showResolveForm($pendiente, $service);
     }
 
-    public function showResolveForm(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
+    public function showResolveForm(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service, JusticiaAlternativaEffectivePayloadService $effectivePayloads)
     {
         $mapped = $this->previewJusticiaAlternativaMapping($pendiente, $service);
 
         $clientes = Cliente::whereNull('deleted_at')->orderBy('nombre')->get(['pk_cliente', 'nombre', 'correo', 'rfc']);
         $propiedades = Propiedad::orderBy('alias')->orderBy('domicilio')->get(['pk_propiedad', 'fk_cliente', 'alias', 'domicilio']);
         $inquilinos = Inquilino::orderBy('nombre')->get(['id', 'nombre', 'correo', 'telefono']);
+        $mapped = $effectivePayloads->effective($pendiente, $mapped);
+        $missingFields = $effectivePayloads->missing($mapped);
         $suggestions = $this->buildSuggestions($mapped);
 
-        return view('contratos.pendientes.show', compact('pendiente', 'mapped', 'clientes', 'propiedades', 'inquilinos', 'suggestions'));
+        return view('contratos.pendientes.show', compact('pendiente', 'mapped', 'clientes', 'propiedades', 'inquilinos', 'suggestions', 'missingFields'));
     }
 
     public function destroy(ContratoPendiente $pendiente)
@@ -66,7 +69,7 @@ class ContratoPendienteController extends Controller
             ->with('success', 'Contrato pendiente eliminado correctamente.');
     }
 
-    public function resolver(Request $request, ContratoPendiente $pendiente, JusticiaAlternativaImportService $service, GeocodingService $geocodingService)
+    public function resolver(Request $request, ContratoPendiente $pendiente, JusticiaAlternativaImportService $service, GeocodingService $geocodingService, JusticiaAlternativaEffectivePayloadService $effectivePayloads)
     {
         if ($pendiente->estado !== 'pendiente_match') {
             return redirect()
@@ -75,6 +78,7 @@ class ContratoPendienteController extends Controller
         }
 
         $validated = $request->validate([
+            'manual' => ['nullable','array'], 'manual.fecha_inicio_contrato'=>['nullable','date'], 'manual.fecha_terminacion_contrato'=>['nullable','date'], 'manual.monto_mensual'=>['nullable','numeric','min:0'], 'manual.monto_total'=>['nullable','numeric','min:0'], 'manual.monto_deposito'=>['nullable','numeric','min:0'], 'manual.domicilio_inmueble_arrendamiento'=>['nullable','string','max:2000'],
             'cliente_action' => ['required', 'in:existing,new'],
             'fk_cliente' => [
                 'nullable',
@@ -100,7 +104,9 @@ class ContratoPendienteController extends Controller
             return back()->with('error', $mappingError);
         }
 
-        $mapped = $pendiente->mapped_payload ?? [];
+        $overrides = array_filter($validated['manual'] ?? [], fn($value) => filled($value));
+        if ($overrides) $pendiente->update(['manual_overrides' => array_replace($pendiente->manual_overrides ?? [], $overrides)]);
+        $mapped = $effectivePayloads->effective($pendiente);
 
         if ($this->domicilioImportadoExceedsLimit($mapped)) {
             return back()

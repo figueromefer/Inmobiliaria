@@ -14,6 +14,12 @@
     .contracts-flash-success { background: #ecfdf5; border: 1px solid #047857; border-left: 4px solid #047857; border-radius: .4rem; color: #065f46; font-weight: 700; margin-bottom: 1rem; padding: .8rem 1rem; }
     .contracts-row-action { border: 1px solid #64748b; border-radius: .35rem; color: #1e3a5f; font-size: .75rem; font-weight: 700; padding: .35rem .55rem; text-decoration: none; }
     .contracts-row-action:hover, .contracts-row-action:focus { background: #eef6f8; color: #0f4c5c; }
+    .contracts-vigencia { border:1px solid; border-radius:9999px; display:inline-flex; font-size:.75rem; font-weight:700; margin-top:.35rem; padding:.25rem .5rem; }
+    .contracts-vigencia-vencido { background:#fef2f2; border-color:#b91c1c; color:#991b1b; }
+    .contracts-vigencia-proximo { background:#eff6ff; border-color:#2563eb; color:#1d4ed8; }
+    .contracts-vigencia-por_vencer { background:#fefce8; border-color:#ca8a04; color:#854d0e; }
+    .contracts-vigencia-vigente { background:#ecfdf5; border-color:#059669; color:#047857; }
+    .contracts-vigencia-sin_vigencia { background:#f3f4f6; border-color:#6b7280; color:#374151; }
   </style>
   <x-slot name="header">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -147,9 +153,7 @@
             </thead>
             <tbody>
             @forelse ($contratos as $c)
-                @php
-                    $alerta = $c->por_expirar;
-                @endphp
+                @php($vigencia = $c->vigencia_estado)
                 <tr class="border-b hover:bg-gray-50">
                 <td class="px-4 py-3 align-top">
                     <div class="flex flex-col items-start gap-2">
@@ -196,11 +200,7 @@
                     <div class="text-xs text-gray-500">
                         al {{ $c->fecha_fin ? \Carbon\Carbon::parse($c->fecha_fin)->format('Y-m-d') : '—' }}
                     </div>
-                    @if($alerta)
-                        <span class="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white">
-                            Por vencer
-                        </span>
-                    @endif
+                    <span class="contracts-vigencia contracts-vigencia-{{ $vigencia['key'] }}">{{ $vigencia['label'] }}</span>
                 </td>
                 <td class="px-4 py-3 align-top">
                     {{ $c->monto_mensual !== null ? '$'.number_format($c->monto_mensual, 2) : '—' }}

@@ -6,18 +6,27 @@ use App\Models\Cliente;
 use App\Models\Documento;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
+use App\Models\Contrato;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class DocumentoController extends Controller
 {
     public static array $tipos = [
+        'identificacion' => 'Identificación',
         'comprobante_domicilio' => 'Comprobante domicilio',
+        'titulo_propiedad' => 'Título / escritura',
+        'siapa' => 'SIAPA',
         'agua' => 'Agua',
         'cfe' => 'CFE',
+        'gas' => 'Gas',
         'predial' => 'Predial',
         'recibo' => 'Recibo escaneado',
+        'reporte_investigacion' => 'Reporte de investigación',
+        'reporte_entrega_cliente' => 'Reporte / entrega al cliente',
+        'contrato_original_firmado' => 'Contrato original firmado',
         'otro' => 'Otro',
     ];
 
@@ -29,6 +38,7 @@ class DocumentoController extends Controller
         $clienteId = $request->query('cliente');
         $propiedadId = $request->query('propiedad');
         $inquilinoId = $request->query('inquilino');
+        $contratoId = $request->query('contrato');
 
         if ($clienteId) {
             $query->where('fk_cliente', $clienteId);
@@ -40,6 +50,10 @@ class DocumentoController extends Controller
 
         if ($inquilinoId) {
             $query->where('fk_inquilino', $inquilinoId);
+        }
+
+        if ($contratoId) {
+            $query->where('contrato_id', $contratoId);
         }
 
         if ($q !== '') {
@@ -71,19 +85,27 @@ class DocumentoController extends Controller
 
     public function create(Request $request)
     {
+        Gate::authorize('manage-records');
+
         $clientes = Cliente::orderBy('nombre')->get();
         $propiedades = Propiedad::orderBy('alias')->get();
         $inquilinos = Inquilino::orderBy('nombre')->get();
         $clienteId = $request->query('cliente');
         $propiedadId = $request->query('propiedad');
         $inquilinoId = $request->query('inquilino');
+        $contratoId = $request->query('contrato');
         $tipos = self::$tipos;
 
-        return view('documentos.create', compact('clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos'));
+        $returnContext = $this->validatedReturnContext($request);
+
+        $contratos = Contrato::orderByDesc('id')->get(['id','expediente_justicia_alternativa']);
+        return view('documentos.create', compact('clientes', 'propiedades', 'inquilinos', 'contratos', 'clienteId', 'propiedadId', 'inquilinoId', 'contratoId', 'tipos', 'returnContext'));
     }
 
     public function store(Request $request)
     {
+        Gate::authorize('manage-records');
+
         $request->validate([
             'titulo' => 'nullable|string|max:255',
             'tipo' => 'required|string|in:' . implode(',', array_keys(self::$tipos)),
@@ -91,6 +113,7 @@ class DocumentoController extends Controller
             'fk_cliente' => 'nullable|exists:clientes,pk_cliente',
             'fk_propiedad' => ['nullable', Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at')],
             'fk_inquilino' => 'nullable|exists:inquilinos,id',
+            'contrato_id' => 'nullable|exists:contratos,id',
         ]);
 
         $path = $request->file('archivo')->store('documentos', 'public');
@@ -102,7 +125,12 @@ class DocumentoController extends Controller
             'fk_cliente' => $request->input('fk_cliente'),
             'fk_propiedad' => $request->input('fk_propiedad'),
             'fk_inquilino' => $request->input('fk_inquilino'),
+            'contrato_id' => $request->input('contrato_id'),
         ]);
+
+        if ($returnUrl = $this->returnContextUrl($request)) {
+            return redirect($returnUrl)->with('success', 'Documento agregado correctamente.');
+        }
 
         if ($documento->fk_cliente) {
             return redirect()->route('clientes.show', $documento->fk_cliente)->with('success', 'Documento agregado correctamente.');
@@ -143,14 +171,20 @@ class DocumentoController extends Controller
         return Storage::disk('public')->download($documento->archivo);
     }
 
-    public function destroy(Documento $documento)
+    public function destroy(Request $request, Documento $documento)
     {
+        Gate::authorize('delete-anything');
+
         $clienteId = $documento->fk_cliente;
         $propiedadId = $documento->fk_propiedad;
         $inquilinoId = $documento->fk_inquilino;
 
         Storage::disk('public')->delete($documento->archivo);
         $documento->delete();
+
+        if ($returnUrl = $this->returnContextUrl($request)) {
+            return redirect($returnUrl)->with('success', 'Documento eliminado correctamente.');
+        }
 
         if ($clienteId) {
             return redirect()->route('clientes.show', $clienteId)->with('success', 'Documento eliminado correctamente.');
@@ -165,5 +199,28 @@ class DocumentoController extends Controller
         }
 
         return redirect()->route('documentos.index')->with('success', 'Documento eliminado correctamente.');
+    }
+
+    private function validatedReturnContext(Request $request): ?array
+    {
+        $context = $request->input('context');
+        $id = filter_var($request->input('context_id'), FILTER_VALIDATE_INT);
+
+        return in_array($context, ['cliente', 'propiedad', 'inquilino', 'contrato'], true) && $id && $id > 0
+            ? ['type' => $context, 'id' => $id]
+            : null;
+    }
+
+    private function returnContextUrl(Request $request): ?string
+    {
+        $context = $this->validatedReturnContext($request);
+        if (! $context) return null;
+
+        return match ($context['type']) {
+            'cliente' => Cliente::whereKey($context['id'])->exists() ? route('clientes.show', $context['id']) : null,
+            'propiedad' => Propiedad::withTrashed()->whereKey($context['id'])->exists() ? route('propiedades.show', $context['id']) : null,
+            'inquilino' => Inquilino::whereKey($context['id'])->exists() ? route('inquilinos.show', $context['id']) : null,
+            'contrato' => Contrato::whereKey($context['id'])->exists() ? route('contratos.show', $context['id']) : null,
+        };
     }
 }

@@ -92,7 +92,7 @@
       {{-- Periodo del movimiento --}}
       <div>
         <label class="block text-sm font-medium">Periodo / fecha a la que corresponde</label>
-        <input type="date" name="fecha" value="{{ $field('fecha', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('fecha')->toDateString() : $field('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
+        <input id="fecha" type="date" name="fecha" value="{{ $field('fecha', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('fecha')->toDateString() : $field('fecha', now()->toDateString()) }}" class="mt-1 w-full border rounded px-3 py-2" required>
       </div>
 
       {{-- Estado financiero --}}
@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const fechaLiquidacionWrap = document.getElementById('fecha_liquidacion_wrap');
   const fechaLiquidacion = document.getElementById('fecha_liquidacion');
   const rentaPreview = document.getElementById('renta-vigente-preview');
+  const fecha = document.getElementById('fecha');
 
   function actualizarRentaVigente() {
     const esRenta = selConcepto.value === 'renta';
@@ -198,7 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     rentaPreview.textContent = 'Consultando renta mensual según contrato vigente…';
     const baseUrl = esPropiedad ? '{{ url('/movimientos/propiedades') }}' : '{{ url('/movimientos/inquilinos') }}';
-    fetch(`${baseUrl}/${encodeURIComponent(id)}/renta-vigente`, { headers: { Accept: 'application/json' } })
+    const query = new URLSearchParams({ fecha: fecha.value || '' });
+    fetch(`${baseUrl}/${encodeURIComponent(id)}/renta-vigente?${query.toString()}`, { headers: { Accept: 'application/json' } })
       .then(response => response.ok ? response.json() : Promise.reject())
       .then(data => {
         rentaPreview.textContent = data.monto_mensual === null
@@ -259,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   selProp.addEventListener('change', actualizarRentaVigente);
   selInquilino.addEventListener('change', actualizarRentaVigente);
+  fecha.addEventListener('change', actualizarRentaVigente);
   document.addEventListener('searchable-selects:ready', () => {
     selProp.tomselect?.on('change', actualizarRentaVigente);
     selInquilino.tomselect?.on('change', actualizarRentaVigente);

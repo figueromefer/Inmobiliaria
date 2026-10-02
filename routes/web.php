@@ -175,6 +175,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/{draft}/previsualizacion-documental/documentos/{documentVersion}/reintentar', [ContractDocumentPreviewController::class, 'retry'])->name('document-preview.retry');
         Route::post('/{draft}/enlace-continuacion', [ContractDraftController::class, 'regeneratePublicContinuationLink'])
             ->name('public-continuation-link.regenerate');
+        Route::delete('/{draft}', [ContractDraftController::class, 'destroy'])
+            ->middleware('can:delete-anything')
+            ->name('destroy');
         Route::get('/{draft}', [ContractDraftController::class, 'show'])->name('show');
         Route::get('/{draft}/editar', [ContractDraftController::class, 'edit'])->name('edit');
         Route::put('/{draft}', [ContractDraftController::class, 'update'])->name('update');

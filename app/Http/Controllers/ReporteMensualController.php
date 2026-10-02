@@ -187,8 +187,10 @@ class ReporteMensualController extends Controller
                 'ingresos_efectivo' => (float) $periodo['ingresos_afectan_saldo'],
                 'total_transferencias' => (float) $periodo['total_transferencias'],
                 'total_depositos' => (float) $periodo['depositos'],
-                'gastos_efectivo' => (float) $periodo['egresos_total'],
-                'total_despues_gastos' => (float) $periodo['ingresos_afectan_saldo'] - (float) $periodo['egresos_total'],
+                // Igualas se muestran separadas de los gastos reales; el saldo
+                // financiero de ReporteFinancieroService sigue considerando ambos.
+                'gastos_efectivo' => (float) $periodo['gastos'] + (float) $periodo['gastos_cliente'],
+                'total_despues_gastos' => (float) $periodo['ingresos_afectan_saldo'] - (float) $periodo['gastos'] - (float) $periodo['gastos_cliente'],
                 'iguala' => (float) ($periodo['igualas'] ?? 0),
                 'pagos_cliente_mes' => (float) $periodo['pagos_cliente'],
                 'saldo_anterior' => (float) $reporteFinanciero['saldo_anterior'],
@@ -249,26 +251,19 @@ class ReporteMensualController extends Controller
             ->orderBy('alias')
             ->get(['pk_propiedad', 'alias']);
 
-        $hayContratoActivoMes = Contrato::where('fk_cliente', $cliente->pk_cliente)
-            ->whereDate('fecha_inicio', '<=', $end->toDateString())
-            ->where(function ($query) use ($start) {
-                $query->whereNull('fecha_fin')
-                    ->orWhereDate('fecha_fin', '>=', $start->toDateString());
-            })
-            ->exists();
-
-        if (! $hayContratoActivoMes) {
-            return $propiedadesCliente;
-        }
-
-        $propiedadesConRenta = $rentasRecabadas
-            ->pluck('propiedad_id')
-            ->filter()
-            ->unique()
-            ->all();
-
         return $propiedadesCliente
-            ->filter(fn ($propiedad) => ! in_array($propiedad->pk_propiedad, $propiedadesConRenta, true))
+            ->filter(function ($propiedad) use ($start, $end) {
+                // Ocupación es contractual: una falta de pago no vuelve a una
+                // propiedad desocupada.
+                return ! Contrato::query()
+                    ->where('fk_propiedad', $propiedad->pk_propiedad)
+                    ->whereDate('fecha_inicio', '<=', $end->toDateString())
+                    ->where(function ($query) use ($start) {
+                        $query->whereNull('fecha_fin')
+                            ->orWhereDate('fecha_fin', '>=', $start->toDateString());
+                    })
+                    ->exists();
+            })
             ->values();
     }
 

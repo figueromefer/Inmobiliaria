@@ -18,6 +18,7 @@ class Documento extends Model
         'fk_cliente',
         'fk_propiedad',
         'fk_inquilino',
+        'contrato_id',
         'titulo',
         'tipo',
         'archivo',
@@ -36,5 +37,10 @@ class Documento extends Model
     public function inquilino()
     {
         return $this->belongsTo(Inquilino::class, 'fk_inquilino', 'id');
+    }
+
+    public function contrato()
+    {
+        return $this->belongsTo(Contrato::class, 'contrato_id');
     }
 }

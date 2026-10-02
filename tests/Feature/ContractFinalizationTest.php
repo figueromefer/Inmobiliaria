@@ -10,6 +10,7 @@ use App\Models\ContractDocumentVersion;
 use App\Models\ContractDraft;
 use App\Models\Contrato;
 use App\Models\Inquilino;
+use App\Models\Movimiento;
 use App\Models\Propiedad;
 use App\Models\User;
 use App\Services\ContractDraftPayload;
@@ -62,6 +63,12 @@ class ContractFinalizationTest extends TestCase
         $this->assertSame(1, $google->copyCalls);
         $this->assertSame(ContractDraft::STATUS_PUBLISHED, $draft->fresh()->status);
         $this->assertSame($contrato->id, $draft->fresh()->contrato_id);
+        $this->assertDatabaseHas('movimientos', [
+            'contrato_id' => $contrato->id,
+            'automation_type' => 'initial_commission',
+            'auto_generated' => true,
+            'importe' => 10000,
+        ]);
     }
 
     public function test_it_publishes_a_moral_person_snapshot(): void
@@ -99,6 +106,7 @@ class ContractFinalizationTest extends TestCase
         $this->assertDatabaseCount('contract_document_versions', 1);
         $this->assertSame(1, $google->folderCalls);
         $this->assertSame(1, $google->copyCalls);
+        $this->assertSame(1, Movimiento::query()->where('contrato_id', $first->id)->where('automation_type', 'initial_commission')->count());
     }
 
     public function test_google_failure_keeps_draft_recoverable_and_retry_reuses_folder_and_document(): void

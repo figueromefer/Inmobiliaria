@@ -128,6 +128,10 @@ class ContractFinalizationService
                 'published_by' => $actorId,
             ])->save();
 
+            if ($lockedDraft->editing_contract_id === null) {
+                app(AutomaticContractChargeService::class)->ensureInitialCommission($contrato);
+            }
+
             return $contrato;
         });
     }

@@ -75,6 +75,7 @@
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domicilio</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estatus</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cobro</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -91,6 +92,7 @@
                                     {{ $meta['label'] }}
                                 </span>
                             </td>
+                            <td class="px-4 py-2"><span class="text-xs font-semibold">{{ $propiedad->operational_status['label'] }}</span></td>
                             <td class="px-4 py-2 text-right space-x-2">
                                 <a href="{{ route('propiedades.show', $propiedad) }}" class="text-indigo-600 hover:underline">Ver</a>
                                 @can('manage-records')
@@ -107,7 +109,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-4 text-center text-gray-500">No hay propiedades registradas.</td>
+                            <td colspan="6" class="px-4 py-4 text-center text-gray-500">No hay propiedades registradas.</td>
                         </tr>
                     @endforelse
                 </tbody>

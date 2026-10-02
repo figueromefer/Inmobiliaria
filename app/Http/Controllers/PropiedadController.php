@@ -8,6 +8,8 @@ use App\Models\Task;
 use App\Services\GeocodingService;
 use App\Services\PerfilMovimientosService;
 use App\Services\RecurringTaskService;
+use App\Services\PropertyOperationalStatusService;
+use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -20,7 +22,7 @@ class PropiedadController extends Controller
 {
     private const MAX_DOMICILIO_LENGTH = 2000;
 
-    public function index(Request $request)
+    public function index(Request $request, PropertyOperationalStatusService $operationalStatus)
     {
         $q = trim((string) $request->query('q', $request->get('search', '')));
         $estatus = (string) $request->query('estatus_informacion', '');
@@ -52,6 +54,8 @@ class PropiedadController extends Controller
             ->orderBy('alias')
             ->paginate(20)
             ->withQueryString();
+
+        $propiedades->getCollection()->each(fn ($propiedad) => $propiedad->operational_status = $operationalStatus->for($propiedad));
 
         return view('propiedades.index', compact('propiedades', 'q', 'estatus'));
     }
@@ -143,12 +147,13 @@ class PropiedadController extends Controller
         return redirect()->route('clientes.show', $propiedad->fk_cliente)->with('success', 'Propiedad creada correctamente.');
     }
 
-    public function show(Propiedad $propiedad, Request $request, PerfilMovimientosService $movimientosService)
+    public function show(Propiedad $propiedad, Request $request, PerfilMovimientosService $movimientosService, MinimumDocumentChecklistService $checklists)
     {
         $propiedad->load(['cliente','documentos','contratos.inquilino','tickets.creator','tickets.assignee']);
         $movimientosPerfil = $movimientosService->forPropiedad($propiedad->pk_propiedad, $request);
 
-        return view('propiedades.show', compact('propiedad', 'movimientosPerfil'));
+        $documentChecklist = $checklists->for('propiedad', $propiedad->documentos);
+        return view('propiedades.show', compact('propiedad', 'movimientosPerfil', 'documentChecklist'));
     }
 
     public function edit(Propiedad $propiedad)

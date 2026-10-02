@@ -48,6 +48,7 @@
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notas</th>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Correo</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Disponible</th>
                             <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                         </tr>
                     </thead>
@@ -57,6 +58,7 @@
                                 <td class="px-4 py-2">{{ $cliente->nombre }}</td>
                                 <td class="px-4 py-2">{{ $cliente->notas }}</td>
                                 <td class="px-4 py-2">{{ $cliente->correo }}</td>
+                                <td class="px-4 py-2 text-right">${{ number_format((float) ($saldosDisponibles[$cliente->pk_cliente] ?? 0), 2) }}</td>
                                 <td class="px-4 py-2 text-right space-x-2">
                                     <a href="{{ route('clientes.show', $cliente) }}" class="text-indigo-600">Ver</a>
                                     @can('manage-records')
@@ -76,7 +78,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4">Sin resultados</td>
+                                <td colspan="5" class="text-center py-4">Sin resultados</td>
                             </tr>
                         @endforelse
                     </tbody>

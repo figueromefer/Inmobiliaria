@@ -39,6 +39,7 @@ class Movimiento extends Model
         'afecta_saldo_cliente',
         'approved_by',
         'approved_at',
+        'source_movimiento_id', 'contrato_id', 'automation_type', 'auto_generated',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class Movimiento extends Model
         'importe' => 'decimal:2',
         'afecta_saldo_cliente' => 'boolean',
         'approved_at' => 'datetime',
+        'auto_generated' => 'boolean',
     ];
 
     public function cliente()
@@ -68,6 +70,10 @@ class Movimiento extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    public function sourceMovimiento() { return $this->belongsTo(self::class, 'source_movimiento_id'); }
+    public function automaticCharge() { return $this->hasOne(self::class, 'source_movimiento_id'); }
+    public function contrato() { return $this->belongsTo(Contrato::class, 'contrato_id'); }
 
     public function getAsignadoNombreAttribute(): string
     {

@@ -11,6 +11,7 @@
     @php
         $statusLabels = ['draft' => 'En captura', 'submitted' => 'Enviada'];
         $isEditablePublicRequest = $draft->source === 'public_form' && $draft->publicRequest && $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && !$draft->publicRequest->submitted_at && !$draft->publicRequest->revoked_at;
+        $canDelete = $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && $draft->contrato_id === null && $draft->source !== 'public_form' && $draft->finalization_key === null;
     @endphp
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -19,6 +20,14 @@
                 <div><a href="{{ route('contratos.borradores.wizard.show', [$draft, 'generales']) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Continuar captura</a><p class="mt-1 text-center text-xs text-gray-500">{{ in_array($draft->source, ['laravel', 'internal'], true) ? 'Seguir editando datos' : 'Edición interna' }}</p></div>
                 <div><a href="{{ route('contratos.borradores.document-preview', $draft) }}" class="contract-prepare-button">Preparar contrato</a><p class="mt-1 text-center text-xs text-gray-500">Revisar y generar documento</p></div>
                 <a href="{{ route('contratos.borradores.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Volver</a>
+                @can('delete-anything')
+                    @if($canDelete)
+                        <form method="POST" action="{{ route('contratos.borradores.destroy', $draft) }}" onsubmit="return confirm('¿Eliminar este borrador? Esta acción no se puede deshacer.');">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="rounded-lg border border-red-700 bg-red-700 px-4 py-2 font-bold text-white hover:bg-red-800">Eliminar borrador</button>
+                        </form>
+                    @endif
+                @endcan
             </div>
         </div>
     </x-slot>

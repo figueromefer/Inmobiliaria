@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Services\AutomaticContractChargeService;
 
 class MovimientoController extends Controller
 {
@@ -100,7 +101,7 @@ class MovimientoController extends Controller
         return compact('clientes', 'propiedades', 'inquilinos');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, AutomaticContractChargeService $charges)
     {
         $data = $this->validatedMovimientoData($request);
         $storedComprobante = null;
@@ -113,19 +114,24 @@ class MovimientoController extends Controller
         [$data, $message] = $this->applyApprovalState($request, $data, 'registrado');
 
         try {
-            $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
+            $movimiento = DB::transaction(function () use ($data, $charges) {
+                $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
+                $movimiento->ensureFolio();
+                $charges->reconcileMonthlyCommission($movimiento->fresh());
+
+                return $movimiento->fresh();
+            });
         } catch (\Throwable $exception) {
             $this->deleteComprobante($storedComprobante, 'No se pudo revertir un comprobante tras fallar la base de datos.');
 
             throw $exception;
         }
-        $movimiento->ensureFolio();
         $this->logMovimientoCreated($request, $movimiento->fresh());
 
         return redirect()->route('movimientos.index')->with('ok', $message);
     }
 
-    public function update(Request $request, Movimiento $movimiento)
+    public function update(Request $request, Movimiento $movimiento, AutomaticContractChargeService $charges)
     {
         Gate::authorize('manage-records');
 
@@ -141,7 +147,10 @@ class MovimientoController extends Controller
         [$data, $message] = $this->applyApprovalState($request, $data, 'actualizado');
 
         try {
-            $movimiento->update($data);
+            DB::transaction(function () use ($movimiento, $data, $charges) {
+                $movimiento->update($data);
+                $charges->reconcileMonthlyCommission($movimiento->fresh());
+            });
         } catch (\Throwable $exception) {
             $this->deleteComprobante($newComprobante, 'No se pudo revertir un comprobante tras fallar la actualización.');
 
@@ -156,7 +165,7 @@ class MovimientoController extends Controller
         return redirect()->route('movimientos.index')->with('ok', $message);
     }
 
-    public function destroy(Movimiento $movimiento)
+    public function destroy(Movimiento $movimiento, AutomaticContractChargeService $charges)
     {
         Gate::authorize('delete-anything');
 
@@ -168,7 +177,10 @@ class MovimientoController extends Controller
                 ->with('error', "No se eliminó el movimiento {$folio} porque no se pudo eliminar su comprobante.");
         }
 
-        $movimiento->delete();
+        DB::transaction(function () use ($movimiento, $charges) {
+            $charges->removeOrCancelForSource($movimiento);
+            $movimiento->delete();
+        });
 
         return redirect()->route('movimientos.index')
             ->with('ok', "Movimiento {$folio} eliminado correctamente.");
@@ -232,7 +244,7 @@ class MovimientoController extends Controller
         return [$data, $message];
     }
 
-    public function approve(Request $request, Movimiento $movimiento)
+    public function approve(Request $request, Movimiento $movimiento, AutomaticContractChargeService $charges)
     {
         abort_unless($request->user()?->role === 'admin', 403);
 
@@ -240,12 +252,15 @@ class MovimientoController extends Controller
             return redirect()->route('movimientos.index')->with('ok', 'El movimiento ya no está pendiente.');
         }
 
-        $movimiento->approveBy($request->user());
+        DB::transaction(function () use ($movimiento, $request, $charges) {
+            $movimiento->approveBy($request->user());
+            $charges->syncApprovalFromSource($movimiento->fresh());
+        });
 
         return redirect()->route('movimientos.index')->with('ok', 'Movimiento aprobado correctamente.');
     }
 
-    public function approveBulk(Request $request)
+    public function approveBulk(Request $request, AutomaticContractChargeService $charges)
     {
         abort_unless($request->user()?->role === 'admin', 403);
 
@@ -255,7 +270,7 @@ class MovimientoController extends Controller
         ]);
         $ids = array_values(array_unique(array_map('intval', $data['movimientos'])));
 
-        [$approvedFolios, $omittedFolios] = DB::transaction(function () use ($ids, $request) {
+        [$approvedFolios, $omittedFolios] = DB::transaction(function () use ($ids, $request, $charges) {
             $movimientos = Movimiento::query()
                 ->whereIn('id', $ids)
                 ->lockForUpdate()
@@ -279,6 +294,7 @@ class MovimientoController extends Controller
                 }
 
                 $movimiento->approveBy($request->user());
+                $charges->syncApprovalFromSource($movimiento->fresh());
                 $approvedFolios[] = $folio;
             }
 
@@ -311,11 +327,12 @@ class MovimientoController extends Controller
         return response()->json($props);
     }
 
-    public function rentaVigentePorPropiedad(int $propiedad)
+    public function rentaVigentePorPropiedad(Request $request, int $propiedad)
     {
+        $fecha = $request->validate(['fecha' => ['nullable', 'date']])['fecha'] ?? now()->toDateString();
         $contrato = Contrato::query()
             ->where('fk_propiedad', $propiedad)
-            ->activosEnMes(now())
+            ->activosEnMes(\Carbon\Carbon::parse($fecha))
             ->whereNotNull('monto_mensual')
             ->orderByDesc('fecha_inicio')
             ->first();
@@ -327,11 +344,12 @@ class MovimientoController extends Controller
         return response()->json(['monto_mensual' => (float) $contrato->monto_mensual]);
     }
 
-    public function rentaVigentePorInquilino(int $inquilino)
+    public function rentaVigentePorInquilino(Request $request, int $inquilino)
     {
+        $fecha = $request->validate(['fecha' => ['nullable', 'date']])['fecha'] ?? now()->toDateString();
         $contrato = Contrato::query()
             ->where('inquilino_id', $inquilino)
-            ->activosEnMes(now())
+            ->activosEnMes(\Carbon\Carbon::parse($fecha))
             ->whereNotNull('monto_mensual')
             ->orderByDesc('fecha_inicio')
             ->first();
@@ -402,7 +420,7 @@ class MovimientoController extends Controller
             throw ValidationException::withMessages(['inquilino_id' => 'El inquilino seleccionado no existe.']);
         }
 
-        $contrato = $this->resolveContratoForInquilino($inquilino);
+        $contrato = $this->resolveContratoForInquilino($inquilino, $data['fecha']);
 
         if (! $contrato || ! $contrato->propiedad || ! $this->clienteIsActive($contrato->cliente ?: $contrato->propiedad->cliente)) {
             throw ValidationException::withMessages(['inquilino_id' => 'No se pudo resolver un contrato, propiedad y cliente válidos para el inquilino seleccionado.']);
@@ -415,9 +433,9 @@ class MovimientoController extends Controller
         return $data;
     }
 
-    private function resolveContratoForInquilino(Inquilino $inquilino): ?Contrato
+    private function resolveContratoForInquilino(Inquilino $inquilino, string $fecha): ?Contrato
     {
-        $today = now()->toDateString();
+        $today = \Carbon\Carbon::parse($fecha)->toDateString();
         $baseQuery = Contrato::query()
             ->with(['cliente', 'propiedad.cliente'])
             ->where('inquilino_id', $inquilino->id)

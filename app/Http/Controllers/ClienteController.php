@@ -6,6 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Services\PerfilMovimientosService;
+use App\Services\ReporteFinancieroService;
+use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +15,7 @@ use Illuminate\Support\Facades\Schema;
 
 class ClienteController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ReporteFinancieroService $reportes)
     {
         $search = trim((string) $request->get('search'));
 
@@ -42,7 +44,11 @@ class ClienteController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('clientes.index', compact('clientes', 'search'));
+        $saldosDisponibles = $reportes->saldosDisponiblesPorCliente(
+            $clientes->getCollection()->pluck('pk_cliente')
+        );
+
+        return view('clientes.index', compact('clientes', 'search', 'saldosDisponibles'));
     }
 
     public function create()
@@ -75,7 +81,7 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
 
-    public function show($id, Request $request, PerfilMovimientosService $movimientosService)
+    public function show($id, Request $request, PerfilMovimientosService $movimientosService, MinimumDocumentChecklistService $checklists)
     {
         $cliente = Cliente::with([
             'propiedades.contratos.inquilino',
@@ -85,7 +91,8 @@ class ClienteController extends Controller
         ])->findOrFail($id);
         $movimientosPerfil = $movimientosService->forCliente($cliente->pk_cliente, $request);
 
-        return view('clientes.show', compact('cliente', 'movimientosPerfil'));
+        $documentChecklist = $checklists->for('cliente', $cliente->documentos);
+        return view('clientes.show', compact('cliente', 'movimientosPerfil', 'documentChecklist'));
     }
 
     public function edit($id)

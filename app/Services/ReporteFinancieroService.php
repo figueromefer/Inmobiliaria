@@ -10,6 +10,40 @@ use Illuminate\Support\Collection;
 
 class ReporteFinancieroService
 {
+    /**
+     * Saldos contables acumulados para listados, con la misma base financiera
+     * que los reportes (incluidas transferencias informativas).
+     *
+     * @return array<int,float>
+     */
+    public function saldosDisponiblesPorCliente(iterable $clienteIds): array
+    {
+        $ids = collect($clienteIds)->filter()->map(fn ($id) => (int) $id)->unique()->values();
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $movimientos = $this->baseQuery()
+            ->whereIn('cliente_id', $ids)
+            ->whereDate('fecha', '<=', now()->toDateString())
+            ->get(['cliente_id', 'concepto', 'importe', 'forma_pago', 'afecta_saldo_cliente', 'estado_pago']);
+
+        $saldos = array_fill_keys($ids->all(), 0.0);
+        // "Disponible" is cash that can actually be paid to the client, not
+        // merely an approved accounting balance. Keep this aligned with the
+        // report's saldo_disponible_para_pago semantics.
+        $movimientosDisponibles = $this->filtrarLiquidados(
+            $this->movimientosQueAfectanSaldo($movimientos)
+        );
+
+        foreach ($movimientosDisponibles as $movimiento) {
+            $signo = in_array($movimiento->concepto, ['renta', 'deposito'], true) ? 1 : -1;
+            $saldos[(int) $movimiento->cliente_id] += $signo * (float) $movimiento->importe;
+        }
+
+        return $saldos;
+    }
+
     public function generarPorCliente(int $clienteId, string|CarbonInterface $fechaInicio, string|CarbonInterface $fechaFin, array $filters = []): array
     {
         return $this->generar(

@@ -35,6 +35,7 @@
     @endphp
 
     <div class="py-6 max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        @include('documentos._checklist', ['documentChecklist' => $documentChecklist])
         <div class="bg-white rounded-xl shadow-sm p-6">
             <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>

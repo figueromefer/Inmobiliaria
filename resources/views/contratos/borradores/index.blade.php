@@ -39,6 +39,7 @@
                     @forelse($drafts as $draft)
                         @php($isEditablePublicRequest = $draft->source === 'public_form' && $draft->publicRequest && $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && !$draft->publicRequest->submitted_at && !$draft->publicRequest->revoked_at)
                         @php($isInternalDraft = in_array($draft->source, ['laravel', 'internal'], true))
+                        @php($canDelete = $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && $draft->contrato_id === null && $draft->source !== 'public_form' && $draft->finalization_key === null)
                         <tr class="border-b hover:bg-gray-50">
                             <td class="px-4 py-3 font-medium">#{{ $draft->id }}</td>
                             <td class="px-4 py-3"><span class="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-800">{{ $sourceLabels[$draft->source] ?? ucfirst($draft->source) }}</span></td>
@@ -55,7 +56,19 @@
                             <td class="px-4 py-3">{{ $draft->currentVersion?->draft_version ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $draft->createdBy?->name ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $draft->updated_at?->format('Y-m-d H:i') ?? '—' }}</td>
-                            <td class="px-4 py-3 space-x-2"><a class="inline-flex bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1 rounded" href="{{ route('contratos.borradores.show', $draft) }}">Ver borrador</a>@if($isInternalDraft)<a class="contract-prepare-button mt-2" href="{{ route('contratos.borradores.document-preview', $draft) }}">Preparar contrato</a>@endif @if($isEditablePublicRequest)<form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="inline" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="client-link-button mt-2 inline-flex bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded">Generar enlace para cliente</button></form>@endif</td>
+                            <td class="px-4 py-3 space-x-2">
+                                <a class="inline-flex bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1 rounded" href="{{ route('contratos.borradores.show', $draft) }}">Ver borrador</a>
+                                @if($isInternalDraft)<a class="contract-prepare-button mt-2" href="{{ route('contratos.borradores.document-preview', $draft) }}">Preparar contrato</a>@endif
+                                @if($isEditablePublicRequest)<form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="inline" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="client-link-button mt-2 inline-flex bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded">Generar enlace para cliente</button></form>@endif
+                                @can('delete-anything')
+                                    @if($canDelete)
+                                        <form method="POST" action="{{ route('contratos.borradores.destroy', $draft) }}" class="inline" onsubmit="return confirm('¿Eliminar este borrador? Esta acción no se puede deshacer.');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="mt-2 inline-flex rounded border border-red-700 bg-red-700 px-3 py-1 text-xs font-bold text-white hover:bg-red-800">Eliminar borrador</button>
+                                        </form>
+                                    @endif
+                                @endcan
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Aún no hay solicitudes.</td></tr>

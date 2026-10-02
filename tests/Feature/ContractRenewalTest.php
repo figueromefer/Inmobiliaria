@@ -8,6 +8,7 @@ use App\Models\ContractDraft;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use App\Models\Contrato;
+use App\Models\Movimiento;
 use App\Models\User;
 use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftVersioningService;
@@ -63,6 +64,8 @@ class ContractRenewalTest extends TestCase
         $this->assertSame(2, $google->folderCalls);
         $this->assertSame(2, $google->copyCalls);
         $this->assertNotSame($original->documentVersion->drive_folder_id, $renewal->documentVersion->drive_folder_id);
+        $this->assertSame(1, Movimiento::query()->where('contrato_id', $original->id)->where('automation_type', 'initial_commission')->count());
+        $this->assertSame(1, Movimiento::query()->where('contrato_id', $renewal->id)->where('automation_type', 'initial_commission')->count());
 
         $this->actingAs($agent)->post(route('contratos.privados.finalize', $draft), ['expected_version_id' => $draft->current_version_id]);
         $this->assertDatabaseCount('contratos', 2);
