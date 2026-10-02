@@ -16,12 +16,12 @@
                 </div>
             @endcan
 
-            <form method="GET" action="{{ route('documentos.index') }}" class="mb-6 flex flex-wrap gap-2">
+            <form method="GET" action="{{ route('documentos.index') }}" class="mb-6 flex flex-wrap gap-2" data-live-search>
                 @if($inquilinoId)
                     <input type="hidden" name="inquilino" value="{{ $inquilinoId }}">
                 @endif
 
-                <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Buscar documento..." class="border-gray-300 rounded shadow-sm px-3 py-2">
+                <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Título, tipo, cliente, propiedad o inquilino" class="border-gray-300 rounded shadow-sm px-3 py-2" data-live-search-input>
 
                 <select name="cliente" class="js-searchable-select border-gray-300 rounded shadow-sm px-3 py-2">
                     <option value="">-- Filtrar por cliente --</option>
@@ -51,23 +51,29 @@
                 @endif
             </form>
 
-            <div class="overflow-x-auto bg-white shadow-sm sm:rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-800 text-white">
+            <div class="adi-table-wrap">
+                <table class="adi-table">
+                    <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Título</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Cliente</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Propiedad</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">Acciones</th>
+                            <th><x-table.sort-link column="titulo" label="Título" :current-sort="$sort" :current-dir="$dir" /></th>
+                            <th><x-table.sort-link column="tipo" label="Tipo" :current-sort="$sort" :current-dir="$dir" /></th>
+                            <th>Cliente</th>
+                            <th>Propiedad</th>
+                            <th>Inquilino</th>
+                            <th><x-table.sort-link column="created_at" label="Fecha" :current-sort="$sort" :current-dir="$dir" /></th>
+                            <th class="adi-table-number">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         @forelse($documentos as $documento)
                             <tr>
-                                <td class="px-4 py-2 whitespace-nowrap">{{ $documento->titulo ?? 'Sin título' }}</td>
-                                <td class="px-4 py-2 whitespace-nowrap">{{ $documento->cliente->nombre ?? '—' }}</td>
-                                <td class="px-4 py-2 whitespace-nowrap">{{ $documento->propiedad->alias ?? '—' }}</td>
-                                <td class="px-4 py-2 whitespace-nowrap text-right space-x-2">
+                                <td class="font-medium">{{ $documento->titulo ?? 'Sin título' }}</td>
+                                <td>{{ $tipos[$documento->tipo] ?? $documento->tipo ?? '—' }}</td>
+                                <td>{{ $documento->cliente->nombre ?? '—' }}</td>
+                                <td>{{ $documento->propiedad->alias ?? $documento->propiedad->domicilio ?? '—' }}</td>
+                                <td>{{ $documento->inquilino->nombre ?? '—' }}</td>
+                                <td>{{ optional($documento->created_at)->format('Y-m-d') ?? '—' }}</td>
+                                <td class="adi-table-number whitespace-nowrap"><div class="adi-table-actions">
                                     <a href="{{ route('documentos.view', $documento) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800">
                                         Ver
                                     </a>
@@ -83,11 +89,11 @@
                                             </button>
                                         </form>
                                     @endcan
-                                </td>
+                                </div></td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-6 text-center text-gray-500">
+                                <td colspan="7" class="text-center py-8 text-gray-500">
                                     No hay documentos registrados.
                                 </td>
                             </tr>

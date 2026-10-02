@@ -39,6 +39,12 @@ class DocumentoController extends Controller
         $propiedadId = $request->query('propiedad');
         $inquilinoId = $request->query('inquilino');
         $contratoId = $request->query('contrato');
+        $sort = (string) $request->query('sort', 'created_at');
+        $dir = strtolower((string) $request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortable = ['titulo', 'tipo', 'created_at'];
+        if (! in_array($sort, $sortable, true)) {
+            $sort = 'created_at';
+        }
 
         if ($clienteId) {
             $query->where('fk_cliente', $clienteId);
@@ -74,13 +80,16 @@ class DocumentoController extends Controller
             });
         }
 
-        $documentos = $query->with(['cliente', 'propiedad', 'inquilino'])->paginate(10)->withQueryString();
+        $documentos = $query->with(['cliente', 'propiedad', 'inquilino'])
+            ->orderBy($sort, $dir)
+            ->paginate(10)
+            ->withQueryString();
         $clientes = Cliente::orderBy('nombre')->get();
         $propiedades = Propiedad::orderBy('alias')->get();
         $inquilinos = Inquilino::orderBy('nombre')->get();
         $tipos = self::$tipos;
 
-        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos', 'q'));
+        return view('documentos.index', compact('documentos', 'clientes', 'propiedades', 'inquilinos', 'clienteId', 'propiedadId', 'inquilinoId', 'tipos', 'q', 'sort', 'dir'));
     }
 
     public function create(Request $request)
