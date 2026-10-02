@@ -49,11 +49,6 @@ class ContractDraftVersion extends Model
         return $this->belongsTo(ContractDraft::class, 'contract_draft_id');
     }
 
-    public function documentVersions(): HasMany
-    {
-        return $this->hasMany(ContractDocumentVersion::class);
-    }
-
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -62,5 +57,10 @@ class ContractDraftVersion extends Model
     public function contrato(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Contrato::class, 'contract_draft_version_id');
+    }
+
+    public function documentVersions(): HasMany
+    {
+        return $this->hasMany(ContractDocumentVersion::class, 'contract_draft_version_id');
     }
 }

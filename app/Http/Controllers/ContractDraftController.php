@@ -15,6 +15,7 @@ use App\Services\ContractDraftReconciliationService;
 use App\Services\ContractDraftVersioningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ContractDraftController extends Controller
@@ -180,5 +181,32 @@ class ContractDraftController extends Controller
         return response()
             ->view('contratos.borradores.public_continuation_link', compact('draft', 'public', 'continuationUrl'))
             ->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * El borrado físico sólo es seguro antes de que exista cualquier intento
+     * documental. Los borradores publicados y las solicitudes públicas son
+     * evidencia operativa y nunca pasan por esta ruta.
+     */
+    public function destroy(ContractDraft $draft)
+    {
+        $hasDocumentVersion = $draft->versions()->whereHas('documentVersions')->exists();
+
+        if ($draft->status !== ContractDraft::STATUS_DRAFT
+            || $draft->contrato_id !== null
+            || $draft->source === 'public_form'
+            || $draft->finalization_key !== null
+            || $hasDocumentVersion) {
+            return redirect()->route('contratos.borradores.show', $draft)
+                ->with('error', 'Este borrador ya tiene una generación documental asociada y no puede eliminarse de forma directa.');
+        }
+
+        DB::transaction(function () use ($draft) {
+            $draft->versions()->delete();
+            $draft->delete();
+        });
+
+        return redirect()->route('contratos.borradores.index')
+            ->with('success', 'Borrador eliminado correctamente.');
     }
 }

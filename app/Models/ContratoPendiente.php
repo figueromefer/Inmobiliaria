@@ -15,6 +15,7 @@ class ContratoPendiente extends Model
         'estado',
         'raw_payload',
         'mapped_payload',
+        'manual_overrides',
         'matched_cliente_id',
         'matched_propiedad_id',
         'matched_inquilino_id',
@@ -25,6 +26,7 @@ class ContratoPendiente extends Model
     protected $casts = [
         'raw_payload' => 'array',
         'mapped_payload' => 'array',
+        'manual_overrides' => 'array',
         'processed_at' => 'datetime',
     ];
 

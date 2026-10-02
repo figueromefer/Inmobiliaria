@@ -403,6 +403,15 @@ class ContractDraftPayload
                     $payload['amounts'][$key] = $this->normalizeMoneyTransportValue($payload['amounts'][$key]);
                 }
             }
+
+            if (($payload['amounts']['monthly_commission_unit'] ?? null) === 'percent'
+                && isset($payload['amounts']['monthly_commission_value'])
+                && is_string($payload['amounts']['monthly_commission_value'])) {
+                $value = trim($payload['amounts']['monthly_commission_value']);
+                if (preg_match('/^\d+(?:\.\d+)?%$/', $value)) {
+                    $payload['amounts']['monthly_commission_value'] = substr($value, 0, -1);
+                }
+            }
         }
 
         if (!isset($payload['leased_property']) || !is_array($payload['leased_property'])) {
