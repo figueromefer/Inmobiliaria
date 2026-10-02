@@ -11,6 +11,20 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
         <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+        <style>
+            .adi-table-wrap { overflow-x: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: .75rem; box-shadow: 0 1px 2px rgb(15 23 42 / .05); }
+            .adi-table { min-width: 100%; font-size: .875rem; border-collapse: separate; border-spacing: 0; }
+            .adi-table thead { background: #f8fafc; border-bottom: 1px solid #cbd5e1; }
+            .adi-table th { color: #475569; font-size: .75rem; font-weight: 700; letter-spacing: .025em; padding: .8rem 1rem; text-align: left; text-transform: uppercase; white-space: nowrap; }
+            .adi-table td { border-bottom: 1px solid #e2e8f0; color: #334155; padding: .85rem 1rem; vertical-align: top; }
+            .adi-table tbody tr:hover { background: #f8fafc; }
+            .adi-table tbody tr:last-child td { border-bottom: 0; }
+            .adi-table .adi-table-number, .adi-table th.adi-table-number { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+            .adi-table-actions { display: inline-flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+            .adi-table-sort { align-items: center; color: inherit; display: inline-flex; gap: .3rem; text-decoration: none; }
+            .adi-table-sort:hover, .adi-table-sort:focus { color: #0f4c5c; text-decoration: underline; }
+            .adi-table-sort-muted { color: #94a3b8; }
+        </style>
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <link rel="stylesheet" href="{{ asset('custom.css') }}" />
@@ -75,14 +89,29 @@
                         allowEmptyOption: true,
                         create: false,
                         maxOptions: 500,
-                        sortField: {
-                            field: 'text',
-                            direction: 'asc'
-                        }
+                        // Preserve DOM order: the placeholder is first and
+                        // server-rendered options are already alphabetized.
+                        sortField: [{ field: '$order', direction: 'asc' }]
                     });
                 });
 
                 document.dispatchEvent(new CustomEvent('searchable-selects:ready'));
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('form[data-live-search]').forEach(function (form) {
+                    var input = form.querySelector('[data-live-search-input]');
+                    if (!input) return;
+
+                    var timer;
+                    input.addEventListener('input', function () {
+                        window.clearTimeout(timer);
+                        timer = window.setTimeout(function () {
+                            form.submit();
+                        }, 350);
+                    });
+                });
             });
         </script>
         <script>
