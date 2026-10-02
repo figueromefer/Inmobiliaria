@@ -15,6 +15,7 @@
     @endphp
 
     <div class="py-6 max-w-7xl mx-auto space-y-6">
+        @include('documentos._checklist', ['documentChecklist' => $documentChecklist])
         <div class="bg-white p-6 rounded shadow flex justify-between">
             <div>
                 <h1 class="text-2xl font-bold">{{ $cliente->nombre }}</h1>
@@ -139,7 +140,7 @@
                     <p class="text-sm text-gray-500">Archivos del cliente agrupados por tipo</p>
                 </div>
                 @can('manage-records')
-                    <a href="{{ route('documentos.create', ['cliente' => $cliente->pk_cliente]) }}"
+                    <a href="{{ route('documentos.create', ['cliente' => $cliente->pk_cliente, 'context' => 'cliente', 'context_id' => $cliente->pk_cliente]) }}"
                         class="bg-gray-800 text-white px-3 py-1 rounded">
                         + Subir documento
                     </a>
@@ -166,7 +167,7 @@
                                     <a href="{{ route('documentos.view', $d) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Ver</a>
                                     <a href="{{ route('documentos.download', $d) }}" class="text-blue-600 hover:underline">Descargar</a>
                                     @can('delete-anything')
-                                        <form action="{{ route('documentos.destroy', $d) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
+                                        <form action="{{ route('documentos.destroy', ['documento' => $d, 'context' => 'cliente', 'context_id' => $cliente->pk_cliente]) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar documento?');">
                                             @csrf
                                             @method('DELETE')
                                             <button class="text-red-600 hover:underline">Eliminar</button>

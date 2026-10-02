@@ -21,6 +21,10 @@
 
                 <form method="POST" action="{{ route('documentos.store') }}" enctype="multipart/form-data" class="space-y-5">
                     @csrf
+                    @if($returnContext)
+                        <input type="hidden" name="context" value="{{ $returnContext['type'] }}">
+                        <input type="hidden" name="context_id" value="{{ $returnContext['id'] }}">
+                    @endif
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="titulo">Título</label>
@@ -85,6 +89,10 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="contrato_id">Asignar a contrato</label>
+                            <select name="contrato_id" id="contrato_id" class="form-select mt-1 block w-full rounded-md shadow-sm border-gray-300"><option value="">— Sin contrato —</option>@foreach($contratos ?? [] as $contrato)<option value="{{ $contrato->id }}" @selected(old('contrato_id', $contratoId ?? null) == $contrato->id)>Contrato #{{ $contrato->id }}{{ $contrato->expediente_justicia_alternativa ? ' — '.$contrato->expediente_justicia_alternativa : '' }}</option>@endforeach</select>
+                        </div>
                     </div>
 
                     @if(!empty($inquilinoId))
@@ -94,8 +102,9 @@
                     @endif
 
                     <div class="flex justify-end gap-3 pt-2">
-                        <a href="{{ route('documentos.index') }}" class="px-4 py-2 rounded border text-gray-600 hover:bg-gray-50">Cancelar</a>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        @php($cancelUrl = match($returnContext['type'] ?? null) { 'cliente' => route('clientes.show', $returnContext['id']), 'propiedad' => route('propiedades.show', $returnContext['id']), 'inquilino' => route('inquilinos.show', $returnContext['id']), 'contrato' => route('contratos.show', $returnContext['id']), default => route('documentos.index') })
+                        <a href="{{ $cancelUrl }}" class="px-4 py-2 rounded border text-gray-600 hover:bg-gray-50">Cancelar</a>
+                        <button id="document-submit" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Guardar documento
                         </button>
                     </div>
@@ -106,6 +115,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            document.querySelector('form[action="{{ route('documentos.store') }}"]')?.addEventListener('submit', function () {
+                const button = document.getElementById('document-submit');
+                if (button) { button.disabled = true; button.textContent = 'Subiendo documento…'; }
+            });
             const clienteSelect = document.getElementById('fk_cliente');
             const propiedadSelect = document.getElementById('fk_propiedad');
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Inquilino;
 use App\Services\PerfilMovimientosService;
+use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
 
 class InquilinoController extends Controller
@@ -48,7 +49,7 @@ class InquilinoController extends Controller
         return view('inquilinos.index', compact('inquilinos', 'q', 'perPage', 'sort', 'dir'));
     }
 
-    public function show(Inquilino $inquilino, Request $request, PerfilMovimientosService $movimientosService)
+    public function show(Inquilino $inquilino, Request $request, PerfilMovimientosService $movimientosService, MinimumDocumentChecklistService $checklists)
     {
         $inquilino->load([
             'contratos' => fn ($query) => $query->with(['cliente', 'propiedad.cliente'])->orderByRaw('fecha_fin IS NULL DESC')->orderByDesc('fecha_inicio')->orderByDesc('id'),
@@ -56,6 +57,7 @@ class InquilinoController extends Controller
         ]);
         $movimientosPerfil = $movimientosService->forInquilino($inquilino->id, $request);
 
-        return view('inquilinos.show', compact('inquilino', 'movimientosPerfil'));
+        $documentChecklist = $checklists->for('inquilino', $inquilino->documentos);
+        return view('inquilinos.show', compact('inquilino', 'movimientosPerfil', 'documentChecklist'));
     }
 }

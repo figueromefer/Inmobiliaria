@@ -7,7 +7,7 @@ use App\Models\Contrato;
 use App\Models\ContratoPendiente;
 use App\Models\ContractDocumentVersion;
 use App\Services\JusticiaAlternativaImportService;
-use Carbon\Carbon;
+use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -109,19 +109,6 @@ class ContratoController extends Controller
             'dir' => $dir,
         ]);
 
-        $contratos->getCollection()->transform(function ($contrato) {
-            if (! $contrato->fecha_fin) {
-                $contrato->por_expirar = false;
-
-                return $contrato;
-            }
-
-            $fechaFin = Carbon::parse($contrato->fecha_fin);
-            $contrato->por_expirar = Carbon::now()->diffInMonths($fechaFin, false) <= 2;
-
-            return $contrato;
-        });
-
         $solicitantes = Cliente::orderBy('nombre')->pluck('nombre')->all();
         $clientes = Cliente::orderBy('nombre')->get(['pk_cliente as id', 'nombre']);
         $pendientesCount = ContratoPendiente::pendientes()->count();
@@ -135,10 +122,10 @@ class ContratoController extends Controller
         ));
     }
 
-    public function show(int $contrato)
+    public function show(int $contrato, MinimumDocumentChecklistService $checklists)
     {
         $contrato = Contrato::query()
-            ->with(['cliente', 'propiedad', 'inquilino', 'pendientes', 'documentVersion', 'previousContract', 'renewals'])
+            ->with(['cliente', 'propiedad', 'inquilino', 'pendientes', 'documentVersion', 'previousContract', 'renewals', 'documentos'])
             ->when(Schema::hasColumn('contratos', 'deleted_at'), function ($query) {
                 $query->whereNull('contratos.deleted_at');
             })
@@ -153,7 +140,8 @@ class ContratoController extends Controller
             ->latest('created_at')
             ->get();
 
-        return view('contratos.show', compact('contrato', 'versions'));
+        $documentChecklist = $checklists->for('contrato', $contrato->documentos);
+        return view('contratos.show', compact('contrato', 'versions', 'documentChecklist'));
     }
 
     public function showImportJusticiaAlternativaForm()
