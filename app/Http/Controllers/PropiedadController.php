@@ -27,6 +27,12 @@ class PropiedadController extends Controller
         $q = trim((string) $request->query('q', $request->get('search', '')));
         $estatus = (string) $request->query('estatus_informacion', '');
         $estatusPermitidos = ['pendiente_critico', 'pendiente', 'pendiente_completar', 'completo'];
+        $sort = (string) $request->query('sort', 'alias');
+        $dir = strtolower((string) $request->query('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortable = ['alias', 'domicilio', 'estatus_informacion', 'created_at', 'cliente'];
+        if (! in_array($sort, $sortable, true)) {
+            $sort = 'alias';
+        }
 
         $propiedades = Propiedad::with('cliente')
             ->when($q !== '', function ($query) use ($q) {
@@ -50,14 +56,24 @@ class PropiedadController extends Controller
             })
             ->when(in_array($estatus, $estatusPermitidos, true), function ($query) use ($estatus) {
                 $query->where('estatus_informacion', $estatus);
-            })
-            ->orderBy('alias')
+            });
+
+        if ($sort === 'cliente') {
+            $propiedades->orderBy(
+                Cliente::select('nombre')->whereColumn('clientes.pk_cliente', 'propiedades.fk_cliente'),
+                $dir
+            );
+        } else {
+            $propiedades->orderBy($sort, $dir);
+        }
+
+        $propiedades = $propiedades
             ->paginate(20)
             ->withQueryString();
 
         $propiedades->getCollection()->each(fn ($propiedad) => $propiedad->operational_status = $operationalStatus->for($propiedad));
 
-        return view('propiedades.index', compact('propiedades', 'q', 'estatus'));
+        return view('propiedades.index', compact('propiedades', 'q', 'estatus', 'sort', 'dir'));
     }
 
     public function create(Request $request)

@@ -19,16 +19,35 @@ class InquilinoController extends Controller
 
         $sort = $request->query('sort', 'nombre');
         $dir = strtolower($request->query('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $today = now()->toDateString();
 
-        $query = Inquilino::query();
+        $activeContracts = function ($contracts) use ($today) {
+            $contracts->where(function ($query) use ($today) {
+                $query->whereNull('fecha_inicio')->orWhereDate('fecha_inicio', '<=', $today);
+            })->where(function ($query) use ($today) {
+                $query->whereNull('fecha_fin')->orWhereDate('fecha_fin', '>=', $today);
+            });
+        };
+
+        $query = Inquilino::query()->with(['contratos' => function ($contracts) use ($activeContracts) {
+            $activeContracts($contracts);
+            $contracts->with('propiedad');
+        }]);
 
         if ($q !== '') {
-            $query->where(function ($w) use ($q) {
+            $query->where(function ($w) use ($q, $activeContracts) {
                 $w->where('nombre', 'like', "%{$q}%")
                     ->orWhere('correo', 'like', "%{$q}%")
                     ->orWhere('telefono', 'like', "%{$q}%")
                     ->orWhere('domicilio', 'like', "%{$q}%")
-                    ->orWhere('nacionalidad', 'like', "%{$q}%");
+                    ->orWhere('nacionalidad', 'like', "%{$q}%")
+                    ->orWhereHas('contratos', function ($contracts) use ($q, $activeContracts) {
+                        $activeContracts($contracts);
+                        $contracts->whereHas('propiedad', function ($propiedad) use ($q) {
+                            $propiedad->where('alias', 'like', "%{$q}%")
+                                ->orWhere('domicilio', 'like', "%{$q}%");
+                        });
+                    });
             });
         }
 

@@ -66,12 +66,14 @@
     @if(session('success'))<p class="contracts-flash-success" role="status">{{ session('success') }}</p>@endif
       
     {{-- Filtros --}}
-    <form method="GET" action="{{ route('contratos.index') }}" class="mb-4 grid gap-3 sm:grid-cols-6">
+    <form method="GET" action="{{ route('contratos.index') }}" class="mb-4 grid gap-3 sm:grid-cols-6" data-live-search>
+      <input type="hidden" name="sort" value="{{ $sort }}">
+      <input type="hidden" name="dir" value="{{ $dir }}">
       <div class="sm:col-span-2">
         <label for="q" class="block text-sm font-medium">Buscar</label>
         <input type="text" id="q" name="q" value="{{ $q }}"
                placeholder="Solicitante o domicilio"
-               class="mt-1 w-full border rounded px-3 py-2"/>
+               class="mt-1 w-full border rounded px-3 py-2" data-live-search-input/>
       </div>
 
       {{-- Filtro por solicitante (cliente) --}}
@@ -125,37 +127,28 @@
       </div>
     </form>
 
-    @php
-      $sortUrlC = function ($col, $sort, $dir) {
-        $next = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
-        return request()->fullUrlWithQuery(['sort' => $col, 'dir' => $next, 'page' => 1]);
-      };
-      $sort = $sort ?? 'fecha';
-      $dir  = $dir  ?? 'desc';
-    @endphp
-
     <p class="mb-3 text-sm text-gray-600">Mostrando contratos privados y de Justicia Alternativa.</p>
 
     {{-- Tabla --}}
-    <div class="overflow-x-auto bg-white border rounded">
-        <table class="min-w-full text-sm lg:table-fixed">
-            <thead class="bg-gray-50 border-b">
+    <div class="adi-table-wrap">
+        <table class="adi-table lg:table-fixed">
+            <thead>
             <tr>
-                <th class="text-left px-4 py-3 w-32">Acciones</th>
-                <th class="text-left px-4 py-3 w-32"><a class="underline" href="{{ $sortUrlC('id',$sort,$dir) }}">Expediente</a></th>
-                <th class="text-left px-4 py-3 w-40">Tipo</th>
-                <th class="text-left px-4 py-3 w-48"><a class="underline" href="{{ $sortUrlC('cliente',$sort,$dir) }}">Cliente</a></th>
-                <th class="text-left px-4 py-3 w-48">Arrendatario</th>
-                <th class="text-left px-4 py-3">Propiedad / Domicilio</th>
-                <th class="text-left px-4 py-3 w-48">Vigencia</th>
-                <th class="text-left px-4 py-3 w-36"><a class="underline" href="{{ $sortUrlC('monto_mensual',$sort,$dir) }}">Monto mensual</a></th>
+                <th class="w-32">Acciones</th>
+                <th class="w-32"><x-table.sort-link column="id" label="Expediente" :current-sort="$sort" :current-dir="$dir" /></th>
+                <th class="w-40">Tipo</th>
+                <th class="w-48"><x-table.sort-link column="cliente" label="Cliente" :current-sort="$sort" :current-dir="$dir" /></th>
+                <th class="w-48">Arrendatario</th>
+                <th>Propiedad / Domicilio</th>
+                <th class="w-48"><x-table.sort-link column="fecha_fin" label="Vigencia" :current-sort="$sort" :current-dir="$dir" /></th>
+                <th class="adi-table-number w-36"><x-table.sort-link column="monto_mensual" label="Monto mensual" :current-sort="$sort" :current-dir="$dir" /></th>
             </tr>
             </thead>
             <tbody>
             @forelse ($contratos as $c)
                 @php($vigencia = $c->vigencia_estado)
                 <tr class="border-b hover:bg-gray-50">
-                <td class="px-4 py-3 align-top">
+                <td class="align-top">
                     <div class="flex flex-col items-start gap-2">
                         <a href="{{ route('contratos.show', $c) }}" class="contracts-row-action">
                             Ver
@@ -176,39 +169,39 @@
                         @endif
                     </div>
                 </td>
-                <td class="px-4 py-3 align-top">
+                <td class="align-top">
                     <a href="{{ route('contratos.show', $c) }}" class="font-semibold text-blue-600 underline">{{ $c->expediente_justicia_alternativa ?: '#'.$c->id }}</a>
                 </td>
-                <td class="px-4 py-3 align-top">
+                <td class="align-top">
                     @if($c->origen === 'justicia_alternativa')
                         <span class="contracts-badge contracts-badge-ja"><span class="contracts-badge-dot" aria-hidden="true">●</span> Justicia alternativa</span>
                     @else
                         <span class="contracts-badge contracts-badge-private"><span class="contracts-badge-dot" aria-hidden="true">●</span> Contrato privado</span>
                     @endif
                 </td>
-                <td class="px-4 py-3 align-top">
+                <td class="align-top">
                     <div class="font-medium text-gray-900 truncate">{{ optional($c->cliente)->nombre ?? '—' }}</div>
                     <div class="text-xs text-gray-500">{{ $c->tipo_solicitante ?? '—' }}</div>
                 </td>
-                <td class="px-4 py-3 align-top truncate">{{ optional($c->inquilino)->nombre ?? '—' }}</td>
-                <td class="px-4 py-3 align-top">
+                <td class="align-top truncate">{{ optional($c->inquilino)->nombre ?? '—' }}</td>
+                <td class="align-top">
                     <div class="font-medium text-gray-900 truncate">{{ optional($c->propiedad)->alias ?? '—' }}</div>
                     <div class="text-xs text-gray-500 line-clamp-2">{{ $c->domicilio_inmueble ?: optional($c->propiedad)->domicilio ?: '—' }}</div>
                 </td>
-                <td class="px-4 py-3 align-top">
+                <td class="align-top">
                     <div>{{ $c->fecha_inicio ? \Illuminate\Support\Carbon::parse($c->fecha_inicio)->format('Y-m-d') : '—' }}</div>
                     <div class="text-xs text-gray-500">
                         al {{ $c->fecha_fin ? \Carbon\Carbon::parse($c->fecha_fin)->format('Y-m-d') : '—' }}
                     </div>
                     <span class="contracts-vigencia contracts-vigencia-{{ $vigencia['key'] }}">{{ $vigencia['label'] }}</span>
                 </td>
-                <td class="px-4 py-3 align-top">
+                <td class="adi-table-number align-top">
                     {{ $c->monto_mensual !== null ? '$'.number_format($c->monto_mensual, 2) : '—' }}
                 </td>
                 </tr>
             @empty
                 <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-500">No hay contratos que coincidan con la búsqueda.</td>
+                <td colspan="8" class="text-center py-8 text-gray-500">No hay contratos que coincidan con la búsqueda.</td>
                 </tr>
             @endforelse
             </tbody>

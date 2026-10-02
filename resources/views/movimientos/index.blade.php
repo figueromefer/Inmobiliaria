@@ -19,10 +19,12 @@
     </div>
 
     <div class="min-w-full divide-y divide-gray-200 mt-6 mb-6">
-      <form method="GET" action="{{ route('movimientos.index') }}" class="flex gap-2">
+      <form method="GET" action="{{ route('movimientos.index') }}" class="flex gap-2" data-live-search>
+        <input type="hidden" name="sort" value="{{ $sort }}">
+        <input type="hidden" name="dir" value="{{ $dir }}">
         <div>
           <label class="block text-sm font-medium">Buscar</label>
-          <input type="text" name="q" value="{{ $q }}" class="mt-1 border rounded px-3 py-2" placeholder="Folio, cliente, propiedad, concepto, estatus">
+          <input type="text" name="q" value="{{ $q }}" class="mt-1 border rounded px-3 py-2" placeholder="Folio, cliente, propiedad, concepto, estatus" data-live-search-input>
         </div>
         <div>
           <label class="block text-sm font-medium">Por página</label>
@@ -54,25 +56,25 @@
       </form>
     @endif
 
-    <div class="overflow-x-auto bg-white border rounded">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50 border-b">
+    <div class="adi-table-wrap">
+      <table class="adi-table">
+        <thead>
           <tr>
             @if($canApproveBulk)
               <th class="px-4 py-2 text-center">
                 <input id="select-all-pending" type="checkbox" aria-label="Seleccionar todos los movimientos pendientes visibles">
               </th>
             @endif
-            <th class="text-left px-4 py-2">Periodo / fecha a la que corresponde</th>
-            <th class="text-left px-4 py-2">Folio</th>
-            <th class="text-left px-4 py-2">Cliente</th>
-            <th class="text-left px-4 py-2">Propiedad</th>
-            <th class="text-left px-4 py-2">Asignado a</th>
-            <th class="text-left px-4 py-2">Concepto</th>
-            <th class="text-left px-4 py-2">Forma de pago</th>
-            <th class="text-right px-4 py-2">Importe</th>
-            <th class="text-left px-4 py-2">Estatus</th>
-            <th class="text-left px-4 py-2">Estado de pago</th>
+            <th><x-table.sort-link column="fecha" label="Periodo / fecha" :current-sort="$sort" :current-dir="$dir" /></th>
+            <th><x-table.sort-link column="folio" label="Folio" :current-sort="$sort" :current-dir="$dir" /></th>
+            <th>Cliente</th>
+            <th>Propiedad</th>
+            <th>Asignado a</th>
+            <th><x-table.sort-link column="concepto" label="Concepto" :current-sort="$sort" :current-dir="$dir" /></th>
+            <th><x-table.sort-link column="forma_pago" label="Forma de pago" :current-sort="$sort" :current-dir="$dir" /></th>
+            <th class="adi-table-number"><x-table.sort-link column="importe" label="Importe" :current-sort="$sort" :current-dir="$dir" /></th>
+            <th><x-table.sort-link column="approval_status" label="Estatus" :current-sort="$sort" :current-dir="$dir" /></th>
+            <th><x-table.sort-link column="estado_pago" label="Estado de pago" :current-sort="$sort" :current-dir="$dir" /></th>
             <th class="text-right px-4 py-2">Comprobante</th>
             <th class="text-right px-4 py-2">Recibo</th>
             <th class="text-right px-4 py-2">Acciones</th>

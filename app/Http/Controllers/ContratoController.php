@@ -54,6 +54,9 @@ class ContratoController extends Controller
                         $p->where('alias', 'like', "%{$q}%")
                             ->orWhere('domicilio', 'like', "%{$q}%");
                     })
+                    ->orWhereHas('inquilino', fn ($inquilino) => $inquilino->where('nombre', 'like', "%{$q}%"))
+                    ->orWhere('expediente_justicia_alternativa', 'like', "%{$q}%")
+                    ->orWhere('origen', 'like', "%{$q}%")
                     ->orWhere('domicilio_inmueble', 'like', "%{$q}%");
             });
         }

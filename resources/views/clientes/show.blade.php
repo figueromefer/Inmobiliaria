@@ -159,11 +159,16 @@
                         <span class="text-xs text-gray-500">{{ $docs->count() }} archivo(s)</span>
                     </div>
 
+                    <div class="hidden md:grid grid-cols-[minmax(12rem,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_auto] gap-4 bg-gray-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                        <span>Documento</span><span>Propiedad</span><span>Inquilino</span><span class="text-right">Acciones</span>
+                    </div>
                     <div class="divide-y">
                         @foreach($docs as $d)
-                            <div class="flex justify-between items-center p-3">
+                            <div class="grid gap-3 p-3 md:grid-cols-[minmax(12rem,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_auto] md:items-center">
                                 <span class="font-medium">{{ $d->titulo ?: 'Documento sin título' }}</span>
-                                <div class="space-x-3 shrink-0">
+                                <span class="text-sm text-gray-600"><span class="md:hidden font-semibold">Propiedad: </span>{{ $d->propiedad?->alias ?: $d->propiedad?->domicilio ?: '—' }}</span>
+                                <span class="text-sm text-gray-600"><span class="md:hidden font-semibold">Inquilino: </span>{{ $d->inquilino?->nombre ?: '—' }}</span>
+                                <div class="space-x-3 shrink-0 md:text-right">
                                     <a href="{{ route('documentos.view', $d) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Ver</a>
                                     <a href="{{ route('documentos.download', $d) }}" class="text-blue-600 hover:underline">Descargar</a>
                                     @can('delete-anything')

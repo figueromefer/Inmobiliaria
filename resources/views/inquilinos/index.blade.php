@@ -14,10 +14,12 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border p-5">
-            <form method="GET" action="{{ route('inquilinos.index') }}" class="grid gap-3 md:grid-cols-4">
+            <form method="GET" action="{{ route('inquilinos.index') }}" class="grid gap-3 md:grid-cols-4" data-live-search>
+                <input type="hidden" name="sort" value="{{ $sort }}">
+                <input type="hidden" name="dir" value="{{ $dir }}">
                 <div class="md:col-span-2">
                     <label for="q" class="block text-sm font-medium text-gray-700">Buscar</label>
-                    <input type="text" id="q" name="q" value="{{ $q }}" placeholder="Nombre, correo, teléfono, domicilio o nacionalidad" class="mt-1 w-full border-gray-300 rounded-lg shadow-sm" />
+                    <input type="text" id="q" name="q" value="{{ $q }}" placeholder="Nombre, correo, teléfono, domicilio, nacionalidad o propiedad" class="mt-1 w-full border-gray-300 rounded-lg shadow-sm" data-live-search-input />
                 </div>
 
                 <div>
@@ -36,43 +38,41 @@
             </form>
         </div>
 
-        <div class="overflow-x-auto bg-white border rounded-xl shadow-sm">
-            <table class="min-w-full text-sm">
-                @php
-                    function sortUrl($col, $currentSort, $currentDir) {
-                        $nextDir = ($currentSort === $col && $currentDir === 'asc') ? 'desc' : 'asc';
-                        return request()->fullUrlWithQuery(['sort' => $col, 'dir' => $nextDir, 'page' => 1]);
-                    }
-                @endphp
-
-                <thead class="bg-gray-50 border-b">
+        <div class="adi-table-wrap">
+            <table class="adi-table">
+                <thead>
                     <tr>
-                        <th class="text-left px-4 py-3">ID</th>
-                        <th class="text-left px-4 py-3">Nombre</th>
-                        <th class="text-left px-4 py-3">Correo</th>
-                        <th class="text-left px-4 py-3">Teléfono</th>
-                        <th class="text-left px-4 py-3">Nacionalidad</th>
-                        <th class="text-left px-4 py-3">Creado</th>
-                        <th class="text-right px-4 py-3">Acciones</th>
+                        <th><x-table.sort-link column="id" label="ID" :current-sort="$sort" :current-dir="$dir" /></th>
+                        <th><x-table.sort-link column="nombre" label="Nombre" :current-sort="$sort" :current-dir="$dir" /></th>
+                        <th><x-table.sort-link column="correo" label="Correo" :current-sort="$sort" :current-dir="$dir" /></th>
+                        <th>Teléfono</th>
+                        <th>Nacionalidad</th>
+                        <th>Propiedad vigente</th>
+                        <th><x-table.sort-link column="created_at" label="Creado" :current-sort="$sort" :current-dir="$dir" /></th>
+                        <th class="adi-table-number">Acciones</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     @forelse ($inquilinos as $inq)
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-4 py-3">{{ $inq->id }}</td>
-                            <td class="px-4 py-3 font-semibold text-gray-900">{{ $inq->nombre }}</td>
-                            <td class="px-4 py-3">{{ $inq->correo ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $inq->telefono ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $inq->nacionalidad ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ optional($inq->created_at)->format('Y-m-d H:i') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                        <tr>
+                            <td>{{ $inq->id }}</td>
+                            <td class="font-semibold text-gray-900">{{ $inq->nombre }}</td>
+                            <td>{{ $inq->correo ?? '—' }}</td>
+                            <td>{{ $inq->telefono ?? '—' }}</td>
+                            <td>{{ $inq->nacionalidad ?? '—' }}</td>
+                            <td>
+                                @php($propiedadesVigentes = $inq->contratos->map(fn($contrato) => $contrato->propiedad?->alias ?: $contrato->propiedad?->domicilio)->filter()->unique())
+                                {{ $propiedadesVigentes->isNotEmpty() ? $propiedadesVigentes->implode(', ') : 'Sin propiedad vigente' }}
+                            </td>
+                            <td>{{ optional($inq->created_at)->format('Y-m-d H:i') ?? '—' }}</td>
+                            <td class="adi-table-number whitespace-nowrap">
                                 <a href="{{ route('inquilinos.show', $inq) }}" class="text-blue-600 hover:underline">Ver</a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay inquilinos que coincidan con la búsqueda.</td>
+                            <td colspan="8" class="text-center py-8 text-gray-500">No hay inquilinos que coincidan con la búsqueda.</td>
                         </tr>
                     @endforelse
                 </tbody>
