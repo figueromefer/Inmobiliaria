@@ -28,6 +28,12 @@ class MovimientoController extends Controller
         $q = trim((string)$request->query('q', ''));
         $perPage = (int)$request->query('perPage', 15);
         if ($perPage < 5 || $perPage > 100) $perPage = 15;
+        $sort = (string) $request->query('sort', 'fecha');
+        $dir = strtolower((string) $request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortable = ['fecha', 'folio', 'concepto', 'importe', 'forma_pago', 'estado_pago', 'approval_status', 'created_at'];
+        if (! in_array($sort, $sortable, true)) {
+            $sort = 'fecha';
+        }
 
         $query = Movimiento::query()->with(['cliente','propiedad','inquilino','approver']);
 
@@ -45,11 +51,11 @@ class MovimientoController extends Controller
             });
         }
 
-        $query->orderByDesc('fecha')->orderByDesc('id');
+        $query->orderBy($sort, $dir)->orderByDesc('id');
 
         $movimientos = $query->paginate($perPage)->withQueryString();
 
-        return view('movimientos.index', compact('movimientos','q','perPage'));
+        return view('movimientos.index', compact('movimientos','q','perPage','sort','dir'));
     }
 
     public function create(Request $request)

@@ -20,14 +20,31 @@ use Illuminate\Validation\ValidationException;
 
 class ContractDraftController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $q = trim((string) $request->query('q', ''));
+        $sort = (string) $request->query('sort', 'updated_at');
+        $dir = strtolower((string) $request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortable = ['id', 'source', 'status', 'created_at', 'updated_at'];
+        if (! in_array($sort, $sortable, true)) {
+            $sort = 'updated_at';
+        }
+
         $drafts = ContractDraft::query()
             ->with(['currentVersion', 'createdBy', 'publicRequest'])
-            ->latest()
-            ->paginate(20);
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($drafts) use ($q) {
+                    $drafts->where('id', 'like', "%{$q}%")
+                        ->orWhere('source', 'like', "%{$q}%")
+                        ->orWhere('status', 'like', "%{$q}%")
+                        ->orWhereHas('createdBy', fn ($users) => $users->where('name', 'like', "%{$q}%"));
+                });
+            })
+            ->orderBy($sort, $dir)
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('contratos.borradores.index', compact('drafts'));
+        return view('contratos.borradores.index', compact('drafts', 'q', 'sort', 'dir'));
     }
 
     public function create(ContractDraftPayload $payloads)

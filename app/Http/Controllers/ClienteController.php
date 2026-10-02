@@ -18,6 +18,13 @@ class ClienteController extends Controller
     public function index(Request $request, ReporteFinancieroService $reportes)
     {
         $search = trim((string) $request->get('search'));
+        $sort = (string) $request->query('sort', 'nombre');
+        $dir = strtolower((string) $request->query('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortable = ['nombre', 'rfc', 'correo', 'created_at'];
+
+        if (! in_array($sort, $sortable, true)) {
+            $sort = 'nombre';
+        }
 
         $clientes = Cliente::query()
             ->when(Schema::hasColumn('clientes', 'deleted_at'), function ($query) {
@@ -40,7 +47,7 @@ class ClienteController extends Controller
                         ->orWhere('notas', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('nombre')
+            ->orderBy($sort, $dir)
             ->paginate(20)
             ->withQueryString();
 
@@ -48,7 +55,7 @@ class ClienteController extends Controller
             $clientes->getCollection()->pluck('pk_cliente')
         );
 
-        return view('clientes.index', compact('clientes', 'search', 'saldosDisponibles'));
+        return view('clientes.index', compact('clientes', 'search', 'saldosDisponibles', 'sort', 'dir'));
     }
 
     public function create()
@@ -87,7 +94,8 @@ class ClienteController extends Controller
             'propiedades.contratos.inquilino',
             'propiedades.documentos',
             'contratos.inquilino',
-            'documentos',
+            'documentos.propiedad',
+            'documentos.inquilino',
         ])->findOrFail($id);
         $movimientosPerfil = $movimientosService->forCliente($cliente->pk_cliente, $request);
 

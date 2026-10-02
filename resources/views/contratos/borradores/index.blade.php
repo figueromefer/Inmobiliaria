@@ -21,17 +21,25 @@
         $statusLabels = ['draft' => 'En captura', 'submitted' => 'Enviada'];
     @endphp
     <div class="max-w-7xl mx-auto mt-6 bg-white p-6 rounded-lg shadow">
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50 border-b">
+        <form method="GET" class="mb-4 flex flex-wrap items-end gap-2" data-live-search>
+            <div>
+                <label for="q" class="block text-sm font-medium">Buscar</label>
+                <input id="q" name="q" value="{{ $q ?? '' }}" placeholder="ID, origen, estado o creador" class="mt-1 rounded border px-3 py-2" data-live-search-input>
+            </div>
+            <button class="rounded bg-gray-800 px-4 py-2 text-white">Buscar</button>
+            <a href="{{ route('contratos.borradores.index') }}" class="rounded bg-gray-100 px-4 py-2 text-gray-700">Limpiar</a>
+        </form>
+        <div class="adi-table-wrap">
+            <table class="adi-table">
+                <thead>
                     <tr>
-                        <th class="text-left px-4 py-3">ID</th>
-                        <th class="text-left px-4 py-3">Origen</th>
-                        <th class="text-left px-4 py-3">Estado</th>
+                        <th><x-table.sort-link column="id" label="ID" :current-sort="$sort" :current-dir="$dir" /></th>
+                        <th><x-table.sort-link column="source" label="Origen" :current-sort="$sort" :current-dir="$dir" /></th>
+                        <th><x-table.sort-link column="status" label="Estado" :current-sort="$sort" :current-dir="$dir" /></th>
                         <th class="text-left px-4 py-3">Seguimiento</th>
                         <th class="text-left px-4 py-3">Versión actual</th>
                         <th class="text-left px-4 py-3">Creado por</th>
-                        <th class="text-left px-4 py-3">Actualizado</th>
+                        <th><x-table.sort-link column="updated_at" label="Actualizado" :current-sort="$sort" :current-dir="$dir" /></th>
                         <th class="text-left px-4 py-3">Acciones</th>
                     </tr>
                 </thead>
@@ -40,11 +48,11 @@
                         @php($isEditablePublicRequest = $draft->source === 'public_form' && $draft->publicRequest && $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && !$draft->publicRequest->submitted_at && !$draft->publicRequest->revoked_at)
                         @php($isInternalDraft = in_array($draft->source, ['laravel', 'internal'], true))
                         @php($canDelete = $draft->status === \App\Models\ContractDraft::STATUS_DRAFT && $draft->contrato_id === null && $draft->source !== 'public_form' && $draft->finalization_key === null)
-                        <tr class="border-b hover:bg-gray-50">
-                            <td class="px-4 py-3 font-medium">#{{ $draft->id }}</td>
-                            <td class="px-4 py-3"><span class="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-800">{{ $sourceLabels[$draft->source] ?? ucfirst($draft->source) }}</span></td>
-                            <td class="px-4 py-3"><span class="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ $statusLabels[$draft->status] ?? ucfirst($draft->status) }}</span></td>
-                            <td class="px-4 py-3">
+                        <tr>
+                            <td class="font-medium">#{{ $draft->id }}</td>
+                            <td><span class="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-800">{{ $sourceLabels[$draft->source] ?? ucfirst($draft->source) }}</span></td>
+                            <td><span class="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ $statusLabels[$draft->status] ?? ucfirst($draft->status) }}</span></td>
+                            <td>
                                 @if($draft->publicRequest)
                                     <div class="text-xs text-gray-500">Creada: {{ $draft->publicRequest->created_at?->format('Y-m-d H:i') ?? '—' }}</div>
                                     <div class="text-xs text-gray-500">Expira: {{ $draft->publicRequest->expires_at?->format('Y-m-d H:i') ?? '—' }}</div>
@@ -53,10 +61,10 @@
                                     —
                                 @endif
                             </td>
-                            <td class="px-4 py-3">{{ $draft->currentVersion?->draft_version ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $draft->createdBy?->name ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $draft->updated_at?->format('Y-m-d H:i') ?? '—' }}</td>
-                            <td class="px-4 py-3 space-x-2">
+                            <td>{{ $draft->currentVersion?->draft_version ?? '—' }}</td>
+                            <td>{{ $draft->createdBy?->name ?? '—' }}</td>
+                            <td>{{ $draft->updated_at?->format('Y-m-d H:i') ?? '—' }}</td>
+                            <td>
                                 <a class="inline-flex bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1 rounded" href="{{ route('contratos.borradores.show', $draft) }}">Ver borrador</a>
                                 @if($isInternalDraft)<a class="contract-prepare-button mt-2" href="{{ route('contratos.borradores.document-preview', $draft) }}">Preparar contrato</a>@endif
                                 @if($isEditablePublicRequest)<form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="inline" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="client-link-button mt-2 inline-flex bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded">Generar enlace para cliente</button></form>@endif

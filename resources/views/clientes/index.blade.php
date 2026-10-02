@@ -29,37 +29,38 @@
                     <a href="{{ route('archivados.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Ver archivados</a>
                     @endcan
                 </div>
-                <form method="GET" class="flex gap-2">
+                <form method="GET" class="flex gap-2" data-live-search>
                     <input
                         type="text"
                         name="search"
                         value="{{ $search ?? '' }}"
                         placeholder="Buscar cliente..."
                         class="border rounded px-3 py-2 w-64"
+                        data-live-search-input
                     >
                     <button class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">Buscar</button>
                 </form>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
+            <div class="adi-table-wrap">
+                <table class="adi-table">
+                    <thead>
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notas</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Correo</th>
-                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Disponible</th>
-                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                            <th><x-table.sort-link column="nombre" label="Nombre" :current-sort="$sort" :current-dir="$dir" /></th>
+                            <th>Notas</th>
+                            <th><x-table.sort-link column="correo" label="Correo" :current-sort="$sort" :current-dir="$dir" /></th>
+                            <th class="adi-table-number">Disponible</th>
+                            <th class="adi-table-number">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         @forelse($clientes as $cliente)
                             <tr>
-                                <td class="px-4 py-2">{{ $cliente->nombre }}</td>
-                                <td class="px-4 py-2">{{ $cliente->notas }}</td>
-                                <td class="px-4 py-2">{{ $cliente->correo }}</td>
-                                <td class="px-4 py-2 text-right">${{ number_format((float) ($saldosDisponibles[$cliente->pk_cliente] ?? 0), 2) }}</td>
-                                <td class="px-4 py-2 text-right space-x-2">
+                                <td class="font-medium">{{ $cliente->nombre }}</td>
+                                <td>{{ $cliente->notas }}</td>
+                                <td>{{ $cliente->correo }}</td>
+                                <td class="adi-table-number">${{ number_format((float) ($saldosDisponibles[$cliente->pk_cliente] ?? 0), 2) }}</td>
+                                <td class="adi-table-number"><div class="adi-table-actions">
                                     <a href="{{ route('clientes.show', $cliente) }}" class="text-indigo-600">Ver</a>
                                     @can('manage-records')
                                     <a href="{{ route('clientes.edit', $cliente) }}" class="text-green-600">Editar</a>
@@ -74,11 +75,11 @@
                                             <button class="text-red-600">Archivar</button>
                                         </form>
                                     @endcan
-                                </td>
+                                </div></td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4">Sin resultados</td>
+                                <td colspan="5" class="text-center py-8 text-gray-500">Sin resultados</td>
                             </tr>
                         @endforelse
                     </tbody>
