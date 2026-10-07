@@ -35,9 +35,9 @@ class ContratoPendienteController extends Controller
         return view('contratos.pendientes.index', compact('pendientes'));
     }
 
-    public function show(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service)
+    public function show(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service, JusticiaAlternativaEffectivePayloadService $effectivePayloads)
     {
-        return $this->showResolveForm($pendiente, $service);
+        return $this->showResolveForm($pendiente, $service, $effectivePayloads);
     }
 
     public function showResolveForm(ContratoPendiente $pendiente, JusticiaAlternativaImportService $service, JusticiaAlternativaEffectivePayloadService $effectivePayloads)
