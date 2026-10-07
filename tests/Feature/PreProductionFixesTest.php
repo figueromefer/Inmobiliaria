@@ -33,6 +33,24 @@ class PreProductionFixesTest extends TestCase
         $this->assertDatabaseCount('contratos', 0);
     }
 
+    public function test_pending_contract_show_routes_render_the_effective_justicia_alternativa_payload(): void
+    {
+        $pending = ContratoPendiente::create($this->pendingPayload());
+        $pending->update(['manual_overrides' => ['nombre_solicitante' => 'CLIENTE MANUAL']]);
+
+        foreach (['contratos.pendientes.show', 'contratos.pendientes.resolver.form'] as $route) {
+            $response = $this->actingAs($this->user('agent'))
+                ->get(route($route, $pending));
+
+            $response->assertOk();
+            $response->assertViewIs('contratos.pendientes.show');
+            $response->assertViewHas('mapped', fn (array $mapped) => $mapped['nombre_solicitante'] === 'CLIENTE MANUAL');
+            $response->assertSee('CLIENTE MANUAL');
+        }
+
+        $this->assertSame(['nombre_solicitante' => 'CLIENTE MANUAL'], $pending->fresh()->manual_overrides);
+    }
+
     public function test_resolving_pending_contract_requires_alias_for_new_property_and_keeps_address_separate(): void
     {
         $this->fakeGeocoding();
