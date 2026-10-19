@@ -122,6 +122,8 @@ class PrivateContractPreparationController extends Controller
 
     private function assertInternalDraft(ContractDraft $draft): void
     {
-        abort_unless($draft->source === 'internal', 404);
+        // Las revisiones usan el mismo borrador canónico y necesitan poder
+        // conciliar una propiedad antes de publicar la nueva versión.
+        abort_unless(in_array($draft->source, ['internal', 'revision'], true), 404);
     }
 }
