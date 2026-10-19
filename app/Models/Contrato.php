@@ -125,9 +125,12 @@ class Contrato extends Model
     public function scopeActivosEnPeriodo($query, Carbon $inicio, Carbon $fin)
     {
         return $query
-            // Sin inicio verificable no hay ocupación contractual verificable.
-            ->whereNotNull('fecha_inicio')
-            ->whereDate('fecha_inicio', '<=', $fin->toDateString())
+            // Los contratos legacy/importados pueden carecer de inicio; hasta
+            // corregirlos se conservan como potencialmente vigentes.
+            ->where(function ($q) use ($fin) {
+                $q->whereNull('fecha_inicio')
+                    ->orWhereDate('fecha_inicio', '<=', $fin->toDateString());
+            })
             ->where(function ($q) use ($inicio) {
                 $q->whereNull('fecha_fin')
                     ->orWhereDate('fecha_fin', '>=', $inicio->toDateString());

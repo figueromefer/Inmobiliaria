@@ -26,12 +26,14 @@ class PropertyOccupancyRegressionTest extends TestCase
         $occupiedWithoutRent = $this->property($cliente, 'Vigente sin renta');
         $future = $this->property($cliente, 'Futura');
         $expired = $this->property($cliente, 'Vencida');
+        $legacy = $this->property($cliente, 'Legacy sin inicio');
         $draftOnly = $this->property($cliente, 'Sólo borrador');
         $date = Carbon::parse('2026-09-15');
 
         $this->contract($cliente, $occupiedWithoutRent, '2026-01-01', '2026-12-31');
         $this->contract($cliente, $future, '2026-10-01', '2027-09-30');
         $this->contract($cliente, $expired, '2025-01-01', '2026-08-31');
+        Contrato::create(['fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $legacy->pk_propiedad, 'fecha' => '2020-01-01', 'fecha_inicio' => null, 'fecha_fin' => '2026-12-31', 'dias_pago' => 31, 'origen' => 'justicia_alternativa']);
         $draft = app(ContractDraftVersioningService::class)->createDraft(app(ContractDraftPayload::class)->empty(), ['source' => 'internal']);
         $draft->forceFill(['propiedad_id' => $draftOnly->pk_propiedad])->save();
 
@@ -40,6 +42,7 @@ class PropertyOccupancyRegressionTest extends TestCase
         $this->assertNotSame('desocupada', $status->for($occupiedWithoutRent, $date)['key']);
         $this->assertSame('desocupada', $status->for($future, $date)['key']);
         $this->assertSame('desocupada', $status->for($expired, $date)['key']);
+        $this->assertNotSame('desocupada', $status->for($legacy, $date)['key']);
         $this->assertSame('desocupada', $status->for($draftOnly, $date)['key']);
         $this->assertNull($draft->fresh()->contrato_id);
 
@@ -51,6 +54,7 @@ class PropertyOccupancyRegressionTest extends TestCase
         $this->assertContains($future->pk_propiedad, $vacantIds);
         $this->assertContains($expired->pk_propiedad, $vacantIds);
         $this->assertContains($draftOnly->pk_propiedad, $vacantIds);
+        $this->assertNotContains($legacy->pk_propiedad, $vacantIds);
         $this->assertNotContains($occupiedWithoutRent->pk_propiedad, $vacantIds);
     }
 
