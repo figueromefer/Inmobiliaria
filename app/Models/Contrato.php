@@ -118,18 +118,26 @@ class Contrato extends Model
 
     public function scopeActivosEnMes($query, Carbon $mes)
     {
-        $inicio = $mes->copy()->startOfMonth();
-        $fin = $mes->copy()->endOfMonth();
+        return $this->scopeActivosEnPeriodo($query, $mes->copy()->startOfMonth(), $mes->copy()->endOfMonth());
+    }
 
+    /** Contratos definitivos cuya vigencia se cruza con el periodo indicado. */
+    public function scopeActivosEnPeriodo($query, Carbon $inicio, Carbon $fin)
+    {
         return $query
-            ->where(function ($q) use ($fin) {
-                $q->whereNull('fecha_inicio')
-                    ->orWhere('fecha_inicio', '<=', $fin);
-            })
+            // Sin inicio verificable no hay ocupación contractual verificable.
+            ->whereNotNull('fecha_inicio')
+            ->whereDate('fecha_inicio', '<=', $fin->toDateString())
             ->where(function ($q) use ($inicio) {
                 $q->whereNull('fecha_fin')
-                    ->orWhere('fecha_fin', '>=', $inicio);
+                    ->orWhereDate('fecha_fin', '>=', $inicio->toDateString());
             });
+    }
+
+    /** Contratos definitivos vigentes en una fecha concreta. */
+    public function scopeVigentesEnFecha($query, Carbon $fecha)
+    {
+        return $this->scopeActivosEnPeriodo($query, $fecha->copy()->startOfDay(), $fecha->copy()->endOfDay());
     }
 
     public function getComisionMensualFractionAttribute(): float

@@ -14,8 +14,7 @@ class PropertyOperationalStatusService
         $date ??= Carbon::today();
         $contract = Contrato::query()->with('draftVersion')
             ->where('fk_propiedad', $propiedad->pk_propiedad)
-            ->whereDate('fecha_inicio', '<=', $date)
-            ->where(function ($q) use ($date) { $q->whereNull('fecha_fin')->orWhereDate('fecha_fin', '>=', $date); })
+            ->vigentesEnFecha($date)
             ->orderByDesc('fecha_inicio')->orderByDesc('id')->first();
         if (! $contract) return ['key' => 'desocupada', 'label' => 'Desocupada'];
 

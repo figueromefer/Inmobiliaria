@@ -257,11 +257,7 @@ class ReporteMensualController extends Controller
                 // propiedad desocupada.
                 return ! Contrato::query()
                     ->where('fk_propiedad', $propiedad->pk_propiedad)
-                    ->whereDate('fecha_inicio', '<=', $end->toDateString())
-                    ->where(function ($query) use ($start) {
-                        $query->whereNull('fecha_fin')
-                            ->orWhereDate('fecha_fin', '>=', $start->toDateString());
-                    })
+                    ->activosEnPeriodo($start, $end)
                     ->exists();
             })
             ->values();
