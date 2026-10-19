@@ -12,6 +12,7 @@ use App\Models\Contrato;
 use App\Models\User;
 use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftVersioningService;
+use App\Services\ContractDocumentPayloadBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -225,6 +226,63 @@ class PrivateContractWizardTest extends TestCase
         $this->assertSame(2, $google->copyCalls);
         $this->actingAs($agent)->get(route('contratos.show', $contract))
             ->assertSee('Versiones del contrato')->assertSee('Actual')->assertSee('Anterior')->assertSee('Carpeta Drive');
+    }
+
+    public function test_published_revision_reconciles_the_new_property_into_the_definitive_contract(): void
+    {
+        [$draft, $agent] = $this->completeDraft();
+        $this->actingAs($agent)->post(route('contratos.privados.finalize', $draft), ['expected_version_id' => $draft->current_version_id]);
+        $contract = $draft->fresh()->contrato;
+        $previousPropertyId = $contract->fk_propiedad;
+        $replacement = Propiedad::create(['fk_cliente' => $contract->fk_cliente, 'alias' => 'Casa reemplazo', 'domicilio' => 'Calle nueva']);
+
+        $this->actingAs($agent)->post(route('contratos.revision.start', $contract))->assertRedirect();
+        $revision = ContractDraft::query()->where('editing_contract_id', $contract->id)->sole();
+        $this->reconcile($agent, $revision, 'propiedad', $replacement->pk_propiedad);
+        $revision->refresh()->load('currentVersion');
+
+        $this->assertSame($replacement->pk_propiedad, $revision->propiedad_id);
+        $this->assertSame($replacement->pk_propiedad, data_get($revision->currentVersion->canonical_payload, 'leased_property.master_property_id'));
+        $this->assertSame($previousPropertyId, $contract->fresh()->fk_propiedad);
+
+        $this->actingAs($agent)->post(route('contratos.privados.revision.publish', $revision), ['expected_version_id' => $revision->current_version_id])
+            ->assertRedirect(route('contratos.show', $contract));
+        $this->assertSame($replacement->pk_propiedad, $contract->fresh()->fk_propiedad);
+        $status = app(\App\Services\PropertyOperationalStatusService::class);
+        $this->assertSame('desocupada', $status->for(Propiedad::findOrFail($previousPropertyId), \Carbon\Carbon::parse('2026-10-19'))['key']);
+        $this->assertNotSame('desocupada', $status->for($replacement, \Carbon\Carbon::parse('2026-10-19'))['key']);
+    }
+
+    public function test_lessee_rfc_has_one_form_control_and_survives_wizard_versions_for_pf_and_pm(): void
+    {
+        [$draft, $agent] = $this->completeDraft();
+        $rfcName = 'payload[lessee][person][rfc]';
+
+        $this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$draft, 'arrendatario']))
+            ->assertOk()->assertSee($rfcName, false);
+        $this->assertSame(1, substr_count($this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$draft, 'arrendatario']))->getContent(), $rfcName));
+
+        $this->save($agent, $draft, 'arrendatario', ['lessee' => ['person' => ['person_type' => 'fisica', 'rfc' => 'ABCD010101ABC']]]);
+        $draft->refresh()->load('currentVersion');
+        $this->assertSame('ABCD010101ABC', data_get($draft->currentVersion->canonical_payload, 'lessee.person.rfc'));
+        $this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$draft, 'arrendatario']))
+            ->assertSee('value="ABCD010101ABC"', false);
+
+        $inquilino = Inquilino::create(['nombre' => 'Autocomplete sin RFC']);
+        $this->reconcile($agent, $draft, 'inquilino', $inquilino->id);
+        $draft->refresh()->load('currentVersion');
+        $this->assertSame('ABCD010101ABC', data_get($draft->currentVersion->canonical_payload, 'lessee.person.rfc'));
+
+        $this->save($agent, $draft, 'mantenimiento', ['maintenance' => ['exists' => 'no']]);
+        $draft->refresh()->load('currentVersion');
+        $plan = app(ContractDocumentPayloadBuilder::class)->build($draft->currentVersion);
+        $this->assertSame('ABCD010101ABC', $plan['placeholders']['{{arrendatario_rfc}}']);
+        $this->assertNotContains('arrendatario: RFC', $plan['missing_fields']);
+
+        $this->save($agent, $draft, 'arrendatario', ['lessee' => ['person' => ['person_type' => 'moral', 'legal_name' => 'Arrendataria SA', 'rfc' => 'XYZ010101XYZ']]]);
+        $draft->refresh()->load('currentVersion');
+        $this->assertSame('XYZ010101XYZ', data_get($draft->currentVersion->canonical_payload, 'lessee.person.rfc'));
+        $this->assertSame('XYZ010101XYZ', app(ContractDocumentPayloadBuilder::class)->build($draft->currentVersion)['placeholders']['{{arrendatario_rfc}}']);
     }
 
     public function test_legacy_private_contract_starts_an_auditable_fallback_revision_without_inventing_data(): void
