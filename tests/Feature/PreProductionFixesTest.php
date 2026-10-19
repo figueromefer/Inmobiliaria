@@ -330,6 +330,7 @@ class PreProductionFixesTest extends TestCase
             'telefono_complementaria' => '3311112222',
             'domicilio_inmueble_arrendamiento' => 'ANTEA 1135, ZAPOPAN, JALISCO',
             'propiedad_domicilio' => 'ANTEA 1135, ZAPOPAN, JALISCO',
+            'comision_mensual' => 10,
         ], $mappedOverrides);
 
         $raw = [
@@ -343,6 +344,7 @@ class PreProductionFixesTest extends TestCase
             'Correo electrónico de la Parte Complementaria:' => $mapped['correo_complementaria'],
             'Teléfono de la Parte Complementaria:' => $mapped['telefono_complementaria'],
             'Domicilio completo del Inmueble en Arrendamiento' => $mapped['domicilio_inmueble_arrendamiento'],
+            'Comisión mensual' => $mapped['comision_mensual'],
         ];
 
         return [

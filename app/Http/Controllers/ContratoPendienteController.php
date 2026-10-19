@@ -78,7 +78,7 @@ class ContratoPendienteController extends Controller
         }
 
         $validated = $request->validate([
-            'manual' => ['nullable','array'], 'manual.fecha_inicio_contrato'=>['nullable','date'], 'manual.fecha_terminacion_contrato'=>['nullable','date'], 'manual.monto_mensual'=>['nullable','numeric','min:0'], 'manual.monto_total'=>['nullable','numeric','min:0'], 'manual.monto_deposito'=>['nullable','numeric','min:0'], 'manual.domicilio_inmueble_arrendamiento'=>['nullable','string','max:2000'],
+            'manual' => ['nullable','array'], 'manual.fecha_inicio_contrato'=>['nullable','date'], 'manual.fecha_terminacion_contrato'=>['nullable','date'], 'manual.monto_mensual'=>['nullable','numeric','min:0'], 'manual.monto_total'=>['nullable','numeric','min:0'], 'manual.monto_deposito'=>['nullable','numeric','min:0'], 'manual.comision_mensual'=>['nullable','numeric','gt:0'], 'manual.domicilio_inmueble_arrendamiento'=>['nullable','string','max:2000'],
             'cliente_action' => ['required', 'in:existing,new'],
             'fk_cliente' => [
                 'nullable',
@@ -107,6 +107,10 @@ class ContratoPendienteController extends Controller
         $overrides = array_filter($validated['manual'] ?? [], fn($value) => filled($value));
         if ($overrides) $pendiente->update(['manual_overrides' => array_replace($pendiente->manual_overrides ?? [], $overrides)]);
         $mapped = $effectivePayloads->effective($pendiente);
+
+        if ($pendiente->origen === 'justicia_alternativa' && ! Contrato::monthlyCommissionFractionFor($mapped['comision_mensual'] ?? null)) {
+            return back()->withInput()->withErrors(['manual.comision_mensual' => 'Captura una comisión mensual positiva. Ejemplo: 10 para 10%.']);
+        }
 
         if ($this->domicilioImportadoExceedsLimit($mapped)) {
             return back()
@@ -193,6 +197,8 @@ class ContratoPendienteController extends Controller
                 'monto_total' => $mapped['monto_total'] ?? null,
                 'monto_mensual' => $mapped['monto_mensual'] ?? null,
                 'monto_deposito' => $mapped['monto_deposito'] ?? null,
+                'comision_renta' => $mapped['comision_renta'] ?? null,
+                'comision_mensual' => $mapped['comision_mensual'] ?? null,
                 'origen' => $pendiente->origen,
                 'expediente_justicia_alternativa' => $pendiente->origen === 'justicia_alternativa' ? $pendiente->expediente : null,
                 'imported_at' => now(),

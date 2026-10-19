@@ -121,6 +121,10 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('inquilinos', InquilinoController::class)->only(['index', 'show']);
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
+    Route::put('/contratos/{contrato}/comision-mensual', [ContratoController::class, 'updateMonthlyCommission'])
+        ->middleware('can:manage-records')->name('contratos.comision-mensual.update');
+    Route::get('/contratos/{contrato}/recalcular-igualas', [ContratoController::class, 'previewMonthlyCommissions'])->middleware('can:manage-records')->name('contratos.igualas.preview');
+    Route::post('/contratos/{contrato}/recalcular-igualas', [ContratoController::class, 'recalculateMonthlyCommissions'])->middleware('can:manage-records')->name('contratos.igualas.recalculate');
     Route::post('/contratos/{contrato}/editar', [ContractRevisionController::class, 'start'])
         ->middleware('can:manage-records')->name('contratos.revision.start');
     Route::post('/contratos/{contrato}/renovar', [ContractRenewalController::class, 'store'])

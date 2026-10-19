@@ -14,6 +14,8 @@
     .contracts-flash-success { background: #ecfdf5; border: 1px solid #047857; border-left: 4px solid #047857; border-radius: .4rem; color: #065f46; font-weight: 700; margin-bottom: 1rem; padding: .8rem 1rem; }
     .contracts-row-action { border: 1px solid #64748b; border-radius: .35rem; color: #1e3a5f; font-size: .75rem; font-weight: 700; padding: .35rem .55rem; text-decoration: none; }
     .contracts-row-action:hover, .contracts-row-action:focus { background: #eef6f8; color: #0f4c5c; }
+    .contracts-row-action-missing-commission { background:#fef2f2; border-color:#dc2626; color:#b91c1c; }
+    .contracts-row-action-missing-commission:hover, .contracts-row-action-missing-commission:focus { background:#fee2e2; color:#991b1b; }
     .contracts-vigencia { border:1px solid; border-radius:9999px; display:inline-flex; font-size:.75rem; font-weight:700; margin-top:.35rem; padding:.25rem .5rem; }
     .contracts-vigencia-vencido { background:#fef2f2; border-color:#b91c1c; color:#991b1b; }
     .contracts-vigencia-proximo { background:#eff6ff; border-color:#2563eb; color:#1d4ed8; }
@@ -150,9 +152,10 @@
                 <tr class="border-b hover:bg-gray-50">
                 <td class="align-top">
                     <div class="flex flex-col items-start gap-2">
-                        <a href="{{ route('contratos.show', $c) }}" class="contracts-row-action">
+                        <a href="{{ route('contratos.show', $c) }}" class="contracts-row-action {{ ! $c->hasValidMonthlyCommission() ? 'contracts-row-action-missing-commission' : '' }}" @if(! $c->hasValidMonthlyCommission()) title="Falta comisión mensual" @endif>
                             Ver
                         </a>
+                        @if(! $c->hasValidMonthlyCommission())<span class="text-xs font-medium text-red-700">Falta comisión mensual</span>@endif
                         @if($c->document_url)
                             <a href="{{ $c->document_url }}" target="_blank" rel="noopener noreferrer" class="contracts-row-action">Ver documento</a>
                         @else

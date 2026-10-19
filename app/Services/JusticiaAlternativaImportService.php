@@ -171,6 +171,7 @@ class JusticiaAlternativaImportService
             'monto_total' => $this->parseMoney($this->get($row, ['Monto por concepto de Renta Total'])),
             'monto_mensual' => $this->parseMoney($this->get($row, ['Monto por concepto de Renta Mensual'])),
             'monto_deposito' => $this->parseMoney($this->get($row, ['Monto por concepto de Depósito en Garantía'])),
+            'comision_mensual' => $this->parseMoney($this->get($row, ['Comisión mensual', 'Iguala mensual', 'Comisión de administración mensual'])),
             'forma_pago' => $this->get($row, ['Forma de pago']),
             'institucion_bancaria' => $this->get($row, ['Institución Bancaria']),
             'beneficiario' => $this->get($row, ['Beneficiario']),
