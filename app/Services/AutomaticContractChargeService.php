@@ -24,7 +24,7 @@ class AutomaticContractChargeService
 
             $contracts = Contrato::query()
                 ->where('fk_propiedad', $renta->propiedad_id)
-                ->activosEnMes($renta->fecha)
+                ->vigentesEnFecha($renta->fecha)
                 ->orderByDesc('fecha_inicio')
                 ->orderByDesc('id')
                 ->get();
@@ -34,7 +34,7 @@ class AutomaticContractChargeService
                 $hasUnlinkedContract = Contrato::query()
                     ->where('fk_cliente', $renta->cliente_id)
                     ->whereNull('fk_propiedad')
-                    ->activosEnMes($renta->fecha)
+                    ->vigentesEnFecha($renta->fecha)
                     ->exists();
 
                 return $hasUnlinkedContract

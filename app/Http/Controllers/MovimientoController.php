@@ -348,7 +348,7 @@ class MovimientoController extends Controller
         $fecha = $request->validate(['fecha' => ['nullable', 'date']])['fecha'] ?? now()->toDateString();
         $contrato = Contrato::query()
             ->where('fk_propiedad', $propiedad)
-            ->activosEnMes(\Carbon\Carbon::parse($fecha))
+            ->vigentesEnFecha(\Carbon\Carbon::parse($fecha))
             ->whereNotNull('monto_mensual')
             ->orderByDesc('fecha_inicio')
             ->first();
@@ -365,7 +365,7 @@ class MovimientoController extends Controller
         $fecha = $request->validate(['fecha' => ['nullable', 'date']])['fecha'] ?? now()->toDateString();
         $contrato = Contrato::query()
             ->where('inquilino_id', $inquilino)
-            ->activosEnMes(\Carbon\Carbon::parse($fecha))
+            ->vigentesEnFecha(\Carbon\Carbon::parse($fecha))
             ->whereNotNull('monto_mensual')
             ->orderByDesc('fecha_inicio')
             ->first();

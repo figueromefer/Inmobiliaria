@@ -159,7 +159,7 @@ class ContratoController extends Controller
         $contrato->update(['comision_mensual' => $data['comision_mensual']]);
         $missing = Movimiento::query()->where('cliente_id', $contrato->fk_cliente)->where('propiedad_id', $contrato->fk_propiedad)->where('concepto', 'renta')
             ->whereDoesntHave('automaticCharge', fn ($query) => $query->where('auto_generated', true))
-            ->get()->filter(fn ($renta) => Contrato::query()->whereKey($contrato->id)->activosEnMes($renta->fecha)->exists())->count();
+            ->get()->filter(fn ($renta) => Contrato::query()->whereKey($contrato->id)->vigentesEnFecha($renta->fecha)->exists())->count();
 
         return redirect()->route('contratos.show', $contrato)
             ->with('success', 'Comisión mensual actualizada.')
@@ -200,7 +200,7 @@ class ContratoController extends Controller
             })
             ->whereDoesntHave('automaticCharge', fn ($query) => $query->where('auto_generated', true))
             ->orderBy('fecha')->get()->filter(function (Movimiento $rent) use ($contrato) {
-                return Contrato::query()->whereKey($contrato->id)->activosEnMes($rent->fecha)->exists();
+                return Contrato::query()->whereKey($contrato->id)->vigentesEnFecha($rent->fecha)->exists();
             })->map(function (Movimiento $rent) use ($contrato) {
                 $manual = Movimiento::query()->where('propiedad_id', $rent->propiedad_id)->where('concepto', 'iguala')->where('auto_generated', false)
                     ->whereYear('fecha', $rent->fecha->year)->whereMonth('fecha', $rent->fecha->month)->exists();

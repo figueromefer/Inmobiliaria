@@ -145,6 +145,36 @@ class AutomaticContractChargeRegressionTest extends TestCase
             ->assertSessionHas('warning', fn (string $warning) => str_contains($warning, 'no se encontró un contrato vigente'));
     }
 
+    public function test_commissions_match_the_contract_valid_on_the_exact_rent_date_and_preview_uses_the_same_rule(): void
+    {
+        [$client, $property] = $this->clientAndProperty('Exact date');
+        $first = $this->contract($client, $property, 10, '2025-10-01', '2026-10-05');
+        $second = $this->contract($client, $property, 5, '2026-10-06', '2027-10-05');
+        $earlyRent = $this->rent($client, $property, 10460, '2026-10-03');
+        $lateRent = $this->rent($client, $property, 10460, '2026-10-19');
+
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_AGENT]))
+            ->get(route('contratos.igualas.preview', $second))
+            ->assertOk()
+            ->assertSee('value="'.$lateRent->id.'"', false)
+            ->assertDontSee('value="'.$earlyRent->id.'"', false);
+
+        $service = app(AutomaticContractChargeService::class);
+        $this->assertNull($service->reconcileMonthlyCommission($lateRent));
+        $this->assertDatabaseHas('movimientos', [
+            'source_movimiento_id' => $lateRent->id,
+            'contrato_id' => $second->id,
+            'importe' => 523,
+        ]);
+
+        $this->assertNull($service->reconcileMonthlyCommission($earlyRent));
+        $this->assertDatabaseHas('movimientos', [
+            'source_movimiento_id' => $earlyRent->id,
+            'contrato_id' => $first->id,
+            'importe' => 1046,
+        ]);
+    }
+
     private function clientAndProperty(string $suffix): array
     {
         $client = Cliente::create(['nombre' => "Cliente {$suffix}", 'rfc' => 'XAXX010101000', 'domicilio' => 'Domicilio']);
@@ -158,8 +188,8 @@ class AutomaticContractChargeRegressionTest extends TestCase
         return Contrato::create(['fk_cliente' => $client->pk_cliente, 'fk_propiedad' => $property->pk_propiedad, 'fecha' => '2026-01-01', 'fecha_inicio' => $start, 'fecha_fin' => $end, 'comision_mensual' => $commission, 'origen' => $origin]);
     }
 
-    private function rent(Cliente $client, Propiedad $property, float $amount): Movimiento
+    private function rent(Cliente $client, Propiedad $property, float $amount, string $date = '2026-10-19'): Movimiento
     {
-        return Movimiento::create(['cliente_id' => $client->pk_cliente, 'propiedad_id' => $property->pk_propiedad, 'asignado_a_tipo' => 'propiedad', 'concepto' => 'renta', 'fecha' => '2026-10-19', 'importe' => $amount, 'forma_pago' => 'efectivo', 'approval_status' => Movimiento::STATUS_APPROVED, 'estado_pago' => Movimiento::PAYMENT_LIQUIDATED, 'fecha_liquidacion' => '2026-10-19', 'afecta_saldo_cliente' => true]);
+        return Movimiento::create(['cliente_id' => $client->pk_cliente, 'propiedad_id' => $property->pk_propiedad, 'asignado_a_tipo' => 'propiedad', 'concepto' => 'renta', 'fecha' => $date, 'importe' => $amount, 'forma_pago' => 'efectivo', 'approval_status' => Movimiento::STATUS_APPROVED, 'estado_pago' => Movimiento::PAYMENT_LIQUIDATED, 'fecha_liquidacion' => $date, 'afecta_saldo_cliente' => true]);
     }
 }
