@@ -145,9 +145,26 @@ class Contrato extends Model
 
     public function getComisionMensualFractionAttribute(): float
     {
-        $v = (float) ($this->comision_mensual ?? 0);
+        return $this->monthlyCommissionFraction() ?? 0.0;
+    }
+
+    public static function monthlyCommissionFractionFor(mixed $value): ?float
+    {
+        if (! is_numeric($value)) return null;
+        $v = (float) $value;
+        if (! is_finite($v) || $v <= 0) return null;
 
         return $v > 1 ? $v / 100 : $v;
+    }
+
+    public function monthlyCommissionFraction(): ?float
+    {
+        return self::monthlyCommissionFractionFor($this->comision_mensual);
+    }
+
+    public function hasValidMonthlyCommission(): bool
+    {
+        return $this->monthlyCommissionFraction() !== null;
     }
 
     /** Estado de vigencia para UI; no altera la vigencia contractual. */

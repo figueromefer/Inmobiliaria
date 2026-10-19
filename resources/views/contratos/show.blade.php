@@ -65,7 +65,28 @@
         <div><dt class="text-sm text-gray-500">Depósito</dt><dd class="mt-1 text-gray-900">{{ $moneda($contrato->monto_deposito) }}</dd></div>
         <div><dt class="text-sm text-gray-500">Monto total</dt><dd class="mt-1 text-gray-900">{{ $moneda($contrato->monto_total) }}</dd></div>
         <div><dt class="text-sm text-gray-500">Comisión por renta</dt><dd class="mt-1 text-gray-900">{{ $moneda($contrato->comision_renta) }}</dd></div>
-        <div><dt class="text-sm text-gray-500">Comisión mensual</dt><dd class="mt-1 text-gray-900">{{ $moneda($contrato->comision_mensual) }}</dd></div>
+        <div>
+          <dt class="text-sm text-gray-500">Comisión mensual</dt>
+          <dd class="mt-1 text-gray-900">{{ $contrato->hasValidMonthlyCommission() ? number_format($contrato->comision_mensual_fraction * 100, 2).'%' : 'No definida' }}</dd>
+          @can('manage-records')
+            <details class="mt-2">
+              <summary class="cursor-pointer text-sm font-semibold text-blue-700">Editar</summary>
+              <form method="POST" action="{{ route('contratos.comision-mensual.update', $contrato) }}" class="mt-2 flex flex-wrap gap-2">
+                @csrf
+                @method('PUT')
+                <input name="comision_mensual" inputmode="decimal" value="{{ old('comision_mensual', $contrato->comision_mensual) }}" class="w-28 rounded border-gray-300" required>
+                <button class="rounded bg-slate-700 px-3 py-1 text-sm font-semibold text-white">Guardar</button>
+              </form>
+              <p class="mt-1 text-xs text-gray-500">Captura 10 para 10%.</p>
+              @error('comision_mensual')
+                <p class="text-xs text-red-600">{{ $message }}</p>
+              @enderror
+            </details>
+            @if($contrato->hasValidMonthlyCommission())
+              <a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('contratos.igualas.preview', $contrato) }}">Recalcular igualas</a>
+            @endif
+          @endcan
+        </div>
         <div><dt class="text-sm text-gray-500">Domicilio registrado</dt><dd class="mt-1 text-gray-900">{{ $dato($contrato->domicilio_inmueble) }}</dd></div>
       </dl>
     </section>

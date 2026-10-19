@@ -88,6 +88,7 @@ $confidenceNote = function ($confidence) {
 <div><strong>Fin:</strong> {{ $mapped['fecha_terminacion_contrato'] ?? '—' }}</div>
 <div><strong>Renta mensual:</strong> {{ isset($mapped['monto_mensual']) ? '$'.number_format($mapped['monto_mensual'], 2) : '—' }}</div>
 <div><strong>Depósito:</strong> {{ isset($mapped['monto_deposito']) ? '$'.number_format($mapped['monto_deposito'], 2) : '—' }}</div>
+<div><strong>Comisión mensual / iguala:</strong> {{ \App\Models\Contrato::monthlyCommissionFractionFor($mapped['comision_mensual'] ?? null) ? ($mapped['comision_mensual'].'%') : '—' }}</div>
 </div>
 
 <form method="POST" action="{{ route('contratos.pendientes.resolver', $pendiente) }}" class="bg-white rounded-xl shadow border p-6 space-y-6">
@@ -97,8 +98,8 @@ $confidenceNote = function ($confidence) {
 <h3 class="font-bold text-amber-900">Datos faltantes o por revisar</h3>
 @if(!empty($missingFields))<p class="text-sm text-amber-800">Faltan: {{ implode(', ', $missingFields) }}.</p>@else<p class="text-sm text-amber-800">Puedes corregir los datos si la información recibida requiere ajuste.</p>@endif
 <div class="grid gap-3 md:grid-cols-2">
-@foreach(['fecha_inicio_contrato'=>'Fecha inicio','fecha_terminacion_contrato'=>'Fecha fin','monto_mensual'=>'Renta mensual','monto_total'=>'Monto total','monto_deposito'=>'Depósito','domicilio_inmueble_arrendamiento'=>'Domicilio'] as $key=>$label)
-<label class="text-sm font-medium">{{ $label }}<input class="mt-1 w-full rounded border-gray-300" type="{{ str_starts_with($key,'fecha') ? 'date' : (str_starts_with($key,'monto') ? 'number' : 'text') }}" step="any" name="manual[{{ $key }}]" value="{{ old('manual.'.$key, $pendiente->manual_overrides[$key] ?? '') }}"><span class="block text-xs text-gray-600">{{ array_key_exists($key, $pendiente->manual_overrides ?? []) ? 'Corregido manualmente' : 'Dato recibido de Justicia Alternativa' }}</span></label>
+@foreach(['fecha_inicio_contrato'=>'Fecha inicio','fecha_terminacion_contrato'=>'Fecha fin','monto_mensual'=>'Renta mensual','monto_total'=>'Monto total','monto_deposito'=>'Depósito','comision_mensual'=>'Comisión mensual / iguala mensual','domicilio_inmueble_arrendamiento'=>'Domicilio'] as $key=>$label)
+<label class="text-sm font-medium">{{ $label }}<input class="mt-1 w-full rounded border-gray-300" type="{{ str_starts_with($key,'fecha') ? 'date' : (in_array($key, ['monto_mensual', 'monto_total', 'monto_deposito', 'comision_mensual'], true) ? 'number' : 'text') }}" step="any" name="manual[{{ $key }}]" value="{{ old('manual.'.$key, $pendiente->manual_overrides[$key] ?? '') }}"><span class="block text-xs text-gray-600">{{ array_key_exists($key, $pendiente->manual_overrides ?? []) ? 'Corregido manualmente' : 'Dato recibido de Justicia Alternativa' }}</span></label>
 @endforeach
 </div></section>
 

@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Models\ContratoPendiente;
+use App\Models\Movimiento;
 use App\Models\ContractDocumentVersion;
 use App\Services\JusticiaAlternativaImportService;
 use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use App\Services\AutomaticContractChargeService;
 
 class ContratoController extends Controller
 {
@@ -145,6 +147,67 @@ class ContratoController extends Controller
 
         $documentChecklist = $checklists->for('contrato', $contrato->documentos);
         return view('contratos.show', compact('contrato', 'versions', 'documentChecklist'));
+    }
+
+    public function updateMonthlyCommission(Request $request, Contrato $contrato)
+    {
+        $data = $request->validate(['comision_mensual' => ['required', 'numeric', 'gt:0']]);
+        if (! Contrato::monthlyCommissionFractionFor($data['comision_mensual'])) {
+            return back()->withErrors(['comision_mensual' => 'Captura una comisión mensual positiva. Ejemplo: 10 para 10%.']);
+        }
+
+        $contrato->update(['comision_mensual' => $data['comision_mensual']]);
+        $missing = Movimiento::query()->where('cliente_id', $contrato->fk_cliente)->where('propiedad_id', $contrato->fk_propiedad)->where('concepto', 'renta')
+            ->whereDoesntHave('automaticCharge', fn ($query) => $query->where('auto_generated', true))
+            ->get()->filter(fn ($renta) => Contrato::query()->whereKey($contrato->id)->activosEnMes($renta->fecha)->exists())->count();
+
+        return redirect()->route('contratos.show', $contrato)
+            ->with('success', 'Comisión mensual actualizada.')
+            ->with('warning', $missing ? "La comisión mensual quedó guardada. Las nuevas rentas generarán su iguala automáticamente. Existen {$missing} rentas anteriores sin iguala automática." : null);
+    }
+
+    public function previewMonthlyCommissions(Contrato $contrato)
+    {
+        abort_unless($contrato->hasValidMonthlyCommission(), 422, 'El contrato no tiene una comisión mensual válida.');
+
+        return view('contratos.recalcular-igualas', ['contrato' => $contrato, 'candidates' => $this->commissionCandidates($contrato)]);
+    }
+
+    public function recalculateMonthlyCommissions(Request $request, Contrato $contrato, AutomaticContractChargeService $charges)
+    {
+        abort_unless($contrato->hasValidMonthlyCommission(), 422, 'El contrato no tiene una comisión mensual válida.');
+        $data = $request->validate(['rentas' => ['nullable', 'array'], 'rentas.*' => ['integer', 'distinct']]);
+        $allowed = $this->commissionCandidates($contrato)->keyBy('id');
+        $processed = 0;
+        foreach ($data['rentas'] ?? [] as $id) {
+            if ($rent = $allowed->get($id)) {
+                $charges->reconcileMonthlyCommission($rent);
+                $processed++;
+            }
+        }
+
+        return redirect()->route('contratos.show', $contrato)->with('success', "Se generaron o actualizaron {$processed} igualas automáticas seleccionadas.");
+    }
+
+    private function commissionCandidates(Contrato $contrato)
+    {
+        return Movimiento::query()->with('propiedad')
+            ->where('cliente_id', $contrato->fk_cliente)->where('propiedad_id', $contrato->fk_propiedad)
+            ->where('concepto', 'renta')
+            ->where(function ($query) {
+                $query->whereNull('estado_pago')
+                    ->orWhere('estado_pago', '!=', Movimiento::PAYMENT_CANCELED);
+            })
+            ->whereDoesntHave('automaticCharge', fn ($query) => $query->where('auto_generated', true))
+            ->orderBy('fecha')->get()->filter(function (Movimiento $rent) use ($contrato) {
+                return Contrato::query()->whereKey($contrato->id)->activosEnMes($rent->fecha)->exists();
+            })->map(function (Movimiento $rent) use ($contrato) {
+                $manual = Movimiento::query()->where('propiedad_id', $rent->propiedad_id)->where('concepto', 'iguala')->where('auto_generated', false)
+                    ->whereYear('fecha', $rent->fecha->year)->whereMonth('fecha', $rent->fecha->month)->exists();
+                $rent->setAttribute('has_manual_conflict', $manual);
+                $rent->setAttribute('calculated_commission', round((float) $rent->importe * $contrato->comision_mensual_fraction, 2));
+                return $rent;
+            })->values();
     }
 
     public function showImportJusticiaAlternativaForm()

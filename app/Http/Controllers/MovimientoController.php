@@ -120,12 +120,12 @@ class MovimientoController extends Controller
         [$data, $message] = $this->applyApprovalState($request, $data, 'registrado');
 
         try {
-            $movimiento = DB::transaction(function () use ($data, $charges) {
+            [$movimiento, $chargeWarning] = DB::transaction(function () use ($data, $charges) {
                 $movimiento = Movimiento::withoutEvents(fn () => Movimiento::create($data));
                 $movimiento->ensureFolio();
-                $charges->reconcileMonthlyCommission($movimiento->fresh());
+                $chargeWarning = $charges->reconcileMonthlyCommission($movimiento->fresh());
 
-                return $movimiento->fresh();
+                return [$movimiento->fresh(), $chargeWarning];
             });
         } catch (\Throwable $exception) {
             $this->deleteComprobante($storedComprobante, 'No se pudo revertir un comprobante tras fallar la base de datos.');
@@ -134,7 +134,12 @@ class MovimientoController extends Controller
         }
         $this->logMovimientoCreated($request, $movimiento->fresh());
 
-        return redirect()->route('movimientos.index')->with('ok', $message);
+        $redirect = redirect()->route('movimientos.index')->with('ok', $message);
+        if ($chargeWarning) {
+            $redirect->with('warning', $chargeWarning);
+        }
+
+        return $redirect;
     }
 
     public function update(Request $request, Movimiento $movimiento, AutomaticContractChargeService $charges)
@@ -153,9 +158,9 @@ class MovimientoController extends Controller
         [$data, $message] = $this->applyApprovalState($request, $data, 'actualizado');
 
         try {
-            DB::transaction(function () use ($movimiento, $data, $charges) {
+            $chargeWarning = DB::transaction(function () use ($movimiento, $data, $charges) {
                 $movimiento->update($data);
-                $charges->reconcileMonthlyCommission($movimiento->fresh());
+                return $charges->reconcileMonthlyCommission($movimiento->fresh());
             });
         } catch (\Throwable $exception) {
             $this->deleteComprobante($newComprobante, 'No se pudo revertir un comprobante tras fallar la actualización.');
@@ -168,7 +173,12 @@ class MovimientoController extends Controller
                 ->with('error', 'El movimiento se actualizó, pero no fue posible eliminar el comprobante anterior.');
         }
 
-        return redirect()->route('movimientos.index')->with('ok', $message);
+        $redirect = redirect()->route('movimientos.index')->with('ok', $message);
+        if ($chargeWarning) {
+            $redirect->with('warning', $chargeWarning);
+        }
+
+        return $redirect;
     }
 
     public function destroy(Movimiento $movimiento, AutomaticContractChargeService $charges)

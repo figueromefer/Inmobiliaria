@@ -4,17 +4,62 @@ namespace App\Services;
 
 use App\Models\Contrato;
 use App\Models\Movimiento;
+use App\Models\Propiedad;
 use Illuminate\Support\Facades\DB;
 
 class AutomaticContractChargeService
 {
-    public function reconcileMonthlyCommission(Movimiento $renta): void
+    /** Returns a user-facing warning when a rent cannot be charged automatically. */
+    public function reconcileMonthlyCommission(Movimiento $renta): ?string
     {
-        if ($renta->concepto !== 'renta') { $this->removeOrCancelForSource($renta); return; }
-        DB::transaction(function () use ($renta) {
+        if ($renta->concepto !== 'renta') { $this->removeOrCancelForSource($renta); return null; }
+
+        return DB::transaction(function () use ($renta): ?string {
             $renta = Movimiento::lockForUpdate()->findOrFail($renta->id);
-            $contract = Contrato::query()->where('fk_propiedad', $renta->propiedad_id)->activosEnMes($renta->fecha)->orderByDesc('fecha_inicio')->first();
-            if (! $contract || $contract->comision_mensual_fraction <= 0) { $this->removeOrCancelForSource($renta); return; }
+            if (! $renta->propiedad_id) {
+                $this->removeOrCancelForSource($renta);
+
+                return 'Renta registrada, pero no se generó la iguala porque no tiene una propiedad vinculada.';
+            }
+
+            $contracts = Contrato::query()
+                ->where('fk_propiedad', $renta->propiedad_id)
+                ->activosEnMes($renta->fecha)
+                ->orderByDesc('fecha_inicio')
+                ->orderByDesc('id')
+                ->get();
+
+            if ($contracts->isEmpty()) {
+                $this->removeOrCancelForSource($renta);
+                $hasUnlinkedContract = Contrato::query()
+                    ->where('fk_cliente', $renta->cliente_id)
+                    ->whereNull('fk_propiedad')
+                    ->activosEnMes($renta->fecha)
+                    ->exists();
+
+                return $hasUnlinkedContract
+                    ? 'Renta registrada, pero no se generó la iguala porque existe un contrato vigente sin propiedad vinculada.'
+                    : 'Renta registrada, pero no se generó la iguala porque no se encontró un contrato vigente vinculado a '.$this->propertyLabel($renta->propiedad_id).'.';
+            }
+
+            if ($contracts->count() > 1) {
+                $this->removeOrCancelForSource($renta);
+
+                return 'Renta registrada, pero no se generó la iguala porque hay más de un contrato vigente para '.$this->propertyLabel($renta->propiedad_id).'.';
+            }
+
+            $contract = $contracts->sole();
+            if (! $contract->hasValidMonthlyCommission()) {
+                $this->removeOrCancelForSource($renta);
+
+                return 'Renta registrada, pero no se generó la iguala porque el contrato vigente no tiene porcentaje de comisión mensual.';
+            }
+
+            $existingCharge = Movimiento::query()->where('source_movimiento_id', $renta->id)->lockForUpdate()->first();
+            if ($existingCharge && ! $existingCharge->auto_generated) {
+                return 'Renta registrada, pero no se generó la iguala porque ya existe un movimiento manual ligado a esa renta.';
+            }
+
             Movimiento::updateOrCreate(['source_movimiento_id' => $renta->id], [
                 'cliente_id' => $renta->cliente_id, 'propiedad_id' => $renta->propiedad_id, 'inquilino_id' => $renta->inquilino_id,
                 'asignado_a_tipo' => $renta->asignado_a_tipo, 'contrato_id' => $contract->id, 'concepto' => 'iguala',
@@ -24,7 +69,14 @@ class AutomaticContractChargeService
                 'approval_status' => $renta->approval_status, 'approved_by' => $renta->approved_by, 'approved_at' => $renta->approved_at,
                 'estado_pago' => $renta->estado_pago, 'fecha_liquidacion' => $renta->fecha_liquidacion,
             ]);
+
+            return null;
         });
+    }
+
+    private function propertyLabel(int $propertyId): string
+    {
+        return Propiedad::query()->find($propertyId)?->alias ?: 'la propiedad seleccionada';
     }
     public function removeOrCancelForSource(Movimiento $renta): void { Movimiento::where('source_movimiento_id', $renta->id)->where('auto_generated', true)->delete(); }
     public function syncApprovalFromSource(Movimiento $renta): void { $this->reconcileMonthlyCommission($renta); }
