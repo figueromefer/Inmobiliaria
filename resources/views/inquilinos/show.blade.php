@@ -140,7 +140,7 @@
                             </div>
                             <div>
                                 <div class="text-gray-500">Comisión mensual</div>
-                                <div class="font-medium">{{ $contrato->comision_mensual ? rtrim(rtrim(number_format((float) $contrato->comision_mensual, 2), '0'), '.').'%' : '—' }}</div>
+                                <div class="font-medium">{{ $contrato->monthlyCommissionDisplay() }}</div>
                             </div>
                             <div>
                                 <div class="text-gray-500">Expediente JA</div>

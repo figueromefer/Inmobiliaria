@@ -227,7 +227,7 @@ class GenerarIgualasMovimientos extends Command
             return $this->withAction($base, 'sospechoso', 'Existe movimiento manual sospechoso de comisión/honorario.');
         }
 
-        $monthly = (float) $renta->importe * $this->commissionFraction($contrato);
+        $monthly = (float) ($contrato->calculateMonthlyCommission((float) $renta->importe) ?? 0);
         $fixed = $this->shouldApplyFixedCommission($renta, $contrato)
             ? (float) ($contrato->comision_renta ?? 0)
             : 0.0;
@@ -279,15 +279,8 @@ class GenerarIgualasMovimientos extends Command
 
     private function hasCommission(Contrato $contrato): bool
     {
-        return (float) ($contrato->comision_mensual ?? 0) > 0
+        return $contrato->hasValidMonthlyCommission()
             || (float) ($contrato->comision_renta ?? 0) > 0;
-    }
-
-    private function commissionFraction(Contrato $contrato): float
-    {
-        $value = (float) ($contrato->comision_mensual ?? 0);
-
-        return $value > 1 ? $value / 100 : $value;
     }
 
     private function hasExistingIguala(Movimiento $renta, Carbon $fechaRenta): bool

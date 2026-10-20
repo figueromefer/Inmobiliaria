@@ -45,11 +45,44 @@ class ContractMonthlyCommissionManagementTest extends TestCase
             ->assertRedirect(route('contratos.show', $contract));
         $this->assertSame(.10, (float) $contract->fresh()->comision_mensual);
 
+        $this->actingAs($this->agent())->put(route('contratos.comision-mensual.update', $contract), [
+            'comision_mensual' => '1000', 'comision_mensual_unidad' => 'fixed',
+        ])->assertRedirect(route('contratos.show', $contract));
+        $this->assertSame(1000.0, (float) $contract->fresh()->comision_mensual);
+        $this->assertSame('fixed', $contract->fresh()->comision_mensual_unidad);
+        $this->actingAs($this->agent())->get(route('contratos.show', $contract))
+            ->assertSee('$1,000.00 fijo')
+            ->assertSee('Guardar comisión')
+            ->assertSee('bg-gray-800 hover:bg-gray-700', false)
+            ->assertDontSee('bg-slate-700', false);
+
         $this->actingAs($this->agent())->put(route('contratos.comision-mensual.update', $contract), ['comision_mensual' => '0'])
             ->assertSessionHasErrors('comision_mensual');
         $this->actingAs(User::factory()->create(['role' => User::ROLE_VIEWER]))
             ->put(route('contratos.comision-mensual.update', $contract), ['comision_mensual' => '10'])
             ->assertForbidden();
+    }
+
+    public function test_commission_units_have_explicit_display_validation_and_calculation_rules(): void
+    {
+        [$client, $property] = $this->fixture();
+        $percent = $this->contract($client, $property, 10, 'percent');
+        $fraction = $this->contract($client, Propiedad::create(['fk_cliente' => $client->pk_cliente, 'alias' => 'Fracción explícita']), .10, 'fraction');
+        $fixed = $this->contract($client, Propiedad::create(['fk_cliente' => $client->pk_cliente, 'alias' => 'Fijo']), 1000, 'fixed');
+        $legacyPercent = $this->contract($client, Propiedad::create(['fk_cliente' => $client->pk_cliente, 'alias' => 'Legado porcentaje']), 10);
+        $legacyFraction = $this->contract($client, Propiedad::create(['fk_cliente' => $client->pk_cliente, 'alias' => 'Legado fracción']), .10);
+
+        $this->assertSame('10.00%', $percent->monthlyCommissionDisplay());
+        $this->assertSame('10.00%', $fraction->monthlyCommissionDisplay());
+        $this->assertSame('$1,000.00 fijo', $fixed->monthlyCommissionDisplay());
+        $this->assertSame('10.00%', $legacyPercent->monthlyCommissionDisplay());
+        $this->assertSame('10.00%', $legacyFraction->monthlyCommissionDisplay());
+        $this->assertSame(1046.0, $percent->calculateMonthlyCommission(10460));
+        $this->assertSame(1046.0, $fraction->calculateMonthlyCommission(10460));
+        $this->assertSame(1000.0, $fixed->calculateMonthlyCommission(10460));
+        $this->assertFalse(Contrato::isValidMonthlyCommission(2, 'fraction'));
+        $this->assertFalse(Contrato::isValidMonthlyCommission(1000, 'unknown'));
+        $this->assertFalse(Contrato::isValidMonthlyCommission(0, 'fixed'));
     }
 
     public function test_explicit_preview_and_generation_are_safe_and_idempotent(): void
@@ -92,6 +125,24 @@ class ContractMonthlyCommissionManagementTest extends TestCase
         $this->assertSame(1146.0, $report['periodo']['igualas']);
     }
 
+    public function test_fixed_monthly_commission_preview_and_recalculation_use_the_fixed_amount(): void
+    {
+        $actor = $this->agent();
+        [$client, $property] = $this->fixture();
+        $contract = $this->contract($client, $property, 1000, 'fixed');
+        $rent = $this->rent($client, $property, 10460, '2026-10-19');
+
+        $this->actingAs($actor)->get(route('contratos.igualas.preview', $contract))
+            ->assertOk()
+            ->assertSee('Comisión: $1,000.00 fijo')
+            ->assertSee('$1,000.00');
+        $this->actingAs($actor)->post(route('contratos.igualas.recalculate', $contract), ['rentas' => [$rent->id]])
+            ->assertRedirect(route('contratos.show', $contract));
+        $this->assertDatabaseHas('movimientos', ['source_movimiento_id' => $rent->id, 'contrato_id' => $contract->id, 'importe' => 1000]);
+        $this->actingAs($actor)->post(route('contratos.igualas.recalculate', $contract), ['rentas' => [$rent->id]]);
+        $this->assertSame(1, Movimiento::where('source_movimiento_id', $rent->id)->count());
+    }
+
     public function test_recalculation_requires_valid_commission_and_manage_records_permission(): void
     {
         [$client, $property] = $this->fixture();
@@ -116,12 +167,13 @@ class ContractMonthlyCommissionManagementTest extends TestCase
         return User::factory()->create(['role' => User::ROLE_AGENT]);
     }
 
-    private function contract(Cliente $client, Propiedad $property, ?float $commission): Contrato
+    private function contract(Cliente $client, Propiedad $property, ?float $commission, ?string $unit = null): Contrato
     {
         return Contrato::create([
             'fk_cliente' => $client->pk_cliente, 'fk_propiedad' => $property->pk_propiedad,
             'fecha' => '2026-01-01', 'fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-12-31',
             'comision_mensual' => $commission,
+            'comision_mensual_unidad' => $unit,
         ]);
     }
 

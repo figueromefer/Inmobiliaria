@@ -23,6 +23,7 @@ class Contrato extends Model
         'fecha_fin',
         'comision_renta',
         'comision_mensual',
+        'comision_mensual_unidad',
         'dias_pago',
         'monto_total',
         'monto_mensual',
@@ -159,12 +160,65 @@ class Contrato extends Model
 
     public function monthlyCommissionFraction(): ?float
     {
-        return self::monthlyCommissionFractionFor($this->comision_mensual);
+        $value = self::positiveNumber($this->comision_mensual);
+        if ($value === null) return null;
+
+        return match ($this->monthlyCommissionType()) {
+            'percent' => $value / 100,
+            'fraction' => $value <= 1 ? $value : null,
+            'legacy' => self::monthlyCommissionFractionFor($value),
+            default => null,
+        };
     }
 
     public function hasValidMonthlyCommission(): bool
     {
-        return $this->monthlyCommissionFraction() !== null;
+        return self::isValidMonthlyCommission($this->comision_mensual, $this->comision_mensual_unidad);
+    }
+
+    /** percent, fraction, fixed, unknown, or legacy for historic NULL rows. */
+    public function monthlyCommissionType(): string
+    {
+        return $this->comision_mensual_unidad === null ? 'legacy' : (string) $this->comision_mensual_unidad;
+    }
+
+    public static function isValidMonthlyCommission(mixed $value, ?string $unit = null): bool
+    {
+        $number = self::positiveNumber($value);
+        if ($number === null) return false;
+
+        return match ($unit) {
+            null => self::monthlyCommissionFractionFor($number) !== null,
+            'percent', 'fixed' => true,
+            'fraction' => $number <= 1,
+            default => false,
+        };
+    }
+
+    /** The one calculation rule used by automatic and manual recalculation. */
+    public function calculateMonthlyCommission(float $rentAmount): ?float
+    {
+        if (! $this->hasValidMonthlyCommission() || ! is_finite($rentAmount) || $rentAmount < 0) return null;
+
+        return $this->monthlyCommissionType() === 'fixed'
+            ? (float) $this->comision_mensual
+            : $rentAmount * (float) $this->monthlyCommissionFraction();
+    }
+
+    public function monthlyCommissionDisplay(): string
+    {
+        if (! $this->hasValidMonthlyCommission()) return 'No definida';
+        if ($this->monthlyCommissionType() === 'fixed') return '$'.number_format((float) $this->comision_mensual, 2).' fijo';
+
+        return number_format((float) $this->monthlyCommissionFraction() * 100, 2).'%';
+    }
+
+    private static function positiveNumber(mixed $value): ?float
+    {
+        if (! is_numeric($value)) return null;
+        $number = (float) $value;
+
+        return is_finite($number) && $number > 0 ? $number : null;
     }
 
     /** Estado de vigencia para UI; no altera la vigencia contractual. */

@@ -225,7 +225,7 @@ class PrivateContractWizardTest extends TestCase
         $this->assertDatabaseCount('contract_document_versions', 2);
         $this->assertSame(2, $google->copyCalls);
         $this->actingAs($agent)->get(route('contratos.show', $contract))
-            ->assertSee('Versiones del contrato')->assertSee('Actual')->assertSee('Anterior')->assertSee('Carpeta Drive');
+            ->assertSee('Versiones del contrato')->assertSee('Actual')->assertSee('Anterior')->assertSee('Abrir carpeta en Drive');
     }
 
     public function test_published_revision_reconciles_the_new_property_into_the_definitive_contract(): void
@@ -239,15 +239,37 @@ class PrivateContractWizardTest extends TestCase
         $this->actingAs($agent)->post(route('contratos.revision.start', $contract))->assertRedirect();
         $revision = ContractDraft::query()->where('editing_contract_id', $contract->id)->sole();
         $this->reconcile($agent, $revision, 'propiedad', $replacement->pk_propiedad);
+        $revision->refresh();
+        $this->save($agent, $revision, 'vigencia', [
+            'term' => ['start_date' => '2026-02-01', 'end_date' => '2026-12-31'],
+            'amounts' => [
+                'monthly_rent' => '10460.00',
+                'rental_commission' => '4321.00',
+                'monthly_commission_value' => '1000.00',
+                'monthly_commission_unit' => 'fixed',
+            ],
+        ]);
         $revision->refresh()->load('currentVersion');
 
         $this->assertSame($replacement->pk_propiedad, $revision->propiedad_id);
         $this->assertSame($replacement->pk_propiedad, data_get($revision->currentVersion->canonical_payload, 'leased_property.master_property_id'));
+        $this->assertSame('1000.00', data_get($revision->currentVersion->canonical_payload, 'amounts.monthly_commission_value'));
+        $this->assertSame('fixed', data_get($revision->currentVersion->canonical_payload, 'amounts.monthly_commission_unit'));
         $this->assertSame($previousPropertyId, $contract->fresh()->fk_propiedad);
+        $this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$revision, 'vigencia']))
+            ->assertOk()->assertSee('value="1000.00"', false)->assertSee('value="fixed" selected', false);
 
         $this->actingAs($agent)->post(route('contratos.privados.revision.publish', $revision), ['expected_version_id' => $revision->current_version_id])
             ->assertRedirect(route('contratos.show', $contract));
-        $this->assertSame($replacement->pk_propiedad, $contract->fresh()->fk_propiedad);
+        $contract->refresh();
+        $this->assertSame($replacement->pk_propiedad, $contract->fk_propiedad);
+        $this->assertSame(10460.0, (float) $contract->monto_mensual);
+        $this->assertSame(4321.0, (float) $contract->comision_renta);
+        $this->assertSame(1000.0, (float) $contract->comision_mensual);
+        $this->assertSame('fixed', $contract->comision_mensual_unidad);
+        $this->assertSame('2026-02-01', $contract->fecha_inicio->toDateString());
+        $this->assertSame('2026-12-31', $contract->fecha_fin->toDateString());
+        $this->actingAs($agent)->get(route('contratos.show', $contract))->assertSee('$1,000.00 fijo');
         $status = app(\App\Services\PropertyOperationalStatusService::class);
         $this->assertSame('desocupada', $status->for(Propiedad::findOrFail($previousPropertyId), \Carbon\Carbon::parse('2026-10-19'))['key']);
         $this->assertNotSame('desocupada', $status->for($replacement, \Carbon\Carbon::parse('2026-10-19'))['key']);

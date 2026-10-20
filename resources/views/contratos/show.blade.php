@@ -13,7 +13,7 @@
       <div class="flex flex-wrap gap-2">
         @can('manage-records')<a href="{{ route('documentos.create', ['contrato'=>$contrato->id,'context'=>'contrato','context_id'=>$contrato->id]) }}" class="contract-detail-action">Subir documento</a>@endcan
         @if($contrato->document_url)<a href="{{ $contrato->document_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action contract-detail-action-secondary">Ver documento</a>@endif
-        @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action">Carpeta Drive</a>@endif
+        @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action">Abrir carpeta en Drive</a>@endif
         @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.revision.start', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Editar contrato</button></form>@endif
         @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.renew', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Renovar contrato</button></form>@endif
         <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Volver a contratos</a>
@@ -67,22 +67,23 @@
         <div><dt class="text-sm text-gray-500">Comisión por renta</dt><dd class="mt-1 text-gray-900">{{ $moneda($contrato->comision_renta) }}</dd></div>
         <div>
           <dt class="text-sm text-gray-500">Comisión mensual</dt>
-          <dd class="mt-1 text-gray-900">{{ $contrato->hasValidMonthlyCommission() ? number_format($contrato->comision_mensual_fraction * 100, 2).'%' : 'No definida' }}</dd>
+          <dd class="mt-1 text-gray-900">{{ $contrato->monthlyCommissionDisplay() }}</dd>
           @can('manage-records')
             <details class="mt-2">
               <summary class="cursor-pointer text-sm font-semibold text-blue-700">Editar</summary>
-              <form method="POST" action="{{ route('contratos.comision-mensual.update', $contrato) }}" class="mt-2 flex flex-wrap gap-2">
+              <form method="POST" action="{{ route('contratos.comision-mensual.update', $contrato) }}" class="mt-2 flex flex-wrap items-end gap-2">
                 @csrf
                 @method('PUT')
-                <input name="comision_mensual" inputmode="decimal" value="{{ old('comision_mensual', $contrato->comision_mensual) }}" class="w-28 rounded border-gray-300" required>
-                <button class="rounded bg-slate-700 px-3 py-1 text-sm font-semibold text-white">Guardar</button>
+                <label class="text-xs font-medium text-gray-700">Valor<input name="comision_mensual" inputmode="decimal" value="{{ old('comision_mensual', $contrato->comision_mensual) }}" class="mt-1 w-28 rounded border-gray-300" required></label>
+                <label class="text-xs font-medium text-gray-700">Unidad<select name="comision_mensual_unidad" class="mt-1 rounded border-gray-300"><option value="" @selected(old('comision_mensual_unidad', $contrato->comision_mensual_unidad) === null)>Legado (10 / 0.10 = 10%)</option><option value="percent" @selected(old('comision_mensual_unidad', $contrato->comision_mensual_unidad) === 'percent')>Porcentaje</option><option value="fraction" @selected(old('comision_mensual_unidad', $contrato->comision_mensual_unidad) === 'fraction')>Fracción</option><option value="fixed" @selected(old('comision_mensual_unidad', $contrato->comision_mensual_unidad) === 'fixed')>Fijo</option></select></label>
+                <button type="submit" class="rounded bg-gray-800 hover:bg-gray-700 px-3 py-2 text-sm font-bold text-white">Guardar comisión</button>
               </form>
-              <p class="mt-1 text-xs text-gray-500">Captura 10 para 10%.</p>
+              <p class="mt-1 text-xs text-gray-500">Porcentaje: 10 = 10%. Fracción: 0.10 = 10%. Fijo: 1000 = $1,000.00.</p>
               @error('comision_mensual')
                 <p class="text-xs text-red-600">{{ $message }}</p>
               @enderror
             </details>
-            @if($contrato->hasValidMonthlyCommission())
+              @if($contrato->hasValidMonthlyCommission())
               <a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('contratos.igualas.preview', $contrato) }}">Recalcular igualas</a>
             @endif
           @endcan
@@ -144,7 +145,7 @@
           @else
             <p class="mt-2 text-sm text-gray-500">Sin documento asociado.</p>
           @endif
-          @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-blue-600 underline">Abrir carpeta Drive</a>@else<p class="mt-3 text-sm text-gray-500">Sin carpeta Drive.</p>@endif
+          @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-blue-600 underline">Abrir carpeta en Drive</a>@else<p class="mt-3 text-sm text-gray-500">Sin carpeta Drive.</p>@endif
           <h4 class="mt-4 font-medium text-gray-900">Documentos cargados</h4>
           @forelse($contrato->documentos as $documento)<div class="mt-2 text-sm"><strong>{{ $documento->titulo ?: $documento->tipo }}</strong> · {{ $documento->created_at?->format('d/m/Y') }} <a class="text-blue-600 underline" href="{{ route('documentos.view', $documento) }}" target="_blank">Ver</a> <a class="text-blue-600 underline" href="{{ route('documentos.download', $documento) }}">Descargar</a> @can('delete-anything')<form class="inline" method="POST" action="{{ route('documentos.destroy', ['documento'=>$documento,'context'=>'contrato','context_id'=>$contrato->id]) }}">@csrf @method('DELETE')<button class="text-red-600 underline">Eliminar</button></form>@endcan</div>@empty<p class="mt-2 text-sm text-gray-500">Sin documentos cargados.</p>@endforelse
         </div>
@@ -172,7 +173,7 @@
           @foreach($versions as $version)
             <li class="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div><p class="font-medium text-gray-900">Versión {{ $loop->count - $loop->index }} @if($version->id === $contrato->contract_document_version_id)<span class="ml-2 rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-800">Actual</span>@else<span class="ml-2 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">Anterior</span>@endif</p><p class="mt-1 text-sm text-gray-500">{{ $version->created_at?->format('d/m/Y H:i') }} · {{ $version->createdBy?->name ?: 'Sistema' }} · {{ $version->status === 'generated' ? 'Documento generado' : 'Documento pendiente' }}</p></div>
-              @if($version->url)<a href="{{ $version->url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>@endif
+              <div class="flex gap-3">@if($version->url)<a href="{{ $version->url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Ver documento</a>@endif @if(is_string($version->drive_folder_id) && preg_match('/^[A-Za-z0-9_-]+$/', $version->drive_folder_id))<a href="https://drive.google.com/drive/folders/{{ rawurlencode($version->drive_folder_id) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">Abrir carpeta en Drive</a>@endif</div>
             </li>
           @endforeach
         </ul>

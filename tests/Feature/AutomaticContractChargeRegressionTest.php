@@ -86,7 +86,7 @@ class AutomaticContractChargeRegressionTest extends TestCase
         $this->assertStringContainsString('no se encontró un contrato vigente', $service->reconcileMonthlyCommission($rent));
 
         $this->contract($cliente, $property, null);
-        $this->assertStringContainsString('no tiene porcentaje', $service->reconcileMonthlyCommission($rent));
+        $this->assertStringContainsString('no tiene una comisión mensual calculable', $service->reconcileMonthlyCommission($rent));
         $this->assertDatabaseMissing('movimientos', ['source_movimiento_id' => $rent->id]);
 
         $this->contract($cliente, $property, 10);

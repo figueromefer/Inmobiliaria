@@ -47,6 +47,7 @@ class ContractPublicationMapper
             'monto_deposito' => data_get($payload, 'amounts.security_deposit'),
             'comision_renta' => data_get($payload, 'amounts.rental_commission'),
             'comision_mensual' => data_get($payload, 'amounts.monthly_commission_value'),
+            'comision_mensual_unidad' => data_get($payload, 'amounts.monthly_commission_unit'),
             'urldoc' => $document->url,
             'origen' => 'privado',
             'contract_draft_version_id' => $version->id,

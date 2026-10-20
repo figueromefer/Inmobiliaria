@@ -18,7 +18,7 @@
             <div><h2 class="font-semibold text-xl text-gray-800">Borrador #{{ $draft->id }}</h2><p class="text-sm text-gray-500">Estado: {{ $statusLabels[$draft->status] ?? ucfirst($draft->status) }}</p></div>
             <div class="flex flex-wrap items-center gap-3">
                 <div><a href="{{ route('contratos.borradores.wizard.show', [$draft, 'generales']) }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Continuar captura</a><p class="mt-1 text-center text-xs text-gray-500">{{ in_array($draft->source, ['laravel', 'internal'], true) ? 'Seguir editando datos' : 'Edición interna' }}</p></div>
-                <div><a href="{{ route('contratos.borradores.document-preview', $draft) }}" class="contract-prepare-button">Preparar contrato</a><p class="mt-1 text-center text-xs text-gray-500">Revisar y generar documento</p></div>
+                <div><a href="{{ route('contratos.borradores.document-preview', $draft) }}" class="contract-prepare-button">{{ $draft->purpose === 'revision' ? 'Revisar y publicar cambios' : 'Preparar contrato' }}</a><p class="mt-1 text-center text-xs text-gray-500">{{ $draft->purpose === 'revision' ? 'Los vínculos y cambios se aplicarán al contrato definitivo al publicar.' : 'Revisar y generar documento' }}</p></div>
                 <a href="{{ route('contratos.borradores.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Volver</a>
                 @can('delete-anything')
                     @if($canDelete)
@@ -34,7 +34,7 @@
     @php($payload = $draft->currentVersion->canonical_payload)
     <div class="max-w-6xl mx-auto mt-6 space-y-5">
         @if(in_array($draft->source, ['laravel', 'internal'], true))
-            <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">Cuando hayas terminado la captura, revisa la información y prepara el contrato para generación.</div>
+            <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">{{ $draft->purpose === 'revision' ? 'Al publicar se generará una nueva versión del documento y los cambios se aplicarán al contrato definitivo.' : 'Cuando hayas terminado la captura, revisa la información y prepara el contrato para generación.' }}</div>
         @endif
         <div class="bg-white rounded-lg shadow p-5 grid gap-3 md:grid-cols-3 text-sm"><div><span class="text-gray-500">Versión actual</span><div class="font-semibold">{{ $draft->currentVersion->draft_version }}</div></div><div><span class="text-gray-500">Actor</span><div class="font-semibold">{{ $draft->currentVersion->createdBy?->name ?? '—' }}</div></div><div><span class="text-gray-500">Fecha</span><div class="font-semibold">{{ $draft->currentVersion->created_at->format('Y-m-d H:i') }}</div></div></div>
         @if($draft->publicRequest)
