@@ -8,6 +8,7 @@ use App\Models\ContractDraft;
 use App\Models\Contrato;
 use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftVersioningService;
+use App\Services\LegacyContractRevisionPayloadService;
 use App\Services\ContractRevisionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class ContractRevisionController extends Controller
 {
-    public function start(Request $request, Contrato $contrato, ContractDraftPayload $payloads, ContractDraftVersioningService $versions): RedirectResponse
+    public function start(Request $request, Contrato $contrato, ContractDraftPayload $payloads, ContractDraftVersioningService $versions, LegacyContractRevisionPayloadService $legacyPayloads): RedirectResponse
     {
         abort_if($contrato->origen === 'justicia_alternativa', 404);
         $draft = ContractDraft::query()->where('editing_contract_id', $contrato->id)->where('purpose', 'revision')
@@ -25,7 +26,7 @@ class ContractRevisionController extends Controller
             $contrato->load(['draftVersion', 'cliente', 'propiedad', 'inquilino']);
             $snapshot = $contrato->draftVersion?->canonical_payload;
             $draft = $versions->createDraft(
-                $snapshot ?: $this->legacyPayload($contrato, $payloads),
+                $snapshot ?: $legacyPayloads->build($contrato, $payloads),
                 [
                     'source' => 'revision', 'purpose' => 'revision', 'editing_contract_id' => $contrato->id,
                     'cliente_id' => $contrato->fk_cliente, 'propiedad_id' => $contrato->fk_propiedad,
@@ -57,34 +58,4 @@ class ContractRevisionController extends Controller
         return redirect()->route('contratos.show', $contrato)->with('success', 'Nueva versión del contrato generada correctamente.');
     }
 
-    /** @return array<string, mixed> */
-    private function legacyPayload(Contrato $contrato, ContractDraftPayload $payloads): array
-    {
-        $payload = $payloads->empty();
-        $payload['metadata']['contract_date'] = $contrato->fecha?->toDateString();
-        $payload['lessor']['person']['full_name'] = $contrato->cliente?->nombre;
-        $payload['lessor']['person']['rfc'] = $contrato->cliente?->rfc;
-        $payload['lessor']['person']['address'] = $contrato->cliente?->domicilio;
-        $payload['lessor']['person']['phone'] = $contrato->cliente?->celular ?: $contrato->cliente?->fijo;
-        $payload['lessor']['person']['email'] = $contrato->cliente?->correo;
-        $payload['lessee']['person']['full_name'] = $contrato->inquilino?->nombre;
-        $payload['lessee']['person']['nationality'] = $contrato->inquilino?->nacionalidad;
-        $payload['lessee']['person']['address'] = $contrato->inquilino?->domicilio;
-        $payload['lessee']['person']['phone'] = $contrato->inquilino?->telefono;
-        $payload['lessee']['person']['email'] = $contrato->inquilino?->correo;
-        $payload['leased_property']['alias'] = $contrato->propiedad?->alias;
-        $payload['leased_property']['address'] = $contrato->domicilio_inmueble ?: $contrato->propiedad?->domicilio;
-        $payload['term']['start_date'] = $contrato->fecha_inicio?->toDateString();
-        $payload['term']['end_date'] = $contrato->fecha_fin?->toDateString();
-        $payload['term']['rent_due_rule']['raw_text'] = $contrato->dias_pago ? (string) $contrato->dias_pago : null;
-        foreach (['total_rent' => 'monto_total', 'monthly_rent' => 'monto_mensual', 'security_deposit' => 'monto_deposito', 'rental_commission' => 'comision_renta', 'monthly_commission_value' => 'comision_mensual'] as $target => $source) {
-            $payload['amounts'][$target] = $contrato->{$source};
-        }
-        // Legacy contracts have no stored unit. Infer only the existing
-        // legacy semantics so a subsequent revision preserves its meaning.
-        $payload['amounts']['monthly_commission_unit'] = $contrato->comision_mensual_unidad
-            ?? ($contrato->hasValidMonthlyCommission() ? ((float) $contrato->comision_mensual > 1 ? 'percent' : 'fraction') : 'unknown');
-
-        return $payload;
-    }
 }

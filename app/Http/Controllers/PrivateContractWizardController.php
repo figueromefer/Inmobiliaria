@@ -53,6 +53,7 @@ class PrivateContractWizardController extends Controller
             'steps' => self::STEPS,
             'payload' => $draft->currentVersion->canonical_payload,
             'wizardContext' => 'internal',
+            'isLegacyRevision' => $draft->purpose === 'revision' && $draft->editingContract?->contract_draft_version_id === null,
             'generation' => [
                 'is_revision' => $draft->purpose === 'revision',
                 'is_renewal' => $draft->purpose === 'renewal',

@@ -9,6 +9,7 @@ use App\Models\ContractDraft;
 use App\Models\Inquilino;
 use App\Models\Propiedad;
 use App\Models\Contrato;
+use App\Models\ContratoPendiente;
 use App\Models\User;
 use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftVersioningService;
@@ -191,12 +192,17 @@ class PrivateContractWizardTest extends TestCase
         $oldSnapshot = $contract->draftVersion->canonical_payload;
         $oldDocument = $contract->contract_document_version_id;
         $contract->cliente->update(['nombre' => 'Maestro cambiado después de publicar']);
+        ContratoPendiente::create([
+            'origen' => 'privado', 'external_id' => 'must-not-be-read-'.$contract->id, 'estado' => 'importado', 'contrato_id' => $contract->id,
+            'raw_payload' => ['tipo_solicitante' => 'Persona Moral', 'cliente_nombre' => 'Payload legacy que no debe usarse'],
+        ]);
 
         $this->actingAs($agent)->post(route('contratos.revision.start', $contract))
             ->assertRedirect();
         $revision = ContractDraft::query()->where('editing_contract_id', $contract->id)->sole()->load('currentVersion');
         $this->assertSame('revision', $revision->purpose);
         $this->assertSame('Persona completa', data_get($revision->currentVersion->canonical_payload, 'lessor.person.full_name'));
+        $this->assertSame('fisica', data_get($revision->currentVersion->canonical_payload, 'lessor.person.person_type'));
         $this->assertSame($oldDocument, $contract->fresh()->contract_document_version_id);
         $this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$revision, 'generales']))
             ->assertSee('Editando contrato #'.$contract->id)->assertSee('versión anterior permanecerá en el historial');
@@ -273,6 +279,174 @@ class PrivateContractWizardTest extends TestCase
         $status = app(\App\Services\PropertyOperationalStatusService::class);
         $this->assertSame('desocupada', $status->for(Propiedad::findOrFail($previousPropertyId), \Carbon\Carbon::parse('2026-10-19'))['key']);
         $this->assertNotSame('desocupada', $status->for($replacement, \Carbon\Carbon::parse('2026-10-19'))['key']);
+    }
+
+    public function test_legacy_revision_recovers_linked_historical_facts_once_then_uses_its_published_snapshot(): void
+    {
+        [$templateDraft, $agent] = $this->completeDraft();
+        $cliente = $templateDraft->cliente;
+        $propiedad = $templateDraft->propiedad;
+        $inquilino = $templateDraft->inquilino;
+        $legacy = Contrato::create([
+            'fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'inquilino_id' => $inquilino->id,
+            'fecha' => '2026-01-01', 'fecha_inicio' => '2026-01-01', 'fecha_fin' => '2026-12-31', 'dias_pago' => 5,
+            'monto_total' => 120000, 'monto_mensual' => 10000, 'monto_deposito' => 10000, 'comision_renta' => 10000, 'comision_mensual' => 10,
+            'origen' => 'privado', 'tipo_solicitante' => 'Persona Física', 'tipo_complementaria' => 'Persona Física',
+        ]);
+        $pending = ContratoPendiente::create([
+            'origen' => 'privado', 'external_id' => 'legacy-source-'.$legacy->id, 'estado' => 'importado', 'contrato_id' => $legacy->id,
+            'raw_payload' => [
+                'tipo_solicitante' => 'Persona Física', 'tipo_complementaria' => 'Persona Física',
+                'cliente_nombre' => 'Arrendadora RAW', 'cliente_rfc' => 'RAW010101RAW',
+                'nombre_complementaria' => 'Arrendatario RAW', 'nacionalidad_complementaria' => 'Mexicana',
+                'telefono_complementaria' => '3311111111', 'correo_complementaria' => 'raw@example.test',
+            ],
+            'mapped_payload' => [
+                'tipo_solicitante' => 'Persona Física', 'tipo_complementaria' => 'Persona Física',
+                'rfc_solicitante' => 'MAP010101MAP', 'fecha_inicio_contrato' => '2026-02-01',
+                'fecha_terminacion_contrato' => '2027-01-31', 'dias_pago' => '05 de cada mes',
+            ],
+        ]);
+
+        $this->actingAs($agent)->post(route('contratos.revision.start', $legacy))->assertRedirect();
+        $first = ContractDraft::query()->where('editing_contract_id', $legacy->id)->where('status', 'draft')->sole()->load('currentVersion');
+        $payload = $first->currentVersion->canonical_payload;
+        $this->assertSame('MAP010101MAP', data_get($payload, 'lessor.person.rfc'));
+        $this->assertSame('Arrendadora RAW', data_get($payload, 'lessor.person.full_name'));
+        $this->assertSame('Arrendatario RAW', data_get($payload, 'lessee.person.full_name'));
+        $this->assertSame('Mexicana', data_get($payload, 'lessee.person.nationality'));
+        $this->assertSame('2026-02-01', data_get($payload, 'term.start_date'));
+        $this->assertNull(data_get($payload, 'lessor.person.birth_place'));
+        $this->assertSame([], data_get($payload, 'leased_property.property_use_codes'));
+        $this->assertNull(data_get($payload, 'term.duration_label'));
+        $this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$first, 'generales']))
+            ->assertSee('sistema anterior')->assertSee('deben completarse una sola vez');
+
+        $complete = $templateDraft->currentVersion->canonical_payload;
+        $complete['lessor']['person']['rfc'] = 'MAP010101MAP';
+        $complete['lessee']['person']['birth_place'] = 'Zapopan';
+        $complete['leased_property']['property_use_codes'] = ['residential'];
+        $complete['term']['duration_label'] = '12 meses';
+        $this->save($agent, $first, 'vigencia', $complete);
+        $first->refresh()->load('currentVersion');
+        $this->actingAs($agent)->post(route('contratos.privados.revision.publish', $first), ['expected_version_id' => $first->current_version_id])
+            ->assertRedirect(route('contratos.show', $legacy));
+        $legacy->refresh();
+        $this->assertSame($first->current_version_id, $legacy->contract_draft_version_id);
+
+        $pending->update(['raw_payload' => ['tipo_solicitante' => 'Persona Moral', 'cliente_nombre' => 'NO DEBE USARSE']]);
+
+        $this->actingAs($agent)->post(route('contratos.revision.start', $legacy))->assertRedirect();
+        $second = ContractDraft::query()->where('editing_contract_id', $legacy->id)->where('status', 'draft')->sole()->load('currentVersion');
+        $this->assertSame('MAP010101MAP', data_get($second->currentVersion->canonical_payload, 'lessor.person.rfc'));
+        $this->assertSame('Zapopan', data_get($second->currentVersion->canonical_payload, 'lessee.person.birth_place'));
+        $this->assertSame(['residential'], data_get($second->currentVersion->canonical_payload, 'leased_property.property_use_codes'));
+        $this->assertSame('Persona completa', data_get($second->currentVersion->canonical_payload, 'lessor.person.full_name'));
+        $this->actingAs($agent)->get(route('contratos.privados.wizard.show', [$second, 'generales']))
+            ->assertDontSee('sistema anterior');
+    }
+
+    public function test_legacy_person_types_keep_physical_and_moral_branches_separate(): void
+    {
+        $service = app(\App\Services\LegacyContractRevisionPayloadService::class);
+        $payloads = app(ContractDraftPayload::class);
+
+        $cases = [
+            ['Persona Física', 'Persona Física', 'fisica', 'fisica'],
+            ['Persona Moral', 'Persona Física', 'moral', 'fisica'],
+            ['Persona Física', 'Persona Moral', 'fisica', 'moral'],
+        ];
+        foreach ($cases as [$lessorInput, $lesseeInput, $lessorType, $lesseeType]) {
+            $cliente = Cliente::create(['nombre' => 'Cliente de tipo '.$lessorType, 'rfc' => 'TYPE-'.$lessorType.'-'.$lesseeType, 'domicilio' => 'Domicilio de tipo']);
+            $propiedad = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Propiedad '.$lessorType.' '.$lesseeType, 'domicilio' => 'Domicilio de tipo']);
+            $contrato = Contrato::create([
+                'fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'fecha' => now(), 'origen' => 'privado',
+                'tipo_solicitante' => $lessorInput, 'tipo_complementaria' => $lesseeInput,
+            ]);
+            ContratoPendiente::create([
+                'origen' => 'privado', 'external_id' => 'types-'.$contrato->id, 'estado' => 'importado', 'contrato_id' => $contrato->id,
+                'raw_payload' => [
+                    'tipo_solicitante' => $lessorInput, 'tipo_complementaria' => $lesseeInput,
+                    'cliente_nombre' => 'Sociedad o persona arrendadora', 'nombre_complementaria' => 'Sociedad o persona arrendataria',
+                    'nacionalidad_complementaria' => 'Mexicana',
+                ],
+            ]);
+
+            $payload = $service->build($contrato, $payloads);
+            $this->assertSame($lessorType, data_get($payload, 'lessor.person.person_type'));
+            $this->assertSame($lesseeType, data_get($payload, 'lessee.person.person_type'));
+            $this->assertNull(data_get($payload, 'lessor.representative'));
+            if ($lessorType === 'moral') {
+                $this->assertSame('Sociedad o persona arrendadora', data_get($payload, 'lessor.person.legal_name'));
+                $this->assertNull(data_get($payload, 'lessor.person.full_name'));
+            } else {
+                $this->assertSame('Sociedad o persona arrendadora', data_get($payload, 'lessor.person.full_name'));
+                $this->assertNull(data_get($payload, 'lessor.person.legal_name'));
+            }
+            if ($lesseeType === 'moral') {
+                $this->assertSame('Sociedad o persona arrendataria', data_get($payload, 'lessee.person.legal_name'));
+                $this->assertSame('Mexicana', data_get($payload, 'lessee.representative.nationality'));
+                $this->assertNull(data_get($payload, 'lessee.person.nationality'));
+            } else {
+                $this->assertSame('Sociedad o persona arrendataria', data_get($payload, 'lessee.person.full_name'));
+                $this->assertSame('Mexicana', data_get($payload, 'lessee.person.nationality'));
+                $this->assertNull(data_get($payload, 'lessee.representative'));
+            }
+        }
+    }
+
+    public function test_legacy_pm_without_a_persisted_representative_keeps_it_null(): void
+    {
+        $cliente = Cliente::create(['nombre' => 'Cliente moral', 'rfc' => 'MORA010101AAA', 'domicilio' => 'Domicilio moral']);
+        $propiedad = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Propiedad moral', 'domicilio' => 'Domicilio moral']);
+        $contrato = Contrato::create(['fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'fecha' => now(), 'origen' => 'privado', 'tipo_solicitante' => 'Persona Moral', 'tipo_complementaria' => 'Persona Física']);
+        ContratoPendiente::create([
+            'origen' => 'privado', 'external_id' => 'pm-without-representative', 'estado' => 'importado', 'contrato_id' => $contrato->id,
+            'raw_payload' => ['tipo_solicitante' => 'Persona Moral', 'tipo_complementaria' => 'Persona Física', 'cliente_nombre' => 'Sociedad sin representante'],
+        ]);
+
+        $payload = app(\App\Services\LegacyContractRevisionPayloadService::class)->build($contrato, app(ContractDraftPayload::class));
+
+        $this->assertSame('moral', data_get($payload, 'lessor.person.person_type'));
+        $this->assertSame('Sociedad sin representante', data_get($payload, 'lessor.person.legal_name'));
+        $this->assertNull(data_get($payload, 'lessor.representative'));
+    }
+
+    public function test_legacy_source_priority_never_erases_a_valid_fact_with_an_empty_lower_or_higher_payload(): void
+    {
+        $cliente = Cliente::create(['nombre' => 'Maestro', 'rfc' => 'MASTER010101AAA', 'domicilio' => 'Domicilio maestro']);
+        $propiedad = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Propiedad prioridad', 'domicilio' => 'Domicilio maestro']);
+        $contrato = Contrato::create(['fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'fecha' => now(), 'origen' => 'privado', 'tipo_solicitante' => 'Persona Física']);
+        $pending = ContratoPendiente::create([
+            'origen' => 'privado', 'external_id' => 'priority-'.$contrato->id, 'estado' => 'importado', 'contrato_id' => $contrato->id,
+            'raw_payload' => ['tipo_solicitante' => 'Persona Física', 'cliente_rfc' => 'RAW010101RAW'],
+            'mapped_payload' => ['tipo_solicitante' => '', 'rfc_solicitante' => ''],
+        ]);
+        $service = app(\App\Services\LegacyContractRevisionPayloadService::class);
+
+        $this->assertSame('RAW010101RAW', data_get($service->build($contrato, app(ContractDraftPayload::class)), 'lessor.person.rfc'));
+        $pending->update(['raw_payload' => ['tipo_solicitante' => 'Persona Física', 'cliente_rfc' => ''], 'mapped_payload' => ['rfc_solicitante' => '']]);
+        $this->assertSame('MASTER010101AAA', data_get($service->build($contrato->fresh(), app(ContractDraftPayload::class)), 'lessor.person.rfc'));
+        $pending->update(['raw_payload' => ['tipo_solicitante' => 'Persona Física', 'cliente_rfc' => 'RAW010101RAW'], 'mapped_payload' => ['rfc_solicitante' => 'MAP010101MAP']]);
+        $this->assertSame('MAP010101MAP', data_get($service->build($contrato->fresh(), app(ContractDraftPayload::class)), 'lessor.person.rfc'));
+    }
+
+    public function test_multiple_linked_pendings_are_not_combined_or_arbitrarily_selected(): void
+    {
+        $cliente = Cliente::create(['nombre' => 'Maestro seguro', 'rfc' => 'MASTER010101AAA', 'domicilio' => 'Domicilio maestro']);
+        $propiedad = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Propiedad segura', 'domicilio' => 'Domicilio maestro']);
+        $contrato = Contrato::create(['fk_cliente' => $cliente->pk_cliente, 'fk_propiedad' => $propiedad->pk_propiedad, 'fecha' => now(), 'origen' => 'privado', 'tipo_solicitante' => 'Persona Física']);
+        foreach (['one', 'two'] as $suffix) {
+            ContratoPendiente::create([
+                'origen' => 'privado', 'external_id' => 'duplicate-'.$suffix, 'estado' => 'importado', 'contrato_id' => $contrato->id,
+                'raw_payload' => ['tipo_solicitante' => 'Persona Moral', 'cliente_nombre' => 'No usar '.$suffix],
+            ]);
+        }
+
+        $payload = app(\App\Services\LegacyContractRevisionPayloadService::class)->build($contrato, app(ContractDraftPayload::class));
+        $this->assertSame('fisica', data_get($payload, 'lessor.person.person_type'));
+        $this->assertSame('Maestro seguro', data_get($payload, 'lessor.person.full_name'));
+        $this->assertSame('MASTER010101AAA', data_get($payload, 'lessor.person.rfc'));
     }
 
     public function test_lessee_rfc_has_one_form_control_and_survives_wizard_versions_for_pf_and_pm(): void
