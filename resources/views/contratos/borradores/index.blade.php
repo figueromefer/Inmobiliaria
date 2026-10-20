@@ -68,7 +68,7 @@
                             <td>{{ $draft->updated_at?->format('Y-m-d H:i') ?? '—' }}</td>
                             <td>
                                 <a class="inline-flex bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1 rounded" href="{{ route('contratos.borradores.show', $draft) }}">Ver borrador</a>
-                                @if($isInternalDraft)<a class="contract-prepare-button mt-2" href="{{ route('contratos.borradores.document-preview', $draft) }}">Preparar contrato</a>@endif
+                                @if($isInternalDraft)<a class="contract-prepare-button mt-2" href="{{ route('contratos.borradores.document-preview', $draft) }}">{{ $draft->purpose === 'revision' ? 'Revisar y publicar cambios' : 'Preparar contrato' }}</a>@endif
                                 @if($isEditablePublicRequest)<form method="POST" action="{{ route('contratos.borradores.public-continuation-link.regenerate', $draft) }}" class="inline" onsubmit="return confirm('El enlace anterior dejará de funcionar. ¿Deseas generar uno nuevo?');">@csrf<button type="submit" class="client-link-button mt-2 inline-flex bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded">Generar enlace para cliente</button></form>@endif
                                 @can('delete-anything')
                                     @if($canDelete)

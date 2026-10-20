@@ -52,7 +52,7 @@ class AutomaticContractChargeService
             if (! $contract->hasValidMonthlyCommission()) {
                 $this->removeOrCancelForSource($renta);
 
-                return 'Renta registrada, pero no se generó la iguala porque el contrato vigente no tiene porcentaje de comisión mensual.';
+                return 'Renta registrada, pero no se generó la iguala porque el contrato vigente no tiene una comisión mensual calculable.';
             }
 
             $existingCharge = Movimiento::query()->where('source_movimiento_id', $renta->id)->lockForUpdate()->first();
@@ -64,7 +64,7 @@ class AutomaticContractChargeService
                 'cliente_id' => $renta->cliente_id, 'propiedad_id' => $renta->propiedad_id, 'inquilino_id' => $renta->inquilino_id,
                 'asignado_a_tipo' => $renta->asignado_a_tipo, 'contrato_id' => $contract->id, 'concepto' => 'iguala',
                 'automation_type' => 'monthly_commission', 'auto_generated' => true, 'fecha' => $renta->fecha,
-                'importe' => round((float) $renta->importe * $contract->comision_mensual_fraction, 2), 'forma_pago' => 'efectivo',
+                'importe' => round((float) $contract->calculateMonthlyCommission((float) $renta->importe), 2), 'forma_pago' => 'efectivo',
                 'notas' => 'Iguala automática de '.$renta->folio, 'afecta_saldo_cliente' => true,
                 'approval_status' => $renta->approval_status, 'approved_by' => $renta->approved_by, 'approved_at' => $renta->approved_at,
                 'estado_pago' => $renta->estado_pago, 'fecha_liquidacion' => $renta->fecha_liquidacion,

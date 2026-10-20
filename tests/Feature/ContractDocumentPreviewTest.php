@@ -4,9 +4,14 @@ namespace Tests\Feature;
 
 use App\Contracts\GoogleContractDocumentClient;
 use App\Models\ContractDocumentVersion;
+use App\Models\Cliente;
+use App\Models\Contrato;
+use App\Models\Propiedad;
 use App\Models\User;
 use App\Services\ContractDraftPayload;
 use App\Services\ContractDraftVersioningService;
+use App\Services\PropertyOperationalStatusService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -248,6 +253,84 @@ class ContractDocumentPreviewTest extends TestCase
             'status' => ContractDocumentVersion::STATUS_GENERATED,
         ]);
         $this->assertNotContains('INSTITUCIÓN BANCARIA', $google->lastRemainingMarkers);
+    }
+
+    public function test_preview_generation_route_publishes_a_revision_and_moves_the_definitive_contract_property(): void
+    {
+        $actor = User::factory()->create(['role' => User::ROLE_AGENT]);
+        $cliente = Cliente::create(['nombre' => 'Cliente revisión', 'rfc' => 'XAXX010101000', 'domicilio' => 'Domicilio']);
+        $propertyA = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Propiedad A', 'domicilio' => 'Anterior']);
+        $propertyB = Propiedad::create(['fk_cliente' => $cliente->pk_cliente, 'alias' => 'Propiedad B', 'domicilio' => 'Nueva']);
+        $contract = Contrato::create([
+            'fk_cliente' => $cliente->pk_cliente,
+            'fk_propiedad' => $propertyA->pk_propiedad,
+            'fecha' => '2026-01-01',
+            'fecha_inicio' => '2026-01-01',
+            'fecha_fin' => '2027-01-01',
+            'dias_pago' => 10,
+            'origen' => 'privado',
+        ]);
+        $revision = $this->draft($actor);
+        $revision->update([
+            'purpose' => 'revision',
+            'editing_contract_id' => $contract->id,
+            'cliente_id' => $cliente->pk_cliente,
+            'propiedad_id' => $propertyA->pk_propiedad,
+        ]);
+
+        // Link B through the same reconciliation endpoint exposed by the UI.
+        $this->actingAs($actor)->post(route('contratos.borradores.reconciliation.link', [$revision, 'propiedad']), [
+            'entity_id' => $propertyB->pk_propiedad,
+        ])->assertRedirect(route('contratos.borradores.show', $revision));
+        $revision->refresh();
+
+        $this->assertSame($propertyB->pk_propiedad, $revision->propiedad_id);
+        $this->assertSame($propertyA->pk_propiedad, $contract->fresh()->fk_propiedad);
+        $this->assertFalse($propertyB->contratos()->whereKey($contract->id)->exists());
+        $this->assertSame('desocupada', app(PropertyOperationalStatusService::class)->for($propertyB, Carbon::parse('2026-10-19'))['key']);
+
+        $this->actingAs($actor)->get(route('contratos.borradores.show', $revision))
+            ->assertOk()
+            ->assertSee('Revisar y publicar cambios')
+            ->assertSee('Los cambios se aplican al contrato definitivo al publicar.')
+            ->assertDontSee('no hay generación ni publicación disponible');
+        $this->actingAs($actor)->get(route('contratos.borradores.document-preview', $revision))
+            ->assertOk()
+            ->assertSee('La revisión está lista para publicarse.')
+            ->assertSee('Generar y publicar cambios')
+            ->assertSee('data-document-generation-overlay', false)
+            ->assertSee('data-document-generation-form', false)
+            ->assertSee('button.disabled = true', false);
+
+        $google = new FakeGoogleContractDocumentClient();
+        $this->app->instance(GoogleContractDocumentClient::class, $google);
+        config([
+            'services.google_contracts.templates.lease_without_guarantor' => 'template-without-guarantor',
+            'services.google_contracts.destination_folder_id' => 'sandbox-folder',
+        ]);
+        $intent = ['expected_draft_version_id' => $revision->current_version_id, 'idempotency_key' => 'a99c4af2-8c12-4b71-90bf-861d4de35b4c'];
+        $this->actingAs($actor)->post(route('contratos.borradores.document-preview.generate', $revision), $intent)
+            ->assertRedirect(route('contratos.show', $contract));
+        // A repeated HTTP submit is idempotent after publication.
+        $this->actingAs($actor)->post(route('contratos.borradores.document-preview.generate', $revision), $intent)
+            ->assertRedirect(route('contratos.show', $contract));
+
+        $this->assertSame($propertyB->pk_propiedad, $contract->fresh()->fk_propiedad);
+        $this->assertTrue($propertyB->contratos()->whereKey($contract->id)->exists());
+        $this->assertFalse($propertyA->contratos()->whereKey($contract->id)->exists());
+        $this->assertNotSame('desocupada', app(PropertyOperationalStatusService::class)->for($propertyB, Carbon::parse('2026-10-19'))['key']);
+        $this->assertSame('published', $revision->fresh()->status);
+        $this->assertDatabaseHas('contract_document_versions', ['contract_draft_version_id' => $revision->current_version_id, 'status' => ContractDocumentVersion::STATUS_GENERATED]);
+        $this->assertDatabaseCount('contratos', 1);
+        $this->assertSame(1, $google->folderCalls);
+        $this->assertSame(1, count($google->copiedTemplateIds));
+
+        $this->actingAs($actor)->get(route('contratos.show', $contract))
+            ->assertOk()
+            ->assertSee('Ver documento')
+            ->assertSee('Abrir carpeta en Drive')
+            ->assertSee('https://docs.google.com/document/d/copy-1/edit', false)
+            ->assertSee('https://drive.google.com/drive/folders/folder-1', false);
     }
 
     private function draft(User $actor)

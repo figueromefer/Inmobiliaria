@@ -80,6 +80,10 @@ class ContractRevisionController extends Controller
         foreach (['total_rent' => 'monto_total', 'monthly_rent' => 'monto_mensual', 'security_deposit' => 'monto_deposito', 'rental_commission' => 'comision_renta', 'monthly_commission_value' => 'comision_mensual'] as $target => $source) {
             $payload['amounts'][$target] = $contrato->{$source};
         }
+        // Legacy contracts have no stored unit. Infer only the existing
+        // legacy semantics so a subsequent revision preserves its meaning.
+        $payload['amounts']['monthly_commission_unit'] = $contrato->comision_mensual_unidad
+            ?? ($contrato->hasValidMonthlyCommission() ? ((float) $contrato->comision_mensual > 1 ? 'percent' : 'fraction') : 'unknown');
 
         return $payload;
     }

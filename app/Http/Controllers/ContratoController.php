@@ -10,6 +10,7 @@ use App\Models\ContractDocumentVersion;
 use App\Services\JusticiaAlternativaImportService;
 use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
 use App\Services\AutomaticContractChargeService;
 
@@ -151,12 +152,18 @@ class ContratoController extends Controller
 
     public function updateMonthlyCommission(Request $request, Contrato $contrato)
     {
-        $data = $request->validate(['comision_mensual' => ['required', 'numeric', 'gt:0']]);
-        if (! Contrato::monthlyCommissionFractionFor($data['comision_mensual'])) {
-            return back()->withErrors(['comision_mensual' => 'Captura una comisión mensual positiva. Ejemplo: 10 para 10%.']);
+        $data = $request->validate([
+            'comision_mensual' => ['required', 'numeric', 'gt:0'],
+            'comision_mensual_unidad' => ['nullable', Rule::in(['percent', 'fraction', 'fixed'])],
+        ]);
+        $unit = $data['comision_mensual_unidad'] ?? null;
+        if (! Contrato::isValidMonthlyCommission($data['comision_mensual'], $unit)) {
+            return back()->withErrors(['comision_mensual' => $unit === 'fraction'
+                ? 'La fracción debe ser mayor que 0 y no mayor que 1. Ejemplo: 0.10 para 10%.'
+                : 'Captura una comisión mensual positiva y una unidad válida.']);
         }
 
-        $contrato->update(['comision_mensual' => $data['comision_mensual']]);
+        $contrato->update(['comision_mensual' => $data['comision_mensual'], 'comision_mensual_unidad' => $unit]);
         $missing = Movimiento::query()->where('cliente_id', $contrato->fk_cliente)->where('propiedad_id', $contrato->fk_propiedad)->where('concepto', 'renta')
             ->whereDoesntHave('automaticCharge', fn ($query) => $query->where('auto_generated', true))
             ->get()->filter(fn ($renta) => Contrato::query()->whereKey($contrato->id)->vigentesEnFecha($renta->fecha)->exists())->count();
@@ -205,7 +212,7 @@ class ContratoController extends Controller
                 $manual = Movimiento::query()->where('propiedad_id', $rent->propiedad_id)->where('concepto', 'iguala')->where('auto_generated', false)
                     ->whereYear('fecha', $rent->fecha->year)->whereMonth('fecha', $rent->fecha->month)->exists();
                 $rent->setAttribute('has_manual_conflict', $manual);
-                $rent->setAttribute('calculated_commission', round((float) $rent->importe * $contrato->comision_mensual_fraction, 2));
+                $rent->setAttribute('calculated_commission', round((float) $contrato->calculateMonthlyCommission((float) $rent->importe), 2));
                 return $rent;
             })->values();
     }
