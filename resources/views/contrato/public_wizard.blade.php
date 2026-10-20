@@ -24,6 +24,7 @@
     <header class="contract-header"><h1>{{ $isInternal ? (($draft->purpose ?? null) === 'revision' ? 'Editando contrato #'.$draft->editing_contract_id : (($draft->purpose ?? null) === 'renewal' ? 'Renovando contrato #'.$draft->renewal_of_contract_id : 'Captura de contrato privado')) : 'Solicitud de contrato' }}</h1><p class="contract-subtitle">@if($isInternal && ($draft->purpose ?? null) === 'revision')Los cambios generarán una nueva versión. La versión anterior permanecerá en el historial. @elseif($isInternal && ($draft->purpose ?? null) === 'renewal')El contrato anterior permanecerá intacto. @endif Paso {{ $stepIndex + 1 }} de {{ count($steps) }}: {{ $steps[$step] }}</p></header>
     <nav class="stepper" aria-label="Pasos del contrato">@foreach($steps as $key => $label)<a href="{{ $stepUrl($key) }}" @if($key === $step) aria-current="step" @endif>{{ $loop->iteration }}. {{ $label }}</a>@endforeach</nav>
     @if(session('success'))<p class="success">{{ session('success') }}</p>@endif @if($errors->any())<p class="alert">{{ $errors->first() }}</p>@endif
+    @if($isLegacyRevision ?? false)<p class="alert">Este contrato fue creado con el sistema anterior. Algunos datos no estaban almacenados y deben completarse una sola vez antes de publicar la primera revisión.</p>@endif
     <section class="contract-card">
     @if($step === 'resumen')
         <h2>{{ $isInternal ? 'Revisa la captura' : 'Revisa y envía tu solicitud' }}</h2><dl class="summary">
