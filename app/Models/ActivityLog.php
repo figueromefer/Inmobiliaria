@@ -46,6 +46,7 @@ class ActivityLog extends Model
             'deleted' => 'Se eliminó',
             'archived' => 'Se archivó',
             'restored' => 'Se restauró',
+            'ja_administrative_correction' => 'Se corrigieron administrativamente datos de',
             default => 'Se registró',
         };
 
