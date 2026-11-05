@@ -169,6 +169,8 @@
                         @if($c->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))
                             <form method="POST" action="{{ route('contratos.revision.start', $c) }}">@csrf<button class="contracts-row-action" type="submit">Editar contrato</button></form>
                             <form method="POST" action="{{ route('contratos.renew', $c) }}">@csrf<button class="contracts-row-action" type="submit">Renovar contrato</button></form>
+                        @elseif($c->origen === 'justicia_alternativa' && auth()->user()?->can('manage-records'))
+                            <a href="{{ route('contratos.justicia-alternativa.correccion.edit', $c) }}" class="contracts-row-action">Corregir datos administrativos</a>
                         @endif
                     </div>
                 </td>

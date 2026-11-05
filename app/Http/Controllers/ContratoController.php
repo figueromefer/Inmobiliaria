@@ -7,11 +7,14 @@ use App\Models\Contrato;
 use App\Models\ContratoPendiente;
 use App\Models\Movimiento;
 use App\Models\ContractDocumentVersion;
+use App\Models\ActivityLog;
+use App\Http\Requests\CorrectJusticiaAlternativaContractRequest;
 use App\Services\JusticiaAlternativaImportService;
 use App\Services\MinimumDocumentChecklistService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use App\Services\AutomaticContractChargeService;
 
 class ContratoController extends Controller
@@ -152,6 +155,7 @@ class ContratoController extends Controller
 
     public function updateMonthlyCommission(Request $request, Contrato $contrato)
     {
+        abort_if($contrato->origen === 'justicia_alternativa', 404);
         $data = $request->validate([
             'comision_mensual' => ['required', 'numeric', 'gt:0'],
             'comision_mensual_unidad' => ['nullable', Rule::in(['percent', 'fraction', 'fixed'])],
@@ -171,6 +175,57 @@ class ContratoController extends Controller
         return redirect()->route('contratos.show', $contrato)
             ->with('success', 'Comisión mensual actualizada.')
             ->with('warning', $missing ? "La comisión mensual quedó guardada. Las nuevas rentas generarán su iguala automáticamente. Existen {$missing} rentas anteriores sin iguala automática." : null);
+    }
+
+    public function showJusticiaAlternativaCorrection(Contrato $contrato)
+    {
+        abort_unless($contrato->origen === 'justicia_alternativa', 404);
+
+        return view('contratos.corregir-justicia-alternativa', [
+            'contrato' => $contrato,
+            'historicMovementCount' => $this->administrativeCorrectionMovementCount($contrato),
+        ]);
+    }
+
+    public function updateJusticiaAlternativaCorrection(CorrectJusticiaAlternativaContractRequest $request, Contrato $contrato)
+    {
+        abort_unless($contrato->origen === 'justicia_alternativa', 404);
+
+        $fields = ['fecha_inicio', 'fecha_fin', 'dias_pago', 'monto_mensual', 'monto_total', 'monto_deposito', 'comision_mensual', 'domicilio_inmueble'];
+        $attributes = $request->safe()->only($fields);
+        $reason = trim((string) $request->validated('motivo'));
+        $historicMovementCount = $this->administrativeCorrectionMovementCount($contrato);
+        $contrato->fill($attributes);
+        $changes = $contrato->getDirty();
+
+        if ($changes === []) {
+            return back()->withInput()->withErrors(['motivo' => 'No se detectaron cambios en los datos administrativos.']);
+        }
+
+        $before = array_intersect_key($contrato->getOriginal(), $changes);
+        DB::transaction(function () use ($contrato, $before, $changes, $reason, $request) {
+            // This intentionally changes only the final contract projection. The JA source and pending payloads remain immutable.
+            $contrato->saveQuietly();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'ja_administrative_correction',
+                'model_type' => Contrato::class,
+                'model_id' => $contrato->id,
+                'module' => 'Contrato',
+                'old_values' => ActivityLog::sanitizeValues($before),
+                'new_values' => ActivityLog::sanitizeValues(array_merge($changes, ['motivo' => $reason])),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        });
+
+        $warning = $historicMovementCount > 0
+            ? 'La corrección se guardó. Los movimientos históricos no fueron modificados ni recalculados.'
+            : null;
+
+        return redirect()->route('contratos.show', $contrato)
+            ->with('success', 'Corrección administrativa de Justicia Alternativa guardada.')
+            ->with('warning', $warning);
     }
 
     public function previewMonthlyCommissions(Contrato $contrato)
@@ -215,6 +270,25 @@ class ContratoController extends Controller
                 $rent->setAttribute('calculated_commission', round((float) $contrato->calculateMonthlyCommission((float) $rent->importe), 2));
                 return $rent;
             })->values();
+    }
+
+    private function administrativeCorrectionMovementCount(Contrato $contrato): int
+    {
+        return Movimiento::query()
+            ->whereIn('concepto', ['renta', 'iguala'])
+            ->where(function ($query) use ($contrato) {
+                $query->where('contrato_id', $contrato->id)
+                    ->orWhereHas('automaticCharge', fn ($charge) => $charge->where('contrato_id', $contrato->id));
+
+                if ($contrato->fecha_inicio && $contrato->fecha_fin) {
+                    $query->orWhere(function ($legacy) use ($contrato) {
+                        $legacy->where('cliente_id', $contrato->fk_cliente)
+                            ->where('propiedad_id', $contrato->fk_propiedad)
+                            ->whereBetween('fecha', [$contrato->fecha_inicio, $contrato->fecha_fin]);
+                    });
+                }
+            })
+            ->count();
     }
 
     public function showImportJusticiaAlternativaForm()

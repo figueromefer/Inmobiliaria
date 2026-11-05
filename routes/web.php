@@ -121,6 +121,10 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('inquilinos', InquilinoController::class)->only(['index', 'show']);
     Route::get('/contratos', [ContratoController::class, 'index'])->name('contratos.index');
+    Route::get('/contratos/{contrato}/corregir-justicia-alternativa', [ContratoController::class, 'showJusticiaAlternativaCorrection'])
+        ->middleware('can:manage-records')->name('contratos.justicia-alternativa.correccion.edit');
+    Route::put('/contratos/{contrato}/corregir-justicia-alternativa', [ContratoController::class, 'updateJusticiaAlternativaCorrection'])
+        ->middleware('can:manage-records')->name('contratos.justicia-alternativa.correccion.update');
     Route::put('/contratos/{contrato}/comision-mensual', [ContratoController::class, 'updateMonthlyCommission'])
         ->middleware('can:manage-records')->name('contratos.comision-mensual.update');
     Route::get('/contratos/{contrato}/recalcular-igualas', [ContratoController::class, 'previewMonthlyCommissions'])->middleware('can:manage-records')->name('contratos.igualas.preview');

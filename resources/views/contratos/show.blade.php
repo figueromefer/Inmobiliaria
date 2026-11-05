@@ -16,6 +16,7 @@
         @if($contrato->drive_folder_url)<a href="{{ $contrato->drive_folder_url }}" target="_blank" rel="noopener noreferrer" class="contract-detail-action">Abrir carpeta en Drive</a>@endif
         @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.revision.start', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Editar contrato</button></form>@endif
         @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))<form method="POST" action="{{ route('contratos.renew', $contrato) }}">@csrf<button class="contract-detail-action" type="submit">Renovar contrato</button></form>@endif
+        @if($contrato->origen === 'justicia_alternativa' && auth()->user()?->can('manage-records'))<a href="{{ route('contratos.justicia-alternativa.correccion.edit', $contrato) }}" class="contract-detail-action">Corregir datos administrativos</a>@endif
         <a href="{{ route('contratos.index') }}" class="inline-flex items-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Volver a contratos</a>
       </div>
     </div>
@@ -68,7 +69,7 @@
         <div>
           <dt class="text-sm text-gray-500">Comisión mensual</dt>
           <dd class="mt-1 text-gray-900">{{ $contrato->monthlyCommissionDisplay() }}</dd>
-          @can('manage-records')
+          @if($contrato->origen !== 'justicia_alternativa' && auth()->user()?->can('manage-records'))
             <details class="mt-2">
               <summary class="cursor-pointer text-sm font-semibold text-blue-700">Editar</summary>
               <form method="POST" action="{{ route('contratos.comision-mensual.update', $contrato) }}" class="mt-2 flex flex-wrap items-end gap-2">
@@ -86,7 +87,10 @@
               @if($contrato->hasValidMonthlyCommission())
               <a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('contratos.igualas.preview', $contrato) }}">Recalcular igualas</a>
             @endif
-          @endcan
+          @endif
+          @if($contrato->origen === 'justicia_alternativa' && auth()->user()?->can('manage-records') && $contrato->hasValidMonthlyCommission())
+            <a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('contratos.igualas.preview', $contrato) }}">Recalcular igualas (flujo explícito)</a>
+          @endif
         </div>
         <div><dt class="text-sm text-gray-500">Domicilio registrado</dt><dd class="mt-1 text-gray-900">{{ $dato($contrato->domicilio_inmueble) }}</dd></div>
       </dl>
