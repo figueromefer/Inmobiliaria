@@ -55,6 +55,7 @@ class JusticiaAlternativaAdministrativeCorrectionTest extends TestCase
     {
         $this->actingAs($this->manager())->get(route('contratos.justicia-alternativa.correccion.edit', $this->contract()))
             ->assertOk()->assertSee('Esta corrección no modifica el expediente ni la información original recibida de Justicia Alternativa.')
+            ->assertSee('ja-correction-primary-action')
             ->assertSee('Guardar corrección');
     }
 

@@ -1,4 +1,9 @@
 <x-app-layout>
+  <style>
+    /* Critical JA action: keep its contrast independent of the deployed Tailwind bundle. */
+    .ja-correction-primary-action { align-items:center; background:#155e75; border:1px solid #0f4c5c; border-radius:.375rem; color:#fff; display:inline-flex; font-weight:700; min-height:2.5rem; padding:.5rem 1rem; }
+    .ja-correction-primary-action:hover, .ja-correction-primary-action:focus { background:#0f4c5c; color:#fff; }
+  </style>
   <x-slot name="header">
     <div>
       <h2 class="font-semibold text-xl text-gray-800 leading-tight">Corregir datos administrativos</h2>
@@ -60,7 +65,7 @@
         @error('motivo') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
       </label>
       <div class="flex flex-wrap gap-3">
-        <button type="submit" class="rounded bg-teal-700 px-4 py-2 font-bold text-white hover:bg-teal-800">Guardar corrección</button>
+        <button type="submit" class="ja-correction-primary-action">Guardar corrección</button>
         <a href="{{ route('contratos.show', $contrato) }}" class="rounded bg-gray-500 px-4 py-2 font-bold text-white hover:bg-gray-700">Cancelar</a>
       </div>
     </form>
