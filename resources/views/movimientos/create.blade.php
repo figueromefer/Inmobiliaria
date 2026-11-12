@@ -111,11 +111,14 @@
         <p class="text-xs text-gray-500 mt-1">Si se deja vacía en estado liquidado, se usará la fecha del movimiento.</p>
       </div>
 
+      <div id="afecta_saldo_cliente_wrap">
       <label class="inline-flex items-center gap-2">
         <input type="hidden" name="afecta_saldo_cliente" value="0">
         <input type="checkbox" name="afecta_saldo_cliente" value="1" class="rounded border-gray-300" @checked((bool) $field('afecta_saldo_cliente', true))>
         <span class="text-sm font-medium">Afecta saldo del cliente</span>
       </label>
+      </div>
+      <p id="renta-saldo-info" class="hidden rounded bg-blue-50 p-2 text-sm text-blue-800">Efectivo: afecta saldo del cliente. Transferencia: se registra como informativa y no afecta saldo.</p>
 
       {{-- Importe --}}
       <div>
@@ -181,6 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const fechaLiquidacion = document.getElementById('fecha_liquidacion');
   const rentaPreview = document.getElementById('renta-vigente-preview');
   const fecha = document.getElementById('fecha');
+  const afectaSaldoWrap = document.getElementById('afecta_saldo_cliente_wrap');
+  const rentaSaldoInfo = document.getElementById('renta-saldo-info');
 
   function actualizarRentaVigente() {
     const esRenta = selConcepto.value === 'renta';
@@ -247,6 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         if (selFormaPago) selFormaPago.removeAttribute('disabled');
     }
+    const esRenta = value === 'renta';
+    afectaSaldoWrap.classList.toggle('hidden', esRenta);
+    rentaSaldoInfo.classList.toggle('hidden', !esRenta);
     }
 
 

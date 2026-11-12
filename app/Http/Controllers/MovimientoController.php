@@ -20,6 +20,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Services\AutomaticContractChargeService;
+use App\Services\MovementBalanceImpactService;
 
 class MovimientoController extends Controller
 {
@@ -238,6 +239,8 @@ class MovimientoController extends Controller
             }
         }
 
+        $data = app(MovementBalanceImpactService::class)->apply($data);
+
         unset($data['comprobante']);
 
         return $data;
@@ -269,6 +272,7 @@ class MovimientoController extends Controller
         }
 
         DB::transaction(function () use ($movimiento, $request, $charges) {
+            app(MovementBalanceImpactService::class)->applyTo($movimiento);
             $movimiento->approveBy($request->user());
             $charges->syncApprovalFromSource($movimiento->fresh());
         });
@@ -309,6 +313,7 @@ class MovimientoController extends Controller
                     continue;
                 }
 
+                app(MovementBalanceImpactService::class)->applyTo($movimiento);
                 $movimiento->approveBy($request->user());
                 $charges->syncApprovalFromSource($movimiento->fresh());
                 $approvedFolios[] = $folio;

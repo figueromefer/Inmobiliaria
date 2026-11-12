@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\CashRentBalanceRepairController;
 use App\Http\Controllers\ArchivadoController;
 use App\Http\Controllers\BackfillContratosController;
 use App\Http\Controllers\ClienteController as ClienteCtl;
@@ -90,6 +91,11 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+
+    Route::prefix('/admin/mantenimiento')->name('admin.mantenimiento.')->middleware('can:delete-anything')->group(function () {
+        Route::get('/reparar-rentas-efectivo', [CashRentBalanceRepairController::class, 'preview'])->name('reparar-rentas-efectivo.preview');
+        Route::post('/reparar-rentas-efectivo', [CashRentBalanceRepairController::class, 'apply'])->name('reparar-rentas-efectivo.apply');
+    });
 
     Route::get('/tareas', [\App\Http\Controllers\TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tareas', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
