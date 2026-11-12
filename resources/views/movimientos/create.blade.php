@@ -56,10 +56,12 @@
           <option value="gasto" @selected($field('concepto') === 'gasto')>Gasto</option>
           <option value="gasto_cliente" @selected($field('concepto') === 'gasto_cliente')>Gasto cliente</option>
           <option value="pago_cliente" @selected($field('concepto') === 'pago_cliente')>Pago al cliente</option>
+          <option value="pago_cliente_da" @selected($field('concepto') === 'pago_cliente_da')>Pago cliente a DA</option>
           <option value="iguala" @selected($field('concepto') === 'iguala')>Iguala / Comisión de administración</option>
 
         </select>
       </div>
+      <p id="pago-cliente-da-info" class="hidden rounded bg-blue-50 p-2 text-sm text-blue-800">Úsalo cuando el cliente entregue a Dorantes un importe que debía cubrir, por ejemplo una comisión por una renta recibida directamente por transferencia.</p>
 
       {{-- Propiedad --}}
       <div data-assignment-panel="propiedad">
@@ -186,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const fecha = document.getElementById('fecha');
   const afectaSaldoWrap = document.getElementById('afecta_saldo_cliente_wrap');
   const rentaSaldoInfo = document.getElementById('renta-saldo-info');
+  const pagoClienteDaInfo = document.getElementById('pago-cliente-da-info');
 
   function actualizarRentaVigente() {
     const esRenta = selConcepto.value === 'renta';
@@ -255,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const esRenta = value === 'renta';
     afectaSaldoWrap.classList.toggle('hidden', esRenta);
     rentaSaldoInfo.classList.toggle('hidden', !esRenta);
+    pagoClienteDaInfo.classList.toggle('hidden', value !== 'pago_cliente_da');
     }
 
 

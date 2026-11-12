@@ -90,6 +90,7 @@
                 'gasto_cliente' => 'Gastos del cliente',
                 'iguala' => 'Iguala / Comisión de administración',
                 'pago_cliente' => 'Pago al cliente',
+                'pago_cliente_da' => 'Pago cliente a DA',
               ];
 
               $status = $m->approval_status ?? \App\Models\Movimiento::STATUS_APPROVED;

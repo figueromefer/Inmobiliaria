@@ -10,6 +10,7 @@
         'gasto_cliente' => 'Gasto cliente',
         'iguala' => 'Iguala',
         'pago_cliente' => 'Pago cliente',
+        'pago_cliente_da' => 'Pago cliente a DA',
     ];
     $estadosPago = [
         '' => 'Todos',

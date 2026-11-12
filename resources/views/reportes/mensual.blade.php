@@ -254,7 +254,10 @@
         </div>
 
 
-      {{-- 9) Resumen --}}
+      <h3 class="text-lg font-semibold mb-2">Pagos cliente a DA</h3>
+      <div class="overflow-x-auto bg-white border rounded mb-6"><table class="min-w-full text-sm"><thead class="bg-gray-50 border-b"><tr><th class="text-left px-3 py-2">Periodo / fecha a la que corresponde</th><th class="text-left px-3 py-2">Propiedad</th><th class="text-right px-3 py-2">Importe</th><th class="text-left px-3 py-2">Forma</th><th class="text-left px-3 py-2">Notas</th></tr></thead><tbody>@forelse (($pagosClienteDa ?? collect()) as $m)<tr class="border-b"><td class="px-3 py-2">{{ optional($m->fecha)->format('Y-m-d') }}</td><td class="px-3 py-2">{{ $m->propiedad->alias ?? '—' }}</td><td class="px-3 py-2 text-right">${{ number_format((float) $m->importe, 2) }}</td><td class="px-3 py-2">{{ ucfirst($m->forma_pago) }}</td><td class="px-3 py-2">{{ $m->notas ?? '—' }}</td></tr>@empty <tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">Sin datos</td></tr>@endforelse</tbody></table></div>
+
+      {{-- 10) Resumen --}}
       <h3 class="text-lg font-semibold mb-2">Resumen</h3>
       <div class="overflow-x-auto bg-white border rounded">
         <table class="min-w-full text-sm">
@@ -267,6 +270,7 @@
               ['label' => 'TOTAL DESPUÉS DE GASTOS', 'importe' => $resumen['total_despues_gastos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
               ['label' => 'TOTAL IGUALAS / COMISIONES DE ADMINISTRACIÓN', 'importe' => $resumen['iguala'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
               ['label' => 'PAGOS AL CLIENTE (MES)', 'importe' => $resumen['pagos_cliente_mes'] ?? 0],
+              ['label' => 'PAGOS CLIENTE A DA', 'importe' => $resumen['pagos_cliente_da_mes'] ?? 0],
               ['label' => 'SALDO DE MESES ANTERIORES', 'importe' => $resumen['saldo_anterior'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
               ['label' => 'SALDO ANTERIOR CONTABLE', 'importe' => $resumen['saldo_anterior_contable'] ?? 0],
               ['label' => 'SALDO ANTERIOR LIQUIDADO', 'importe' => $resumen['saldo_anterior_liquidado'] ?? 0],

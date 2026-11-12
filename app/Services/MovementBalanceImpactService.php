@@ -8,6 +8,7 @@ class MovementBalanceImpactService
 {
     public function requiredValue(?string $concepto, ?string $formaPago): ?bool
     {
+        if ($concepto === 'pago_cliente_da') return true;
         if ($concepto !== 'renta') return null;
 
         return match ($formaPago) {
