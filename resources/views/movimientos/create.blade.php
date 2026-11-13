@@ -61,7 +61,7 @@
 
         </select>
       </div>
-      <p id="pago-cliente-da-info" class="hidden rounded bg-blue-50 p-2 text-sm text-blue-800">Úsalo cuando el cliente entregue a Dorantes un importe que debía cubrir, por ejemplo una comisión por una renta recibida directamente por transferencia.</p>
+      <p id="pago-cliente-da-info" @class(['hidden' => $field('concepto') !== 'pago_cliente_da', 'rounded bg-blue-50 p-2 text-sm text-blue-800'])>Este movimiento siempre afecta positivamente el saldo del cliente.</p>
 
       {{-- Propiedad --}}
       <div data-assignment-panel="propiedad">
@@ -113,7 +113,7 @@
         <p class="text-xs text-gray-500 mt-1">Si se deja vacía en estado liquidado, se usará la fecha del movimiento.</p>
       </div>
 
-      <div id="afecta_saldo_cliente_wrap">
+      <div id="afecta_saldo_cliente_wrap" data-balance-impact-locked="{{ in_array($field('concepto'), ['renta', 'pago_cliente_da'], true) ? 'true' : 'false' }}" class="{{ in_array($field('concepto'), ['renta', 'pago_cliente_da'], true) ? 'hidden' : '' }}">
       <label class="inline-flex items-center gap-2">
         <input type="hidden" name="afecta_saldo_cliente" value="0">
         <input type="checkbox" name="afecta_saldo_cliente" value="1" class="rounded border-gray-300" @checked((bool) $field('afecta_saldo_cliente', true))>
@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selFormaPago) selFormaPago.removeAttribute('disabled');
     }
     const esRenta = value === 'renta';
-    afectaSaldoWrap.classList.toggle('hidden', esRenta);
+    afectaSaldoWrap.classList.toggle('hidden', esRenta || value === 'pago_cliente_da');
     rentaSaldoInfo.classList.toggle('hidden', !esRenta);
     pagoClienteDaInfo.classList.toggle('hidden', value !== 'pago_cliente_da');
     }

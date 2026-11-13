@@ -37,7 +37,7 @@ class ReporteFinancieroService
         );
 
         foreach ($movimientosDisponibles as $movimiento) {
-            $saldos[(int) $movimiento->cliente_id] += $this->importeConSigno($movimiento);
+            $saldos[(int) $movimiento->cliente_id] += $this->importeParaSaldoDisponible($movimiento);
         }
 
         return $saldos;
@@ -264,6 +264,10 @@ class ReporteFinancieroService
     }
 
     private function importeConSigno(Movimiento $movimiento): float { return $this->signo($movimiento->concepto) * (float) $movimiento->importe; }
+    // Conserva el fallback histórico de saldosDisponiblesPorCliente: antes,
+    // todo concepto distinto de renta/deposito restaba, salvo el nuevo ingreso.
+    private function importeParaSaldoDisponible(Movimiento $movimiento): float { return $this->signoParaSaldoDisponible($movimiento->concepto) * (float) $movimiento->importe; }
+    private function signoParaSaldoDisponible(string $concepto): int { return in_array($concepto, ['renta', 'deposito', 'pago_cliente_da'], true) ? 1 : -1; }
     private function signo(string $concepto): int { return match ($concepto) { 'renta', 'deposito', 'pago_cliente_da' => 1, 'gasto', 'gasto_cliente', 'iguala', 'pago_cliente' => -1, default => 0, }; }
     private function sumarPorSigno(Collection $movimientos, int $signo, array $excepto = []): float { return (float) $movimientos->reject(fn (Movimiento $m) => in_array($m->concepto, $excepto, true))->filter(fn (Movimiento $m) => $this->signo($m->concepto) === $signo)->sum(fn (Movimiento $m) => (float) $m->importe); }
 

@@ -34,7 +34,12 @@ class PagoClienteDaTest extends TestCase
         $this->assertSame(0.0, $report['saldo_final']);
         $this->assertSame(0.0, $report['saldo_disponible_para_pago']);
         $this->actingAs(User::factory()->create())->get(route('reportes.mensual', ['cliente_id' => $client->pk_cliente, 'mes' => '2026-11']))->assertOk()->assertSee('Pagos cliente a DA')->assertSee('PAGOS CLIENTE A DA')->assertSee('$2,000.00');
+        $pdfData = null;
+        View::composer('reportes.mensual_pdf', function ($view) use (&$pdfData) { $pdfData = $view->getData(); });
         $this->actingAs(User::factory()->create())->get(route('reportes.mensual.pdf', ['cliente_id' => $client->pk_cliente, 'mes' => '2026-11']))->assertOk();
+        $pdfHtml = view('reportes.mensual_pdf', $pdfData)->render();
+        $this->assertStringContainsString('Pagos cliente a DA', $pdfHtml);
+        $this->assertStringContainsString('$2,000.00', $pdfHtml);
     }
 
     public function test_partial_pending_and_existing_client_payment_keep_their_signs(): void
@@ -62,6 +67,26 @@ class PagoClienteDaTest extends TestCase
     {
         $client = $this->client();
         $this->actingAs(User::factory()->create())->get(route('clientes.show', $client))->assertOk()->assertSee('Pago cliente a DA');
+    }
+
+    public function test_edit_hides_the_manual_balance_checkbox_for_payment_to_da(): void
+    {
+        $client = $this->client(); $movement = $this->movement($client, 'pago_cliente_da', 2000, 'efectivo');
+        $this->assertStringContainsString('pago_cliente_da', file_get_contents(base_path('resources/views/movimientos/create.blade.php')));
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_ADMIN]))
+            ->get(route('movimientos.edit', $movement))
+            ->assertOk();
+    }
+
+    public function test_canonical_existing_concepts_keep_their_prior_signs(): void
+    {
+        $client = $this->client();
+        $this->movement($client, 'renta', 10000, 'efectivo'); $this->movement($client, 'renta', 3000, 'transferencia', Movimiento::PAYMENT_LIQUIDATED, false);
+        $this->movement($client, 'deposito', 500, 'efectivo'); $this->movement($client, 'gasto', 200, 'efectivo'); $this->movement($client, 'gasto_cliente', 300, 'efectivo'); $this->movement($client, 'iguala', 400, 'efectivo'); $this->movement($client, 'pago_cliente', 100, 'efectivo'); $this->movement($client, 'pago_cliente_da', 600, 'transferencia');
+        $report = $this->report($client);
+        $this->assertSame(10100.0, $report['saldo_final']);
+        $this->assertSame(10100.0, app(ReporteFinancieroService::class)->saldosDisponiblesPorCliente([$client->pk_cliente])[$client->pk_cliente]);
+        $this->assertSame(3000.0, $report['periodo']['transferencias_informativas']);
     }
 
     private function client(): Cliente { return Cliente::create(['nombre' => 'Cliente DA', 'rfc' => 'XAXX010101000', 'domicilio' => 'Domicilio']); }
