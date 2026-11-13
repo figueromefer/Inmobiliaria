@@ -37,8 +37,7 @@ class ReporteFinancieroService
         );
 
         foreach ($movimientosDisponibles as $movimiento) {
-            $signo = in_array($movimiento->concepto, ['renta', 'deposito'], true) ? 1 : -1;
-            $saldos[(int) $movimiento->cliente_id] += $signo * (float) $movimiento->importe;
+            $saldos[(int) $movimiento->cliente_id] += $this->importeParaSaldoDisponible($movimiento);
         }
 
         return $saldos;
@@ -194,25 +193,20 @@ class ReporteFinancieroService
             ->filter(fn (Movimiento $movimiento) => $this->esTransferenciaInformativa($movimiento))
             ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
         $ingresosReportados = $rentas + $depositos;
+        $pagosClienteDa = $this->sumarConcepto($movimientosFinancieros, 'pago_cliente_da');
 
-        $ingresosAfectanSaldo = $movimientosFinancieros
-            ->whereIn('concepto', ['renta', 'deposito'])
-            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
+        $ingresosAfectanSaldo = $this->sumarPorSigno($movimientosFinancieros, 1);
         $gastos = $this->sumarConcepto($movimientosFinancieros, 'gasto');
         $gastosCliente = $this->sumarConcepto($movimientosFinancieros, 'gasto_cliente');
         $igualas = $this->sumarConcepto($movimientosFinancieros, 'iguala');
         $pagosCliente = $this->sumarConcepto($movimientosFinancieros, 'pago_cliente');
         $egresosTotal = $gastos + $gastosCliente + $igualas;
         $liquidados = $this->filtrarLiquidados($movimientosFinancieros);
-        $ingresosLiquidados = $liquidados
-            ->whereIn('concepto', ['renta', 'deposito'])
-            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
-        $egresosLiquidados = $liquidados
-            ->whereIn('concepto', ['gasto', 'gasto_cliente', 'iguala'])
-            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
+        $ingresosLiquidados = $this->sumarPorSigno($liquidados, 1);
+        $egresosLiquidados = $this->sumarPorSigno($liquidados, -1, ['pago_cliente']);
         $pagosClienteLiquidados = $this->sumarConcepto($liquidados, 'pago_cliente');
-        $saldoPeriodoContable = $ingresosAfectanSaldo - $egresosTotal - $pagosCliente;
-        $saldoPeriodoLiquidado = $ingresosLiquidados - $egresosLiquidados - $pagosClienteLiquidados;
+        $saldoPeriodoContable = $this->saldoNeto($movimientosFinancieros);
+        $saldoPeriodoLiquidado = $this->saldoNeto($liquidados);
 
         return [
             'rentas' => $rentas,
@@ -228,6 +222,7 @@ class ReporteFinancieroService
             'igualas' => $igualas,
             'egresos_total' => $egresosTotal,
             'pagos_cliente' => $pagosCliente,
+            'pagos_cliente_da' => $pagosClienteDa,
             'saldo_periodo' => $saldoPeriodoContable,
             'saldo_periodo_contable' => $saldoPeriodoContable,
             'saldo_periodo_liquidado' => $saldoPeriodoLiquidado,
@@ -239,12 +234,8 @@ class ReporteFinancieroService
         $pendientes = $movimientos->where('estado_pago', Movimiento::PAYMENT_PENDING);
 
         return [
-            'por_cobrar' => $pendientes
-                ->whereIn('concepto', ['renta', 'deposito'])
-                ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe),
-            'por_pagar_o_liquidar' => $pendientes
-                ->whereIn('concepto', ['gasto', 'gasto_cliente', 'iguala', 'pago_cliente'])
-                ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe),
+            'por_cobrar' => $this->sumarPorSigno($pendientes, 1),
+            'por_pagar_o_liquidar' => $this->sumarPorSigno($pendientes, -1),
         ];
     }
 
@@ -253,29 +244,16 @@ class ReporteFinancieroService
         $liquidados = $this->filtrarLiquidados($movimientos);
 
         return [
-            'ingresos' => $liquidados
-                ->whereIn('concepto', ['renta', 'deposito'])
-                ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe),
-            'egresos' => $liquidados
-                ->whereIn('concepto', ['gasto', 'gasto_cliente', 'iguala'])
-                ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe),
+            'ingresos' => $this->sumarPorSigno($liquidados, 1),
+            'egresos' => $this->sumarPorSigno($liquidados, -1, ['pago_cliente']),
             'pagos_cliente' => $this->sumarConcepto($liquidados, 'pago_cliente'),
+            'pagos_cliente_da' => $this->sumarConcepto($liquidados, 'pago_cliente_da'),
         ];
     }
 
     private function saldoNeto(Collection $movimientos): float
     {
-        $ingresos = $movimientos
-            ->whereIn('concepto', ['renta', 'deposito'])
-            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
-
-        $egresos = $movimientos
-            ->whereIn('concepto', ['gasto', 'gasto_cliente', 'iguala'])
-            ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
-
-        $pagosCliente = $this->sumarConcepto($movimientos, 'pago_cliente');
-
-        return (float) $ingresos - (float) $egresos - (float) $pagosCliente;
+        return $movimientos->sum(fn (Movimiento $movimiento) => $this->importeConSigno($movimiento));
     }
 
     private function sumarConcepto(Collection $movimientos, string $concepto): float
@@ -284,6 +262,14 @@ class ReporteFinancieroService
             ->where('concepto', $concepto)
             ->sum(fn (Movimiento $movimiento) => (float) $movimiento->importe);
     }
+
+    private function importeConSigno(Movimiento $movimiento): float { return $this->signo($movimiento->concepto) * (float) $movimiento->importe; }
+    // Conserva el fallback histórico de saldosDisponiblesPorCliente: antes,
+    // todo concepto distinto de renta/deposito restaba, salvo el nuevo ingreso.
+    private function importeParaSaldoDisponible(Movimiento $movimiento): float { return $this->signoParaSaldoDisponible($movimiento->concepto) * (float) $movimiento->importe; }
+    private function signoParaSaldoDisponible(string $concepto): int { return in_array($concepto, ['renta', 'deposito', 'pago_cliente_da'], true) ? 1 : -1; }
+    private function signo(string $concepto): int { return match ($concepto) { 'renta', 'deposito', 'pago_cliente_da' => 1, 'gasto', 'gasto_cliente', 'iguala', 'pago_cliente' => -1, default => 0, }; }
+    private function sumarPorSigno(Collection $movimientos, int $signo, array $excepto = []): float { return (float) $movimientos->reject(fn (Movimiento $m) => in_array($m->concepto, $excepto, true))->filter(fn (Movimiento $m) => $this->signo($m->concepto) === $signo)->sum(fn (Movimiento $m) => (float) $m->importe); }
 
     private function filtrarLiquidados(Collection $movimientos): Collection
     {

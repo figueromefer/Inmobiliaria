@@ -210,7 +210,7 @@ class MovimientoController extends Controller
             'cliente_id' => ['nullable','integer','exists:clientes,pk_cliente'],
             'propiedad_id' => ['nullable','integer', Rule::exists('propiedades', 'pk_propiedad')->whereNull('deleted_at')],
             'inquilino_id' => ['nullable','integer','exists:inquilinos,id'],
-            'concepto' => ['required','in:deposito,renta,gasto,gasto_cliente,iguala,pago_cliente'],
+            'concepto' => ['required','in:deposito,renta,gasto,gasto_cliente,iguala,pago_cliente,pago_cliente_da'],
             'fecha' => ['required','date'],
             'importe' => ['required','numeric','min:0'],
             'forma_pago' => ['nullable','in:efectivo,transferencia'],

@@ -322,6 +322,9 @@
     </div>
 @endif
 
+@if(isset($pagosClienteDa) && $pagosClienteDa->isNotEmpty())
+<div class="section"><h3>Pagos cliente a DA</h3><table><thead><tr><th>Periodo / fecha a la que corresponde</th><th>Propiedad</th><th class="text-right">Importe</th><th>Forma</th><th>Notas</th></tr></thead><tbody>@foreach($pagosClienteDa as $m)<tr><td>{{ optional($m->fecha)->format('d/m/Y') }}</td><td>{{ $m->propiedad->alias ?? '—' }}</td><td class="text-right">${{ number_format((float) $m->importe, 2) }}</td><td>{{ ucfirst($m->forma_pago) }}</td><td>{{ $m->notas ?? '—' }}</td></tr>@endforeach</tbody></table></div>
+@endif
 <div class="closing-block">
 {{-- 9) Resumen --}}
 @if(isset($resumen))
@@ -337,6 +340,7 @@
                     ['label' => 'TOTAL DESPUÉS DE GASTOS', 'importe' => $resumen['total_despues_gastos'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
                     ['label' => 'TOTAL IGUALAS / COMISIONES DE ADMINISTRACIÓN', 'importe' => $resumen['iguala'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
                     ['label' => 'PAGOS AL CLIENTE (MES)', 'importe' => $resumen['pagos_cliente_mes'] ?? 0],
+                    ['label' => 'PAGOS CLIENTE A DA', 'importe' => $resumen['pagos_cliente_da_mes'] ?? 0],
                     ['label' => 'SALDO DE MESES ANTERIORES', 'importe' => $resumen['saldo_anterior'] ?? 0, 'rowClass' => 'border-t', 'labelClass' => 'font-semibold', 'valueClass' => 'font-semibold'],
                     ['label' => 'SALDO ANTERIOR CONTABLE', 'importe' => $resumen['saldo_anterior_contable'] ?? 0],
                     ['label' => 'SALDO ANTERIOR LIQUIDADO', 'importe' => $resumen['saldo_anterior_liquidado'] ?? 0],

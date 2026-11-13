@@ -167,6 +167,7 @@ class ReporteMensualController extends Controller
         $gastosPropiedad = $movimientos->where('concepto', 'gasto')->values();
         $igualas = $movimientos->where('concepto', 'iguala')->values();
         $pagosCliente = $movimientos->where('concepto', 'pago_cliente')->values();
+        $pagosClienteDa = $movimientos->where('concepto', 'pago_cliente_da')->values();
         $periodo = $reporteFinanciero['periodo'];
 
         return [
@@ -183,6 +184,7 @@ class ReporteMensualController extends Controller
             'gastosPropiedad' => $gastosPropiedad,
             'igualas' => $igualas,
             'pagosCliente' => $pagosCliente,
+            'pagosClienteDa' => $pagosClienteDa,
             'resumen' => [
                 'ingresos_efectivo' => (float) $periodo['ingresos_afectan_saldo'],
                 'total_transferencias' => (float) $periodo['total_transferencias'],
@@ -193,6 +195,7 @@ class ReporteMensualController extends Controller
                 'total_despues_gastos' => (float) $periodo['ingresos_afectan_saldo'] - (float) $periodo['gastos'] - (float) $periodo['gastos_cliente'],
                 'iguala' => (float) ($periodo['igualas'] ?? 0),
                 'pagos_cliente_mes' => (float) $periodo['pagos_cliente'],
+                'pagos_cliente_da_mes' => (float) $periodo['pagos_cliente_da'],
                 'saldo_anterior' => (float) $reporteFinanciero['saldo_anterior'],
                 'saldo_anterior_contable' => (float) $reporteFinanciero['saldo_anterior_contable'],
                 'saldo_anterior_liquidado' => (float) $reporteFinanciero['saldo_anterior_liquidado'],
@@ -241,6 +244,7 @@ class ReporteMensualController extends Controller
                 'gasto_cliente',
                 'iguala',
                 'pago_cliente',
+                'pago_cliente_da',
             ], true))
             ->values();
     }
@@ -273,6 +277,7 @@ class ReporteMensualController extends Controller
             'rentasRecabadas' => collect(),
             'rentasAdelantadas' => collect(),
             'pagosExtras' => collect(),
+            'pagosClienteDa' => collect(),
             'desocupadas' => collect(),
             'gastosCliente' => collect(),
             'gastosPropiedad' => collect(),
@@ -286,6 +291,7 @@ class ReporteMensualController extends Controller
                 'total_despues_gastos' => 0,
                 'iguala' => 0,
                 'pagos_cliente_mes' => 0,
+                'pagos_cliente_da_mes' => 0,
                 'saldo_anterior' => 0,
                 'saldo_anterior_contable' => 0,
                 'saldo_anterior_liquidado' => 0,

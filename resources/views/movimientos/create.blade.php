@@ -56,10 +56,12 @@
           <option value="gasto" @selected($field('concepto') === 'gasto')>Gasto</option>
           <option value="gasto_cliente" @selected($field('concepto') === 'gasto_cliente')>Gasto cliente</option>
           <option value="pago_cliente" @selected($field('concepto') === 'pago_cliente')>Pago al cliente</option>
+          <option value="pago_cliente_da" @selected($field('concepto') === 'pago_cliente_da')>Pago cliente a DA</option>
           <option value="iguala" @selected($field('concepto') === 'iguala')>Iguala / Comisión de administración</option>
 
         </select>
       </div>
+      <p id="pago-cliente-da-info" @class(['hidden' => $field('concepto') !== 'pago_cliente_da', 'rounded bg-blue-50 p-2 text-sm text-blue-800'])>Este movimiento siempre afecta positivamente el saldo del cliente.</p>
 
       {{-- Propiedad --}}
       <div data-assignment-panel="propiedad">
@@ -111,7 +113,7 @@
         <p class="text-xs text-gray-500 mt-1">Si se deja vacía en estado liquidado, se usará la fecha del movimiento.</p>
       </div>
 
-      <div id="afecta_saldo_cliente_wrap">
+      <div id="afecta_saldo_cliente_wrap" data-balance-impact-locked="{{ in_array($field('concepto'), ['renta', 'pago_cliente_da'], true) ? 'true' : 'false' }}" class="{{ in_array($field('concepto'), ['renta', 'pago_cliente_da'], true) ? 'hidden' : '' }}">
       <label class="inline-flex items-center gap-2">
         <input type="hidden" name="afecta_saldo_cliente" value="0">
         <input type="checkbox" name="afecta_saldo_cliente" value="1" class="rounded border-gray-300" @checked((bool) $field('afecta_saldo_cliente', true))>
@@ -186,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const fecha = document.getElementById('fecha');
   const afectaSaldoWrap = document.getElementById('afecta_saldo_cliente_wrap');
   const rentaSaldoInfo = document.getElementById('renta-saldo-info');
+  const pagoClienteDaInfo = document.getElementById('pago-cliente-da-info');
 
   function actualizarRentaVigente() {
     const esRenta = selConcepto.value === 'renta';
@@ -253,8 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selFormaPago) selFormaPago.removeAttribute('disabled');
     }
     const esRenta = value === 'renta';
-    afectaSaldoWrap.classList.toggle('hidden', esRenta);
+    afectaSaldoWrap.classList.toggle('hidden', esRenta || value === 'pago_cliente_da');
     rentaSaldoInfo.classList.toggle('hidden', !esRenta);
+    pagoClienteDaInfo.classList.toggle('hidden', value !== 'pago_cliente_da');
     }
 
 

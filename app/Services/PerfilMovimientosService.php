@@ -106,7 +106,7 @@ class PerfilMovimientosService
 
     private function conceptos(): array
     {
-        return ['deposito', 'renta', 'gasto', 'gasto_cliente', 'iguala', 'pago_cliente'];
+        return ['deposito', 'renta', 'gasto', 'gasto_cliente', 'iguala', 'pago_cliente', 'pago_cliente_da'];
     }
 
     private function estadosPago(): array
